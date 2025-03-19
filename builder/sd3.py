@@ -18,9 +18,9 @@ height, width = resolution, resolution
 # hf_hub = "stabilityai/stable-diffusion-3-medium"
 model_name = "stable-diffusion-3"
 honey = modeling.transformers.SD3Transformer2DModel
-# config, honey, pt = load_config(hf_hub, subfolder="unet")
+# config, honey_cls, pt_cls = load_config(hf_hub, subfolder="unet")
 
-honey_module = honey()
+honey_module = honey_cls()
 honey_module.name_parameter_tensor()
 
 output_name = "Y"

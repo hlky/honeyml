@@ -16,9 +16,9 @@ height, width = resolution, resolution
 
 model_name = "flux"
 honey = modeling.transformers.FluxTransformer2DModel
-config, honey, pt = load_config(config_file="builder/flux_schnell_config.json")
+config, honey_cls, pt_cls = load_config(config_file="builder/flux_schnell_config.json")
 
-honey_module = honey(**config)
+honey_module = honey_cls(**config)
 honey_module.name_parameter_tensor()
 
 output_name = "Y"

@@ -13,9 +13,9 @@ height, width = resolution, resolution
 hf_hub = "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS"
 model_name = "PixArt-Sigma-XL-2-1024-MS"
 
-config, honey, pt = load_config(hf_hub, subfolder="transformer")
+config, honey_cls, pt_cls = load_config(hf_hub, subfolder="transformer")
 
-honey_module = honey(**config)
+honey_module = honey_cls(**config)
 honey_module.name_parameter_tensor()
 
 hidden_states = Tensor(

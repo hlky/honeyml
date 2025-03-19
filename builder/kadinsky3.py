@@ -13,9 +13,9 @@ height, width = resolution, resolution
 hf_hub = "kandinsky-community/kandinsky-3"
 model_name = "kandinsky-3"
 
-config, honey, pt = load_config(hf_hub, subfolder="unet")
+config, honey_cls, pt_cls = load_config(hf_hub, subfolder="unet")
 
-honey_module = honey(**config)
+honey_module = honey_cls(**config)
 honey_module.name_parameter_tensor()
 
 sample = Tensor(

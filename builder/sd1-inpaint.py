@@ -13,9 +13,9 @@ height, width = resolution, resolution
 hf_hub = "runwayml/stable-diffusion-inpainting"
 model_name = "stable-diffusion-inpainting"
 
-config, honey, pt = load_config(hf_hub, subfolder="unet")
+config, honey_cls, pt_cls = load_config(hf_hub, subfolder="unet")
 
-honey_module = honey(**config)
+honey_module = honey_cls(**config)
 honey_module.name_parameter_tensor()
 
 sample = Tensor(

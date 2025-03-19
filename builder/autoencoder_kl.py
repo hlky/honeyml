@@ -85,9 +85,9 @@ hf_hub = args.hf_hub
 label = args.label
 model_name = f"autoencoder_kl.decoder.{label}.{resolution[1]}.{device_name}.sm{sm}"
 
-config, honey, pt = load_config(hf_hub, subfolder=args.subfolder)
+config, honey_cls, pt_cls = load_config(hf_hub, subfolder=args.subfolder)
 
-honey_module = honey(**config)
+honey_module = honey_cls(**config)
 honey_module.name_parameter_tensor()
 
 z = Tensor(

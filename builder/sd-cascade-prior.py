@@ -13,9 +13,9 @@ height, width = resolution, resolution
 hf_hub = "stabilityai/stable-cascade-prior"
 model_name = "stable-cascade-prior"
 
-config, honey, pt = load_config(hf_hub, subfolder="prior")
+config, honey_cls, pt_cls = load_config(hf_hub, subfolder="prior")
 
-honey_module = honey(**config)
+honey_module = honey_cls(**config)
 honey_module.name_parameter_tensor()
 
 resolution_multiple = 42.67
