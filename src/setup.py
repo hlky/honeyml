@@ -159,18 +159,7 @@ setup(
     install_requires=["jinja2", "numpy", "sympy"],
     packages=find_packages(),
     package_data={
-        "honey": [
-            "backend/cuda/elementwise/custom_math.cuh",
-            "backend/cuda/layernorm_sigmoid_mul/layernorm_sigmoid_mul_kernel.cuh",
-            "backend/cuda/groupnorm/groupnorm_kernel.cuh",
-            "backend/cuda/groupnorm/layer_norm.cuh",
-            "backend/cuda/softmax/softmax.cuh",
-            "backend/cuda/vision_ops/nms/batched_nms_kernel.cuh",
-            "backend/cuda/vision_ops/nms/nms_kernel.cuh",
-            "backend/cuda/vision_ops/roi_ops/multi_level_roi_align.cuh",
-            "backend/rocm/elementwise/custom_math.h",
-        ]
-        + gen_utils_file_list()
+        "honey": gen_utils_file_list()
         + gen_cutlass_list()
         + gen_cutlass_lib_list()
         + gen_cub_list()
