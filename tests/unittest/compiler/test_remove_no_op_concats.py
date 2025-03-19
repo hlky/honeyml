@@ -63,7 +63,7 @@ class TestRemoveNoOpConcats(unittest.TestCase):
         )
 
     def test_remove_no_op_concats_no_ops_all_empty(self):
-        """Below we test when all the input tensors are empty. fx2ait will fail
+        """Below we test when all the input tensors are empty. fx2honey will fail
         in these cases. However, it's possible to create it directly in Honey.
         Therefore, we test this case and treat it as a no-op.
         """
