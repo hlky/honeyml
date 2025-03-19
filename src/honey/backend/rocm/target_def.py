@@ -154,21 +154,7 @@ class ROCM(Target):
         RuntimeError
             Failed to create ck library.
         """
-        self.lib_folder = None
-        try:
-            import ck_lib  # noqa: F401
-        except BaseException:
-            try:
-                cur_path = os.path.dirname(os.path.realpath(__file__))
-                ck_lib_path = os.path.normpath(
-                    os.path.join(cur_path, "..", "..", "utils", "mk_ck_lib")
-                )
-                f_make_lib = registry.get("rocm.make_ck_lib")
-                dst_path = f_make_lib(ck_lib_path)
-                sys.path.insert(1, dst_path)
-            except BaseException as err:
-                raise RuntimeError("Failed to create ck library") from err
-            self.lib_folder = dst_path
+        self.lib_folder = "src/honey/utils/ck_lib"
 
     def __enter__(self):
         """Generate the ck library and generate ck operations."""
@@ -178,12 +164,6 @@ class ROCM(Target):
         # Choose the right ops to launch.
         f_gen_ops = registry.get("rocm.gen_ck_ops")
         self._operators = f_gen_ops(self._arch)
-
-    def __exit__(self, ptype, value, trace):
-        """Delete the ck library."""
-        super().__exit__(ptype, value, trace)
-        if self.lib_folder and os.path.exists(self.lib_folder):
-            shutil.rmtree(self.lib_folder)
 
     def cc(self):
         return "hipcc"
@@ -236,116 +216,6 @@ class ROCM(Target):
             return tuple(args)
 
         return min(algo_names, key=comp_func)
-
-
-class FBROCM(ROCM):
-    """ROCM target.
-
-    Parameters
-    ----------
-    Target : Target
-        All attributes needed for ROCM.
-    """
-
-    def __init__(
-        self,
-        template_path=COMPOSABLE_KERNEL_PATH,
-        arch="GFX90a",
-        honey_static_files_path=Honey_STATIC_FILES_PATH,
-        **kwargs,
-    ):
-        """Initialize ROCM target.
-
-        Parameters
-        ----------
-        template_path : str, optional
-            Path to composable kernel library, by default "${repo_root}/3rdparty/composable_kernel".
-        honey_static_files_path : str
-            Absolute path to the Honey static/ directory
-        arch : str, optional
-            Supported ROCM architecture, by default "GFX90a".
-        """
-        from libfb.py import parutil
-
-        self._template_path = template_path.replace("3rdparty", "fb/3rdparty")
-
-        convert_hippcc_json = parutil.get_file_path(
-            os.path.join("honey/testing", "convert_hipcc_cmd")
-        )
-        _LOGGER.info(f"Load the hipcc compile option from {convert_hippcc_json}")
-        with open(convert_hippcc_json, "r") as hipcc_options_json:
-            self.hipcc_options_json = json.load(hipcc_options_json)
-
-        super().__init__(template_path=self._template_path, arch=arch, **kwargs)
-
-    def _build_compile_options(self):
-        """Build compilation commands, including compilation flag library and includes.
-
-        Returns
-        -------
-        List
-            List of compilation options.
-
-        Raises
-        ------
-        RuntimeError
-            Unsupported GPU Arch.
-        """
-
-        ck_paths = self._get_ck_paths()
-        options = self.hipcc_options_json["args"] + [
-            environ.get_compiler_opt_level(),
-            "-fPIC",
-            "-fvisibility=hidden",
-            "-std=c++17",
-            "-w",
-            "-DCK_TIME_KERNEL=0",
-            "--hip-version=5.2.0",
-        ]
-
-        for path in ck_paths:
-            options.append("-I" + path)
-
-        if self._arch in {"GFX908", "gfx908"}:
-            options.append("-DCK_AMD_GPU_GFX908")
-            options.append("--cuda-gpu-arch=gfx908")
-        elif self._arch in {"GFX90a", "gfx90a"}:
-            options.append("-DCK_AMD_GPU_GFX90A")
-            options.append("--cuda-gpu-arch=gfx90a")
-        else:
-            raise RuntimeError("Unsupported GPU Arch")
-        for path in ck_paths:
-            options.append("-I" + path)
-
-        options.append("-lrocrand")
-        return " ".join(options)
-
-    def binary_compile_cmd(self):
-        """
-        There is no ld by default in the prod env. Instead, we use ld from the gvfs path.
-        """
-        ld = self.hipcc_options_json["ld"]
-        objcopy = self.hipcc_options_json["objcopy"]
-        cmd = " ".join([ld, "-r -b binary -o {target} {src}"])
-        # Support models with >2GB constants on Linux only
-        if is_linux():
-            cmd += (
-                f" && {objcopy} --rename-section"
-                " .data=.lrodata,alloc,load,readonly,data,contents"
-                " {target} {target}"
-            )
-        return cmd
-
-    def cc(self):
-        return self.hipcc_options_json["hipcc_bin"]
-
-    def compile_options(self):
-        return self._compile_options
-
-
-@registry.reg("fb.rocm.create_target")
-def create_target_fb(arch, **kwargs):
-    return FBROCM(arch=arch, **kwargs)
 
 
 @registry.reg("rocm.create_target")

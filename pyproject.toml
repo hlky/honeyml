@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "honey"
+version = "0.1.0"
+description = "Honey: Optimization never tasted so sweet 🍯🐝"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.7, <4"
+dependencies = [
+    "jinja2",
+    "numpy",
+    "sympy"
+]

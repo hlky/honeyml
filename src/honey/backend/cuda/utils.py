@@ -18,7 +18,6 @@ Util functions for CUDA codegen.
 import logging
 
 from honey.backend import registry
-from honey.utils.mk_cutlass_lib.mk_cutlass_lib import mk_cutlass_lib
 
 # pylint: disable=C0103,C0415,W0707
 
@@ -41,9 +40,6 @@ class Args:
         self.interface_dir = None
         self.filter_by_cc = True
         self.disable_full_archs_compilation = False
-
-
-registry.reg("cuda.make_cutlass_lib")(mk_cutlass_lib)
 
 
 @registry.reg("cuda.gen_cutlass_ops")

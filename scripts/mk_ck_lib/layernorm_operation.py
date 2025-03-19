@@ -17,9 +17,7 @@ from dataclasses import dataclass
 
 import jinja2
 
-# import library
-
-from honey.utils.mk_ck_lib import library
+import library
 
 
 @dataclass
@@ -56,7 +54,7 @@ class TileDesc:
 
 
 @dataclass
-class GroupNormOperation:
+class LayerNormOperation:
     operation_kind: library.OperationKind
     extra_kind: int
     In: library.DataType
@@ -84,7 +82,7 @@ using {{name}} = ck::tensor_operation::device::DeviceNormalizationImpl<
     {{InDType}},
     {{AccDType}},
     {{OutDType}},
-    YElementOp,
+    ck::tensor_operation::element_wise::PassThrough,
     {{Rank}},
     {{NumReduceDim}},
     {{tile_config}}
@@ -94,10 +92,10 @@ using {{name}} = ck::tensor_operation::device::DeviceNormalizationImpl<
         return template.render(
             name=self.__str__(),
             InDType=library.DataTypeTag[self.In],
-            AccDType=library.DataTypeTag[library.DataType.f32],
+            AccDType=library.DataTypeTag[self.accumulator_type()],
             OutDType=library.DataTypeTag[self.Out],
             Rank=self.Rank,
-            NumReduceDim=self.NumReduceDim,
+            NumReduceDim=self.NumReduceDim,  # we only need softmax(dim=-1) at this moment
             tile_config=self.tile_desc.emit(),
         )
 
@@ -106,14 +104,14 @@ if __name__ == "__main__":
     A = library.TensorDesc(library.DataType.f16, library.LayoutType.RowMajor)
     B = library.TensorDesc(library.DataType.f16, library.LayoutType.ColumnMajor)
     C = library.TensorDesc(library.DataType.f16, library.LayoutType.RowMajor)
-    GroupNormOp = GroupNormOperation(
-        operation_kind=library.OperationKind.GroupNorm,
-        extra_kind=5,
+    LayerNormOp = LayerNormOperation(
+        operation_kind=library.OperationKind.LayerNorm,
+        extra_kind=3,
         In=library.DataType.f16,
         Out=library.DataType.f16,
-        Rank=5,
-        NumReduceDim=3,
+        Rank=3,
+        NumReduceDim=-1,
         tile_desc=TileDesc(256, 8, 32, 1, 8, 1, 8, 1, 8, 1, 8, 8),
     )
-    print(str(GroupNormOp))
-    print(GroupNormOp.emit())
+    print(str(LayerNormOp))
+    print(LayerNormOp.emit())

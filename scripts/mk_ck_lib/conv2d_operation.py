@@ -20,10 +20,7 @@ from typing import List
 
 import jinja2
 
-# import library
-
-from honey.utils.mk_ck_lib import library
-
+import library
 
 class Conv2DSpecialization(enum.Enum):
     ConvFwdDefault = auto()

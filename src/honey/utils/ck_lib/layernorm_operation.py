@@ -17,9 +17,7 @@ from dataclasses import dataclass
 
 import jinja2
 
-# import library
-
-from honey.utils.mk_ck_lib import library
+import library
 
 
 @dataclass

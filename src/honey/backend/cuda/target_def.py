@@ -216,19 +216,7 @@ class CUDA(Target):
         return ".cu"
 
     def _gen_cutlass_lib_pkg(self):
-        self.lib_folder = None
-        try:
-            import cutlass_lib  # noqa: F401
-        except Exception:
-            try:
-                f_make_lib = registry.get("cuda.make_cutlass_lib")
-                dst_path = f_make_lib(self.template_path())
-                sys.path.insert(1, dst_path)
-            except Exception as err:
-                raise RuntimeError(
-                    "Failed to create cutlass library lib: {}".format(err)
-                ) from err
-            self.lib_folder = dst_path
+        self.lib_folder = "src/honey/utils/cutlass_lib"
 
     def __enter__(self):
         super().__enter__()

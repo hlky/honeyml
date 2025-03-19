@@ -15,26 +15,15 @@
 import os
 import pathlib
 import re
-import shutil
-import tempfile
 
-from honey.utils.mk_cutlass_lib import (
-    extra_conv_emit,
-    extra_cutlass_generator,
-    extra_enum,
-    extra_gemm_emit,
-)
+import extra_conv_emit
+import extra_cutlass_generator
+import extra_enum
+import extra_gemm_emit
 
 
-def mk_cutlass_lib(template_path, dst_prefix=None):
-    if dst_prefix is None:
-        dst_prefix = tempfile.mkdtemp()
-    lib_dst = os.path.join(dst_prefix, "cutlass_lib")
-    if pathlib.Path(lib_dst).is_dir():
-        shutil.rmtree(lib_dst)
-
-    os.makedirs(lib_dst)
-    with open(os.path.join(lib_dst, "__init__.py"), "w") as fo:
+def mk_cutlass_lib(scripts_path, cutlass_lib_path):
+    with open(os.path.join(cutlass_lib_path, "__init__.py"), "w") as fo:
         fo.write("from . import library\n")
         fo.write("from . import generator\n")
         fo.write("from . import manifest\n")
@@ -68,33 +57,33 @@ def mk_cutlass_lib(template_path, dst_prefix=None):
         with open(dst_path, "w") as fo:
             fo.writelines(output)
 
-    src_prefix = os.path.join(template_path, "tools/library/scripts")
-    srcs = os.listdir(src_prefix)
+    srcs = os.listdir(scripts_path)
     if "__init__.py" in srcs:
         srcs.remove("__init__.py")
     for file in srcs:
-        src_path = os.path.join(src_prefix, file)
+        src_path = os.path.join(scripts_path, file)
         if not os.path.isfile(src_path):
             continue
-        dst_path = os.path.join(lib_dst, file)
+        dst_path = os.path.join(cutlass_lib_path, file)
         process_code(src_path, dst_path, srcs)
 
     # extra configs
-    dst_path = os.path.join(lib_dst, "extra_operation.py")
+    dst_path = os.path.join(cutlass_lib_path, "extra_operation.py")
     with open(dst_path, "w") as fo:
         code = extra_cutlass_generator.emit_library()
         fo.write(code)
-    return dst_prefix
+    return cutlass_lib_path
 
 
 def main() -> None:
-    cutlass_path = os.getenv("SRCDIR")
-    output_path = os.getenv("OUT")
-
-    assert output_path is not None
-    assert cutlass_path is not None
-
-    mk_cutlass_lib(cutlass_path + "/cutlass", os.path.dirname(output_path))
+    scripts_path = pathlib.Path(__file__).parent.resolve().parent.joinpath("cutlass_scripts")
+    cutlass_lib_path = pathlib.Path(__file__).parent.resolve().parent.parent.joinpath("src/honey/utils/cutlass_lib")
+    print(scripts_path)
+    print(cutlass_lib_path)
+    mk_cutlass_lib(
+        scripts_path=scripts_path,
+        cutlass_lib_path=cutlass_lib_path,
+    )
 
 
 if __name__ == "__main__":

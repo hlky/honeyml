@@ -15,10 +15,4 @@
 
 # flake8: noqa
 
-from honey.utils.mk_ck_lib import (
-    conv2d_operation,
-    gemm_operation,
-    generator,
-    library,
-    manifest,
-)
+import conv2d_operation, gemm_operation, generator, library, manifest

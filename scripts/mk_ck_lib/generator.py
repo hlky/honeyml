@@ -15,14 +15,12 @@
 
 import copy
 
-from honey.utils.mk_ck_lib import (
-    conv2d_operation as conv,
-    gemm_operation as gemm,
-    groupnorm_operation as groupnorm,
-    layernorm_operation as layernorm,
-    library,
-    softmax_operation as softmax,
-)
+import conv2d_operation as conv
+import gemm_operation as gemm
+import groupnorm_operation as groupnorm
+import layernorm_operation as layernorm
+import library
+import softmax_operation as softmax
 
 
 ###########################################################################################################

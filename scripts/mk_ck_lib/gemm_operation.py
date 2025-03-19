@@ -20,7 +20,7 @@ from typing import List
 
 import jinja2
 
-from honey.utils.mk_ck_lib import library
+import library
 
 # import library
 
