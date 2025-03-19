@@ -154,7 +154,7 @@ wheel_include_libs = True
 setup(
     name="honey",
     version=__version__,
-    description="Honey: Make Templates Great for AI",
+    description="Honey: Optimization never tasted so sweet 🍯🐝",
     zip_safe=True,
     install_requires=["jinja2", "numpy", "sympy"],
     packages=find_packages(),
