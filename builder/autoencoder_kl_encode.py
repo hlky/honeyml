@@ -2,6 +2,7 @@ from honey.compiler import compile_model
 from honey.frontend import IntVar, Tensor
 from honey.testing import detect_target
 from honey.testing.benchmark_honey import benchmark_module
+from honey.utils.build_utils import get_device_name, get_sm
 
 from config import load_config, mark_output
 
@@ -58,24 +59,9 @@ def map_vae(pt_module, device="cuda", dtype="float16", encoder=True):
     return params_honey
 
 
-device_name = (
-    torch.cuda.get_device_name()
-    .lower()
-    .replace("nvidia ", "")
-    .replace("geforce rtx ", "")
-    .replace("geforce gtx ", "")
-    .replace("geforce gt ", "")
-    .replace("geforce ", "")
-    .replace("tesla ", "")
-    .replace("quadro ", "")
-    .strip()
-    .replace(" ", "_")
-    .lower()
-    .split(",")[0]
-    .split("(")[0]
-)
+device_name = get_device_name()
 
-sm = "".join(str(i) for i in torch.cuda.get_device_capability())
+sm = get_sm()
 
 
 batch_size = args.min_batch, args.max_batch
@@ -117,7 +103,7 @@ sample = Tensor(
 latents = honey_module.encode(x=x).latent_dist.sample(sample)
 latents = mark_output(latents, "latents")
 
-pt = pt.from_pretrained(hf_hub, subfolder=args.subfolder)
+pt = pt_cls.from_pretrained(hf_hub, subfolder=args.subfolder)
 constants = map_vae(pt)
 
 target = detect_target()
