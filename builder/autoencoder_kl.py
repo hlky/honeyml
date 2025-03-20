@@ -1,6 +1,7 @@
 from honey.compiler import compile_model
 from honey.frontend import IntVar, Tensor
 from honey.testing import detect_target
+from honey.testing.benchmark_honey import benchmark_module
 from honey.utils.build_utils import get_device_name, get_sm
 
 from config import load_config, mark_output
@@ -96,7 +97,7 @@ constants = map_vae(pt)
 
 target = detect_target()
 
-compile_model(
+module = compile_model(
     Y,
     target,
     "./tmp",
@@ -104,3 +105,5 @@ compile_model(
     constants=constants,
     dll_name=f"{model_name}.so",
 )
+
+benchmark_module(module=module, count=50, repeat=3)
