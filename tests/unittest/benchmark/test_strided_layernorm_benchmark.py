@@ -18,14 +18,129 @@ import json
 import logging
 import unittest
 import uuid
+import unittest
 
+import torch
+from honey.compiler import compile_model, ops
+from honey.compiler.ops.common.epilogue import FuncEnum
+from honey.frontend import Tensor
 from honey.testing import detect_target
+from honey.utils import shape_utils
 from honey.testing.benchmark_honey import make_input_output_pools, run_benchmark
-
-from ..compiler.test_strided_layernorm import build_honey_module, eval_pt
 
 LOGGER = logging.getLogger(__name__)
 
+
+def build_honey_module(
+    *,
+    batch_sizes,
+    input_nonbatch_shape,
+    start_indices,
+    end_indices,
+    n_normalize_over_last_dims,
+    gamma_is_none,
+    beta_is_none,
+    fuse_sigmoid_mul,
+    eps,
+    test_id,
+    honey_dtype="float16",
+    workdir="./tmp",
+    test_name="strided_layernorm",
+    use_welford_algorithm=False,
+):
+    target = detect_target(
+        layernorm_use_welford_algorithm=use_welford_algorithm,
+    )
+    X0 = Tensor(
+        shape=[
+            shape_utils.gen_int_var_min_max(values=batch_sizes, name="input_batch"),
+            *input_nonbatch_shape,
+        ],
+        dtype=honey_dtype,
+        name="input",
+        is_input=True,
+    )
+    X1 = ops.dynamic_slice()(X0, start_indices, end_indices)
+    layernorm_weight_shape = X1.shape()[-n_normalize_over_last_dims:]
+    if gamma_is_none:
+        X2 = None
+    else:
+        X2 = Tensor(
+            shape=layernorm_weight_shape,
+            dtype=honey_dtype,
+            name="gamma",
+            is_input=True,
+        )
+    if beta_is_none:
+        X3 = None
+    else:
+        X3 = Tensor(
+            shape=layernorm_weight_shape,
+            dtype=honey_dtype,
+            name="beta",
+            is_input=True,
+        )
+    if fuse_sigmoid_mul:
+        layernorm_op = ops.layernorm()
+        sigmoid_op = ops.elementwise(FuncEnum.SIGMOID)
+        mul_op = ops.elementwise(FuncEnum.MUL)
+        layernorm_out = layernorm_op(X1, X2, X3, layernorm_weight_shape, eps=eps)
+        sigmoid_out = sigmoid_op(layernorm_out)
+        _ = mul_op(sigmoid_out, X1)
+        fused_op = ops.layernorm_sigmoid_mul(layernorm_op, sigmoid_op, mul_op)
+        output = fused_op()
+    else:
+        output = ops.layernorm()(X1, X2, X3, layernorm_weight_shape, eps)
+    output._attrs["is_output"] = True
+    output._attrs["name"] = "output"
+    dll_name = f"test_{test_id}.so"
+    return compile_model(
+        output,
+        target,
+        workdir,
+        f"{test_name}_{test_id}",
+        dll_name=dll_name,
+    )
+
+
+def eval_pt(
+    *,
+    batch_size,
+    input_nonbatch_shape,
+    start_indices,
+    end_indices,
+    n_normalize_over_last_dims,
+    gamma_is_none,
+    beta_is_none,
+    fuse_sigmoid_mul,
+    eps,
+    dtype=torch.float16,
+    device="cuda",
+):
+    dtype_device = {"dtype": dtype, "device": device}
+    X0 = torch.randn(batch_size, *input_nonbatch_shape, **dtype_device)
+    X1 = X0[[slice(i, j) for i, j in zip(start_indices, end_indices)]]
+    layernorm_weight_shape = X1.shape[-n_normalize_over_last_dims:]
+    if gamma_is_none:
+        X2 = None
+    else:
+        X2 = torch.randn(layernorm_weight_shape, **dtype_device)
+    if beta_is_none:
+        X3 = None
+    else:
+        X3 = torch.randn(layernorm_weight_shape, **dtype_device)
+    X4 = torch.nn.functional.layer_norm(
+        input=X1,
+        normalized_shape=layernorm_weight_shape,
+        weight=X2,
+        bias=X3,
+        eps=eps,
+    )
+    if fuse_sigmoid_mul:
+        output = torch.mul(X1, torch.sigmoid(X4))
+    else:
+        output = X4
+    return {"input": X0, "gamma": X2, "beta": X3, "output": output}
 
 class TestStridedLayerNormBenchmark(unittest.TestCase):
     def __init__(self, *args, **kwargs):
