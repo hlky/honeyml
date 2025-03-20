@@ -1449,10 +1449,11 @@ def function_filter(cfg, func_attrs, ab_alignment):
     """
     # example:
     # cfg="cutlass_tensorop_f16_s16816gemm_f16_128x32_64x4_nn_align_8_8"
+    # cfg="cutlass_tensorop_s1688tf32gemm_256x128_16x3_tn_align_4_4"
     tmp = cfg.split("_")
     align_c = int(tmp[-1])
     align_ab = int(tmp[-2])
-    size_a, size_b = tmp[5].split("x")
+    size_a, size_b = tmp[-6].split("x")
     # TODO: investigate
     if size_a == "256" or size_b == "256":
         return False
