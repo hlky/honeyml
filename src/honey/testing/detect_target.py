@@ -67,7 +67,8 @@ def _detect_cuda():
     elif comp_cap >= 70:
         return "70"
     else:
-        return None
+        _LOGGER.warning(f"Unsupported platform, got {comp_cap=}, expected >= 7.0. Overriding to `8.0` to allow debugging. Compilation will likely fail.")
+        return "80"
 
 
 def _detect_rocm():
