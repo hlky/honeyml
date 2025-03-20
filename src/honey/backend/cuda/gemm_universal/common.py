@@ -1450,6 +1450,7 @@ def function_filter(cfg, func_attrs, ab_alignment):
     # example:
     # cfg="cutlass_tensorop_f16_s16816gemm_f16_128x32_64x4_nn_align_8_8"
     # cfg="cutlass_tensorop_s1688tf32gemm_256x128_16x3_tn_align_4_4"
+    # TODO: cutlass_tensorop_f16_s16816gemm_f16_256x128_32x3_tn_perm4d_54_10000_align_8_8
     tmp = cfg.split("_")
     align_c = int(tmp[-1])
     align_ab = int(tmp[-2])
