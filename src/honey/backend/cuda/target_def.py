@@ -77,37 +77,12 @@ class CUDA(Target):
         self._cuda_version = cuda_version
 
     def _build_include_directories(self) -> List[str]:
-        flash_attention_path = ""
-        if os.path.exists(
-            os.path.join(
-                self._template_path,
-                "../../python/honey/backend/cuda/attention/src",
-            )
-        ):
-            # setup develop
-            flash_attention_path = os.path.join(
-                self._template_path,
-                "../../python/honey/backend/cuda/attention/src",
-            )
-        else:
-            # in wheel
-            flash_attention_path = os.path.join(
-                self._template_path, "../../backend/cuda/attention/src"
-            )
         cutlass_path = [
             os.path.join(self._template_path, "include"),
             os.path.join(self._template_path, "tools/util/include"),
             os.path.join(self._template_path, "examples/35_gemm_softmax"),
             os.path.join(self._template_path, "examples/41_fused_multi_head_attention"),
             os.path.join(self._template_path, "examples/45_dual_gemm"),
-            os.path.join(
-                flash_attention_path,
-                "./",
-            ),
-            os.path.join(
-                flash_attention_path,
-                "fmha",
-            ),
         ]
         honey_kernels_static_path = os.path.join(
             self._honey_include_path, "include/kernels"

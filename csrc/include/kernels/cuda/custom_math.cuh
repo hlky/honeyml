@@ -15,6 +15,22 @@
 #ifndef CUSTOM_MATH
 #define CUSTOM_MATH
 
+#include <cuda_fp16.h>
+#include <cuda_bf16.h>
+#include <cutlass/float8.h>
+#include "cutlass/cutlass.h"
+#include "cutlass/fast_math.h"
+#include "cutlass/constants.h"
+#include "cutlass/epilogue/thread/activation.h"
+#include "math_constants.h"
+
+using bfloat16 = nv_bfloat16;
+using bfloat16_2 = nv_bfloat162;
+using float8_e5m2 = cutlass::float_e5m2_t;
+using float8_e4m3 = cutlass::float_e4m3_t;
+
+namespace {
+
 #ifndef __TO_UI
 #define __TO_UI(var) *(reinterpret_cast<unsigned int*>(&(var)))
 #endif
@@ -159,6 +175,26 @@ __device__ bfloat16 fast_tanh(bfloat16 x) {
   NOT_IMPLEMENTED();
 #endif
 }
+
+
+__device__ float sigmoid(const float a) {
+  return (cutlass::fast_tanh(a * 0.5f) + 1.0f) * 0.5f;
+}
+
+__device__ half hsigmoid(const half a) {
+  return __hmul(
+      (__hadd(fast_tanh(__hmul(a, CUDA_FP16_ONE_HALF)), CUDA_FP16_ONE)),
+      CUDA_FP16_ONE_HALF);
+}
+
+#if defined(__CUDA_ARCH__) && (__CUDACC_VER_MAJOR__ >= 11) && \
+    (__CUDA_ARCH__ >= 800)
+__device__ bfloat16 bf16sigmoid(const bfloat16 a) {
+  return __hmul(
+      (__hadd(fast_tanh(__hmul(a, CUDA_BF16_ONE_HALF)), CUDA_BF16_ONE)),
+      CUDA_BF16_ONE_HALF);
+}
+#endif
 
 __device__ float fsigmoid_custom(const float a) {
 #if defined(Honey_USE_TANH_FOR_SIGMOID)
@@ -1102,5 +1138,7 @@ __device__ bfloat16_2 h2log1p(const bfloat16_2 a) {
 __device__ float8_e4m3 __e4m3add(const float8_e4m3 a, const float8_e4m3 b) {
   return float8_e4m3(float(a) + float(b));
 }
+
+} // namespace
 
 #endif

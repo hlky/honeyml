@@ -16,6 +16,8 @@
 #ifndef CONCATENATE_FAST_KERNEL
 #define CONCATENATE_FAST_KERNEL
 
+namespace {
+
 /////////////////////////////////////////////////////////////
 // some standard includes
 #include <algorithm>
@@ -497,6 +499,19 @@ size_t getAlignment(const size_t n) {
     return 1;
 }
 
+// TODO: support strided tensor with TensorAccessor
+// For strided tensor, the index can be much larger than original if the stride is large
+bool can_use_32bit_index_math(const int64_t elements, int64_t max_elem=std::numeric_limits<int32_t>::max()) {
+  if (elements >= max_elem) {
+    return false;
+  }
+  if (elements == 0) {
+    return max_elem > 0;
+  }
+
+  return true;
+}
+
 // clang-format on
 
 //
@@ -859,4 +874,5 @@ void invoke_concatenate_fast(
   throw std::runtime_error("Unsupported concat kernel specialization!");
 }
 
+} //namespace
 #endif

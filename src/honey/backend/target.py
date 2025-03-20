@@ -432,7 +432,7 @@ class Target:
             The path to copy to
         """
         sources = []
-        csrc = os.path.join(self.static_files_path, "csrc")
+        csrc = self.static_files_path
         for fname in os.listdir(csrc):
             fname_dst, ext = os.path.splitext(fname)
             if ext != ".cpp":

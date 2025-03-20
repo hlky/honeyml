@@ -42,19 +42,6 @@ KERNEL_SRC_TEMPLATE = jinja2.Template(
 
 namespace {
 
-// TODO: support strided tensor with TensorAccessor
-// For strided tensor, the index can be much larger than original if the stride is large
-bool can_use_32bit_index_math(const int64_t elements, int64_t max_elem=std::numeric_limits<int32_t>::max()) {
-  if (elements >= max_elem) {
-    return false;
-  }
-  if (elements == 0) {
-    return max_elem > 0;
-  }
-
-  return true;
-}
-
 __host__ __device__ __forceinline__
 int64_t get_num_elems(const {{index_type}} *shape, {{index_type}} rank) {
   int64_t num = 1;

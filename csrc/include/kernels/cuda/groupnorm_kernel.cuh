@@ -15,6 +15,19 @@
 #ifndef GROUPNORM_KERNEL_CUH
 #define GROUPNORM_KERNEL_CUH
 
+#include <cuda.h>
+#include <cuda_fp16.h>
+#include <cuda_bf16.h>
+#include <cuda_runtime.h>
+
+#include "kernels/cuda/custom_math.cuh"
+
+
+using bfloat16 = __nv_bfloat16;
+using bfloat16_2 = __nv_bfloat162;
+
+namespace {
+
 constexpr uint32_t kFinalMask = 0xffffffff;
 
 #ifndef GROUP_NORM_CUDA_CHECK
@@ -38,71 +51,6 @@ constexpr uint32_t kFinalMask = 0xffffffff;
 #endif
 
 #define NOT_IMPLEMENTED() assert(0 && __PRETTY_FUNCTION__)
-
-__device__ half fast_tanh(half x) {
-#if defined(__CUDA_ARCH__) && (__CUDACC_VER_MAJOR__ >= 11) && \
-    (__CUDA_ARCH__ >= 750)
-
-  asm volatile("tanh.approx.f16 %0, %1;"
-               : "=h"(__HALF_TO_US(x))
-               : "h"(__HALF_TO_US(x)));
-  return x;
-
-#else
-  return half(cutlass::fast_tanh(float(x)));
-#endif
-}
-
-__device__ bfloat16 fast_tanh(bfloat16 x) {
-#if defined(__CUDA_ARCH__) && (__CUDACC_VER_MAJOR__ >= 11) && \
-    (__CUDA_ARCH__ >= 900)
-  asm volatile("tanh.approx.bf16 %0, %1;"
-               : "=h"(__HALF_TO_US(x))
-               : "h"(__HALF_TO_US(x)));
-  return x;
-
-#elif defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 800)
-  return cutlass::fast_tanh(float(x));
-#else
-  NOT_IMPLEMENTED();
-#endif
-}
-
-#define CUDA_FP16_ONE_HALF \
-  __half_raw {             \
-    0x3800u                \
-  }
-#define CUDA_FP16_ONE \
-  __half_raw {        \
-    0x3c00u           \
-  }
-#define CUDA_BF16_ONE_HALF \
-  __nv_bfloat16_raw {      \
-    0x3f00u                \
-  }
-#define CUDA_BF16_ONE \
-  __nv_bfloat16_raw { \
-    0x3f80u           \
-  }
-
-__device__ float sigmoid(const float a) {
-  return (cutlass::fast_tanh(a * 0.5f) + 1.0f) * 0.5f;
-}
-
-__device__ half hsigmoid(const half a) {
-  return __hmul(
-      (__hadd(fast_tanh(__hmul(a, CUDA_FP16_ONE_HALF)), CUDA_FP16_ONE)),
-      CUDA_FP16_ONE_HALF);
-}
-
-#if defined(__CUDA_ARCH__) && (__CUDACC_VER_MAJOR__ >= 11) && \
-    (__CUDA_ARCH__ >= 800)
-__device__ bfloat16 bf16sigmoid(const bfloat16 a) {
-  return __hmul(
-      (__hadd(fast_tanh(__hmul(a, CUDA_BF16_ONE_HALF)), CUDA_BF16_ONE)),
-      CUDA_BF16_ONE_HALF);
-}
-#endif
 
 template <typename T>
 struct FSigmoid {
@@ -1163,5 +1111,7 @@ cudaError_t invokeGroupNorm(
   // TODO: last error is 0, but invoked error logging no error
   return cudaGetLastError();
 }
+
+} // namespace
 
 #endif /* GROUPNORM_KERNEL_CUH */
