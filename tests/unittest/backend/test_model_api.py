@@ -54,10 +54,11 @@ class ModelAPITestCase(unittest.TestCase):
         test_name: str,
         dynamic_shape: bool = False,
         unsqueeze_output: bool = False,
+        optimize_for_compilation_time: bool = True,
     ) -> Tuple[
         Model, Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor]
     ]:
-        target = detect_target()
+        target = detect_target(optimize_for_compilation_time=optimize_for_compilation_time)
         input_0 = Tensor(shape=[1], dtype="float16", name="input_0", is_input=True)
         input_0_view = ops.reshape()(input_0, [1])
         input_1 = Tensor(
@@ -514,7 +515,7 @@ class ModelAPITestCase(unittest.TestCase):
 
     def test_profile(self):
         module, (in0, in1), (out_pt, out_honey) = self._get_simple_graph_and_output(
-            "test_profile", False, True
+            "test_profile", False, True, optimize_for_compilation_time=False,
         )
         with tempfile.TemporaryDirectory() as tmpdirname:
             profile_name = os.path.join(tmpdirname, "profile.json")

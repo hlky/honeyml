@@ -132,8 +132,9 @@ class CUDA(Target):
             "-std=c++17",
             "--expt-relaxed-constexpr",
             "-DCUTLASS_DEBUG_TRACE_LEVEL=" + environ.get_cutlass_debug_trace_level(),
-            "-DOPTIMIZE_FOR_COMPILATION_TIME",
         ]
+        if self._kwargs.get("optimize_for_compilation_time", True):
+            options.append("-DOPTIMIZE_FOR_COMPILATION_TIME")
         if environ.enable_ptxas_info():
             options.extend(
                 [
