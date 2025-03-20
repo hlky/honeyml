@@ -22,7 +22,10 @@ or into a target tensor.
 Used by expand_static_shape.py ( expand operator )
 
 */
+// integer ceil division
+#define INT_CEIL_DIV(a, b) (((a) + (b)-1) / (b))
 
+#define SHM_MAX 1024 * 44
 /**
  * CUDA Kernel to copy elements repeatedly from a source memory
  * region to a target memory region.
@@ -55,7 +58,7 @@ __global__ void repeat_head_kernel(
       // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#memcpy-async-primitiv
       __pipeline_memcpy_async(&shared[threadIdx.x], &src[ri], sizeof(int64_t));
       __pipeline_commit();
-      __pipeline_whoney_prior(0);
+      __pipeline_wait_prior(0);
     }
     __syncthreads(); // wait for shared memory to be populated
     // inner grid-stride loop, write with all threads out of shared memory
