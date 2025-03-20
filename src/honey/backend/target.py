@@ -30,15 +30,13 @@ from honey.utils.misc import is_linux
 
 _LOGGER = logging.getLogger(__name__)
 
-_MYPATH = os.path.dirname(os.path.realpath(__file__))
-_3RDPARTY_PATH = os.path.normpath(os.path.join(_MYPATH, "..", "..", "..", "3rdparty"))
-_WHEEL_3RDPARTY_PATH = os.path.normpath(os.path.join(_MYPATH, "..", "3rdparty"))
-if os.path.exists(_WHEEL_3RDPARTY_PATH):
-    _3RDPARTY_PATH = _WHEEL_3RDPARTY_PATH
-Honey_STATIC_FILES_PATH = os.path.join(_3RDPARTY_PATH, "../static")
-CUTLASS_PATH = os.path.join(_3RDPARTY_PATH, "cutlass")
-COMPOSABLE_KERNEL_PATH = os.path.join(_3RDPARTY_PATH, "composable_kernel")
-CUB_PATH = os.path.join(_3RDPARTY_PATH, "cub")
+CURRENT_PATH = pathlib.Path(__file__).parent.resolve()
+ROOT_PATH = CURRENT_PATH.parent.parent.parent
+_3RDPARTY_PATH = ROOT_PATH.joinpath("3rdparty/")
+Honey_STATIC_FILES_PATH = str(ROOT_PATH.joinpath("csrc/"))
+CUTLASS_PATH = str(_3RDPARTY_PATH.joinpath("cutlass/"))
+COMPOSABLE_KERNEL_PATH = str(_3RDPARTY_PATH.joinpath("composable_kernel/"))
+CUB_PATH = str(_3RDPARTY_PATH.joinpath("cub/"))
 
 CURRENT_TARGET = None
 
