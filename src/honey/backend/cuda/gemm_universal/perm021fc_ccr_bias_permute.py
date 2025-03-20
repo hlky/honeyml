@@ -85,7 +85,7 @@ class Tensor3DPermute021BMM {
 @registry.reg("cuda.perm021fc_ccr_bias_permute.config")
 def config(func_attrs, dtype="float16"):
     def fproc(op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         return common.default_fproc(
             op=op,

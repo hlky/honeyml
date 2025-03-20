@@ -188,7 +188,7 @@ PROFILER_PROBLEM_ARGS_TEMPLATE_CUTLASS_3X = jinja2.Template(
 def gemm_rcr_config(func_attrs, dtype="float16"):
     common.make_fproc(func_attrs, RCR, include_cutlass_3x_ops=True)
 
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     for op in func_attrs["op_instance"].values():
         if common.has_tma_epilogue(op):

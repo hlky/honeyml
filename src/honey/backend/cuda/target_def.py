@@ -234,11 +234,6 @@ class CUDA(Target):
             self._arch, self._cuda_version, allow_cutlass_sm90, force_cutlass_sm90
         )
 
-    def __exit__(self, ptype, value, trace):
-        super().__exit__(ptype, value, trace)
-        if self.lib_folder and os.path.exists(self.lib_folder) and not is_debug():
-            shutil.rmtree(self.lib_folder)
-
     def cc(self):
         cc = "nvcc"
         if environ.nvcc_ccbin():

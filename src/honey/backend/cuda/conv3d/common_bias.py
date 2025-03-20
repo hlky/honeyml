@@ -157,7 +157,7 @@ cutlass{{opcode_class}}_{{extended_name}}_{{threadblock}}_{{layout}}_align_{{ali
 
 def emit_instance(op):
     """emit instance"""
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     emiter = cutlass_lib.conv3d_operation.EmitConv3dInstance()
     op_def = emiter.emit(op)
@@ -166,7 +166,7 @@ def emit_instance(op):
 
 def extract_config(func_attrs, dtype="float16"):
     """Extracts cutlass config for conv kernels."""
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     return conv2d_extract_config(
         func_attrs=func_attrs,

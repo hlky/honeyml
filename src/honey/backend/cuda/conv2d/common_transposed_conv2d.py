@@ -32,7 +32,7 @@ def _conv_transpose_instance(op_def):
 
 
 def emit_instance(op, f_instance_convertor=_conv_transpose_instance):
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     emiter = cutlass_lib.conv2d_operation.EmitConv2dInstance()
     op_def = emiter.emit(op)
@@ -48,7 +48,7 @@ def extract_config(
     op_layout=None,
 ):
     def apply_special_config(func_attrs, op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         op.group_mode = cutlass_lib.library.GroupMode.NoneGroup
         return op

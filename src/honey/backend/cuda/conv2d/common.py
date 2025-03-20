@@ -476,11 +476,11 @@ FUNC_CALL_TEMPLATE = jinja2.Template(
 
 def kernel_name(op, layout=None):
     """generate cuda kernel name"""
-    from cutlass_lib import library
+    import honey.utils.cutlass_lib as cutlass_lib
 
     threadblock = op.tile_description.procedural_name()
     extended_name = op.extended_name()
-    opcode_class_name = library.OpcodeClassNames[
+    opcode_class_name = cutlass_lib.library.OpcodeClassNames[
         op.tile_description.math_instruction.opcode_class
     ]
     if layout is None:
@@ -500,7 +500,7 @@ def kernel_name(op, layout=None):
 
 def emit_instance(op):
     """emit instance"""
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     if hasattr(op, "binary_op"):
         emiter = cutlass_lib.conv2d_operation.EmitConv2dWithBroadcastInstance()
@@ -521,7 +521,7 @@ def extract_config(
     """Extracts cutlass config for conv kernels."""
     import copy
 
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     spec = CUDASpec()
     lib_dtype = spec.dtype_to_lib_type(dtype)

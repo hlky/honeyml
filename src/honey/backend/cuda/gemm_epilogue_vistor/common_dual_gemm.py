@@ -125,11 +125,11 @@ EXEC_TEMPLATE = jinja2.Template(
 def kernel_name(op, func_attrs):
     """Returns kernel_name given input cutlass op_instance and operator attrs."""
 
-    from cutlass_lib import library
+    import honey.utils.cutlass_lib as cutlass_lib
 
     threadblock = op.tile_description.procedural_name()
     extended_name = op.extended_name()
-    opcode_class_name = library.OpcodeClassNames[
+    opcode_class_name = cutlass_lib.library.OpcodeClassNames[
         op.tile_description.math_instruction.opcode_class
     ]
     layout = op.layout_name()
@@ -168,7 +168,7 @@ def emit_instance(
     func_attrs=None,
     broadcast_b1=False,
 ):
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     emiter = cutlass_lib.gemm_operation.EmitDualGemmInstance()
     op_def = emiter.emit(op, broadcast_b1=broadcast_b1)
@@ -189,7 +189,7 @@ def default_fproc(
 ):
     import copy
 
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     backend_spec = CUDASpec()
     data_type = backend_spec.dtype_to_lib_type(dtype)

@@ -34,7 +34,7 @@ def extract_config(
     unary_op_name="Identity",
 ):
     def set_ops(func_attrs, op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         op.activation_op = cutlass_lib.library.EpilogueMathName[activation_op_name]
         op.binary_op = cutlass_lib.library.EpilogueMathName[binary_op_name]

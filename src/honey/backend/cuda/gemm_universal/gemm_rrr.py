@@ -99,7 +99,7 @@ PROBLEM_ARGS_TEMPLATE_CUTLASS_3X = jinja2.Template(
 def gemm_rrr_config(func_attrs, dtype="float16"):
     common.make_fproc(func_attrs, RRR, include_cutlass_3x_ops=True)
 
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     for op in func_attrs["op_instance"].values():
         if op.gemm_kind == cutlass_lib.library.GemmKind.Universal3x:

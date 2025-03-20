@@ -47,7 +47,7 @@ def _get_problem_info(**kwargs):
 @registry.reg("cuda.perm021fc_crc.config")
 def gemm_crc_config(func_attrs, dtype="float16"):
     def fproc(op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         return common.default_fproc(
             op=op,

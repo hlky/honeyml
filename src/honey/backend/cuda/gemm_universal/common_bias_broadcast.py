@@ -606,7 +606,7 @@ def gen_profiler(
     binary_op2,
     unary_op2,
 ):
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     op_type = func_attrs["op"]
     op_instance = func_attrs["op_instance"]

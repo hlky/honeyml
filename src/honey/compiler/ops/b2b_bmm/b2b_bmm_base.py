@@ -81,7 +81,7 @@ class b2b_bmm_base(Operator):
         self._attrs["alpha1"] = alpha1
         self._attrs["alpha1_divide_by_seq_len"] = alpha1_divide_by_seq_len
 
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         if epilogue_math_name not in cutlass_lib.library.EpilogueMathName:
             raise RuntimeError(

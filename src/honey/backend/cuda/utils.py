@@ -49,7 +49,7 @@ def gen_ops(
     allow_cutlass_sm90,
     force_cutlass_sm90,
 ):
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     args = Args(arch)
     if cuda_version is not None:

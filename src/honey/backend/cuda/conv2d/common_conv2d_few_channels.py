@@ -22,7 +22,7 @@ from honey.utils import alignment
 
 def extract_config(func_attrs, dtype="float16"):
     def apply_special_config(func_attrs, op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         x = func_attrs["inputs"][0]
         in_ch = x._attrs["shape"][-1]._attrs["values"][0]

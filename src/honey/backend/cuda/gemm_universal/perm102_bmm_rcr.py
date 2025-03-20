@@ -107,7 +107,7 @@ def get_output_addr_calculator(func_attrs):
 @registry.reg("cuda.perm102_bmm_rcr.config")
 def gemm_rcr_config(func_attrs, dtype="float16"):
     def fproc(op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         return common.default_fproc(
             op=op,

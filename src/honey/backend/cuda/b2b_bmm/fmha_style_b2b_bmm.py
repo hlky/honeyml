@@ -244,7 +244,7 @@ def fmha_style_b2b_bmm_gen_function(func_attrs: Dict[str, Any]) -> str:
     else:
         elem_accum_type = "float"
 
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     activation_functor = cutlass_lib.library.EpilogueMathTag[
         cutlass_lib.library.EpilogueMathName[func_attrs["epilogue_math_name"]]

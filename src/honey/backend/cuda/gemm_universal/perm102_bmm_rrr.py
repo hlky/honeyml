@@ -78,7 +78,7 @@ def _get_strided_problem_info(func_attrs):
 @registry.reg("cuda.perm102_bmm_rrr.config")
 def gemm_rrr_config(func_attrs, dtype="float16"):
     def fproc(op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         return common.default_fproc(
             op=op,

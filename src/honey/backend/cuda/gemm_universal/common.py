@@ -758,11 +758,11 @@ def universal_gemm_instance(
 
 def kernel_name(op):
     """Returns kernel_name of a given cutlass op_instance."""
-    from cutlass_lib import library
+    import honey.utils.cutlass_lib as cutlass_lib
 
     threadblock = op.tile_description.procedural_name()
     extended_name = op.extended_name()
-    opcode_class_name = library.OpcodeClassNames[
+    opcode_class_name = cutlass_lib.library.OpcodeClassNames[
         op.tile_description.math_instruction.opcode_class
     ]
     layout = op.layout_name()
@@ -770,8 +770,8 @@ def kernel_name(op):
     align_c = op.C.alignment
     prefix = ""
     if op.prefix != "":
-        kernel_schedule = library.KernelScheduleSuffixes[op.kernel_schedule]
-        epilogue_schedule = library.EpilogueScheduleSuffixes[op.epilogue_schedule]
+        kernel_schedule = cutlass_lib.library.KernelScheduleSuffixes[op.kernel_schedule]
+        epilogue_schedule = cutlass_lib.library.EpilogueScheduleSuffixes[op.epilogue_schedule]
         prefix = f"{op.prefix}{kernel_schedule}{epilogue_schedule}"
     name = KERNEL_KEY_TEMPLATE.render(
         prefix=prefix,
@@ -792,7 +792,7 @@ def emit_instance(
     emit_kernel=False,
     func_attrs=None,
 ):
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     cutlass_3x = op.gemm_kind == cutlass_lib.library.GemmKind.Universal3x
     if cutlass_3x:
@@ -818,7 +818,7 @@ def extract_config(
     f_kernel_name=kernel_name,
     include_cutlass_3x_ops=False,
 ):
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     op_kind = cutlass_lib.library.OperationKind.Gemm
     gemm_kinds = {cutlass_lib.library.GemmKind.Universal}
@@ -1006,7 +1006,7 @@ def add_profiler(file_pairs, workdir, op_type, output_name, code):
 
 def has_tma_epilogue(op):
     """Check whether the op is CUTLASS 3.x and has a TMA epilogue schedule."""
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     result = False
     if op.gemm_kind == cutlass_lib.library.GemmKind.Universal3x:
@@ -1035,7 +1035,7 @@ def filter_cutlass_3x_ops(op_instance, func_attrs):
     won't work with the lower alignment values. That's why the CUTLASS 3.x ops
     are filtered out by this function in such cases.
     """
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     a_alignment, b_alignment, epilogue_alignment = get_tensor_accessor_alignments(
         func_attrs
@@ -1090,7 +1090,7 @@ def gen_profiler(
     extra_code="",
     problem_args_template_cutlass_3x=None,
 ):
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     op_type = func_attrs["op"]
     op_instance = func_attrs["op_instance"]
@@ -1298,7 +1298,7 @@ def default_fproc(
 ):
     import copy
 
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     backend_spec = CUDASpec()
 

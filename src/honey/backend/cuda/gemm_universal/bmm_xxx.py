@@ -50,7 +50,7 @@ def get_config(a_layout, b_layout, c_layout):
     """
 
     def config(func_attrs, dtype="float16"):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         layout_choice = {
             "c": cutlass_lib.library.LayoutType.ColumnMajor,

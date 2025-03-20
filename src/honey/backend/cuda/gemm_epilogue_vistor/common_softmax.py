@@ -489,7 +489,7 @@ def _gemm_softmax_instance(op_def):
 
 
 def emit_instance(op, f_instance_convertor=_gemm_softmax_instance, emit_kernel=False):
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     emiter = cutlass_lib.gemm_operation.EmitGemmInstance()
     if emit_kernel:

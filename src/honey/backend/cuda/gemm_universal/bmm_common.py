@@ -445,7 +445,7 @@ def gen_profiler(
     bias_ptr_arg=None,
     problem_args_cutlass_3x="",
 ):
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     op_type = func_attrs["op"]
     op_instance = func_attrs["op_instance"]

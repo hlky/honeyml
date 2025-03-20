@@ -36,7 +36,7 @@ def conv_dw_instance(op_def):
 
 def emit_instance(op, f_instance_convertor=conv_dw_instance):
     """Emits cutlass instance."""
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     emiter = cutlass_lib.conv2d_operation.EmitConv2dInstance()
     op_def = emiter.emit(op)
@@ -45,7 +45,7 @@ def emit_instance(op, f_instance_convertor=conv_dw_instance):
 
 
 def apply_special_config(func_attrs, op):
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     op.iterator_algorithm = cutlass_lib.library.IteratorAlgorithm.Analytic
     op.A.alignment = 1
@@ -59,7 +59,7 @@ def apply_special_config(func_attrs, op):
 def extract_config(func_attrs, dtype="float16"):
     import copy
 
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     spec = CUDASpec()
     lib_dtype = spec.dtype_to_lib_type(dtype)

@@ -72,7 +72,7 @@ PROBLEM_ARGS_TEMPLATE = jinja2.Template(
 @registry.reg("cuda.gemm_rcr_permute.config")
 def gemm_rcr_permute_config(func_attrs, dtype="float16"):
     def fproc(op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         return common.default_fproc(
             op=op,

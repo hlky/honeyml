@@ -49,11 +49,11 @@ cutlass_{{opcode_class_name}}_{{extended_name}}_{{threadblock}}_{{layout}}_{{per
 def kernel_name(op, func_attrs):
     """Returns kernel_name given input cutlass op_instance and operator attrs."""
 
-    from cutlass_lib import library
+    import honey.utils.cutlass_lib as cutlass_lib
 
     threadblock = op.tile_description.procedural_name()
     extended_name = op.extended_name()
-    opcode_class_name = library.OpcodeClassNames[
+    opcode_class_name = cutlass_lib.library.OpcodeClassNames[
         op.tile_description.math_instruction.opcode_class
     ]
     layout = op.layout_name()
@@ -91,7 +91,7 @@ def extract_config(f_proc_op, func_attrs):
 
 
 def gemm_permute_instance(op_def, func_attrs, for_profiler):
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     op_def = common.update_alignments_in_gemm_instance(
         op_def,
@@ -117,7 +117,7 @@ def emit_instance(
     emit_kernel=False,
     func_attrs=None,
 ):
-    import cutlass_lib
+    import honey.utils.cutlass_lib as cutlass_lib
 
     emiter = cutlass_lib.gemm_operation.EmitGemmInstance()
     if emit_kernel:

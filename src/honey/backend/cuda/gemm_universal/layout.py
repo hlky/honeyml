@@ -52,14 +52,14 @@ class RCR(Layout):
 
     @staticmethod
     def fproc_op(op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         row_major = cutlass_lib.library.LayoutType.RowMajor
         op.C.layout = row_major
 
     @staticmethod
     def fcond_op(op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         row_major = cutlass_lib.library.LayoutType.RowMajor
         col_major = cutlass_lib.library.LayoutType.ColumnMajor
@@ -70,7 +70,7 @@ class RCR(Layout):
         """
         return [layout_a, layout_b, layout_c] in the form of cutlass_lib definitions
         """
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         return [
             cutlass_lib.library.LayoutType.RowMajor,
@@ -103,14 +103,14 @@ class RRR(Layout):
 
     @staticmethod
     def fproc_op(op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         row_major = cutlass_lib.library.LayoutType.RowMajor
         op.C.layout = row_major
 
     @staticmethod
     def fcond_op(op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         row_major = cutlass_lib.library.LayoutType.RowMajor
         return op.A.layout == row_major and op.B.layout == row_major
@@ -120,7 +120,7 @@ class RRR(Layout):
         """
         return [layout_a, layout_b, layout_c] in the form of cutlass_lib definitions
         """
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         return [
             cutlass_lib.library.LayoutType.RowMajor,

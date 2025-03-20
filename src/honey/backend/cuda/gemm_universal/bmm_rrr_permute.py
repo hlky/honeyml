@@ -46,7 +46,7 @@ PROBLEM_ARGS = {
 @registry.reg("cuda.bmm_rrr_permute.config")
 def bmm_rrr_permute_config(func_attrs, dtype="float16"):
     def fproc(op):
-        import cutlass_lib
+        import honey.utils.cutlass_lib as cutlass_lib
 
         return common.default_fproc(
             op=op,
