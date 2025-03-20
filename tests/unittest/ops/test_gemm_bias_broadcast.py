@@ -305,8 +305,7 @@ class GEMMBiasBroadcastTestCase(unittest.TestCase):
         # caffe2/c10/util/SmallVector.h:338:
         # Assertion `idx < size()' failed
         target = detect_target()
-        if type(target).__name__ != "FBCUDA":
-            self._test_bias_rcr_add_add_relu(21, None, None, 0, 512)
+        self._test_bias_rcr_add_add_relu(21, None, None, 0, 512)
 
     def test_bias_rcr_add_add_relu_rocm(self):
         self._test_bias_rcr_add_add_relu(8, None, None, 8, 8, test_name_suffix="_rocm")

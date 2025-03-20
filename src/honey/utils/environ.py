@@ -273,15 +273,6 @@ def enable_ptxas_info():
     return os.getenv("Honey_ENABLE_PTXAS_INFO", "0") == "1"
 
 
-def enable_include_from_sourcetree():
-    """
-    Whether to include header files from source tree when building Honey model instead of
-    placing them in a temp dir. Defaults to False. Only works with FBCUDA target when
-    doing development / in-place builds.
-    """
-    return os.getenv("Honey_ENABLE_INCLUDE_FROM_SOURCETREE", "0") == "1"
-
-
 def get_cuda_nvcc_debug_level():
     """
     Return level of CUDA debug information. Default to no debug info.
@@ -307,12 +298,3 @@ def get_cutlass_debug_trace_level():
     level = os.getenv("CUTLASS_DEBUG_TRACE_LEVEL", "0")
     return level
 
-
-def enable_cuda_source_navigation_fix():
-    """
-    When this flag is enabled, the FBCUDA Target will copy every *.cu file in build dirs into
-    a corresponding *.cu.h file and create a *.cu file which just #include's this file.
-    This fixes code navigation issues in some IDE's which don't treat .cu files as C++
-    files and disable code navigation.
-    """
-    return os.getenv("Honey_ENABLE_CUDA_SOURCE_NAVIGATION_FIX", "0") == "1"

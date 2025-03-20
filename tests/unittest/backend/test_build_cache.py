@@ -29,7 +29,6 @@ from honey.backend.build_cache_base import (
     SkipBuildCache,
 )
 
-from honey.backend.cuda.target_def import FBCUDA
 from honey.compiler import compile_model, ops
 from honey.frontend import IntImm, Tensor
 from honey.testing import detect_target
@@ -206,7 +205,6 @@ class BuildCacheTestCase(unittest.TestCase):
 
             # Variant 4: Let's provoke to copy the includes again, maybe to a new path?
             Y = self._create_model_graph()
-            FBCUDA.cutlass_path_ = None
             compile_model(
                 Y,
                 target,
