@@ -45,8 +45,8 @@
 
 #pragma once
 
-#include <fmha/gemm.h>
-#include <fmha/kernel_traits.h>
+#include "fmha/gemm.h"
+#include "fmha/kernel_traits.h"
 #include "fmha_blockmask.h"
 #include "fmha_fprop_kernel_1xN.h"
 #include "fmha_kernel.h"

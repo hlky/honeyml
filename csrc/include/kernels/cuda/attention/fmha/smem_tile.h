@@ -44,8 +44,7 @@
 
 #pragma once
 
-#include <fmha/gemm.h>
-#include <fmha/utils.h>
+#include "gemm.h"
 #include "utils.h"
 
 namespace fmha {

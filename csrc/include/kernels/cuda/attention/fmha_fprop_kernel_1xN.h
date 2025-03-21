@@ -45,9 +45,9 @@
 
 #pragma once
 
-#include <fmha/gemm.h>
-#include <fmha/kernel_traits.h>
-#include <fmha/utils.h>
+#include "fmha/gemm.h"
+#include "fmha/kernel_traits.h"
+#include "fmha/utils.h"
 #include "fmha_kernel.h"
 
 namespace fmha {

@@ -44,7 +44,7 @@
 
 #pragma once
 
-#include <fmha/utils.h>
+#include "utils.h"
 
 #include <cutlass/arch/mma.h>
 #include <cutlass/array.h>

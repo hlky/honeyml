@@ -195,6 +195,8 @@ FUNC_TEMPLATE_GROUPED_FMHA = jinja2.Template(
 #include <iostream>
 #include <cuda_fp16.h>
 
+#include "short_file.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/gemm/gemm.h"
 #include "cutlass/util/device_memory.h"

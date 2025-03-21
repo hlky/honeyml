@@ -44,12 +44,12 @@
 
 #pragma once
 
-#include <fmha.h>
-#include <fmha/gmem_tile.h>
-#include <fmha/mask.h>
-#include <fmha/smem_tile.h>
-#include <fmha/softmax.h>
-#include <fmha/utils.h>
+#include "fmha.h"
+#include "fmha/gmem_tile.h"
+#include "fmha/mask.h"
+#include "fmha/smem_tile.h"
+#include "fmha/softmax.h"
+#include "fmha/utils.h"
 
 namespace fmha {
 

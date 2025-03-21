@@ -47,7 +47,7 @@
 #include <cuda.h>
 #include <vector>
 
-#include <fmha_utils.h>
+#include "fmha_utils.h"
 
 constexpr int TOTAL_DIM = 0;
 constexpr int THREE_DIM = 1;
