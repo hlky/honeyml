@@ -17,6 +17,11 @@
 #ifndef LAYERNORM_SIGMOID_MUL
 #define LAYERNORM_SIGMOID_MUL
 
+#include <cuda_bf16.h>
+#include <cuda_fp16.h>
+using bfloat16 = __nv_bfloat16;
+#include <kernels/tensor_accessor.cuh>
+
 #define FINAL_MASK 0xffffffff
 
 // TODO: can this header be used in ROCM with minimal changes?
