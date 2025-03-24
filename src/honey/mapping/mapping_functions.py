@@ -55,6 +55,6 @@ def _map(
             tensor = tensor.to(dtype)
         key = key.replace(".", "_")
         for map_fn in mapping_fn:
-            tensor = map_fn(tensor)
+            tensor = map_fn(key, tensor)
         honey_params[key] = tensor
     return honey_params
