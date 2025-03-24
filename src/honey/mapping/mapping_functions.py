@@ -1,7 +1,7 @@
 from typing import Callable, Dict, Iterable, Union
 
 import torch
-from honey.utils.torch_utils import torch_dtype_to_string
+from honey.utils.torch_utils import string_to_torch_dtype
 
 def conv2d_permute(key: str, tensor: torch.Tensor):
     if (
@@ -43,7 +43,7 @@ def _map(
     else:
         raise ValueError(f"Expected `torch.nn.Module` or `Dict[str, torch.Tensor]`.")
     if isinstance(dtype, str):
-        dtype = torch_dtype_to_string(dtype)
+        dtype = string_to_torch_dtype(dtype)
     if isinstance(device, str):
         device = torch.device(device)
     honey_params = {}
