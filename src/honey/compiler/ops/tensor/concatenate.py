@@ -150,7 +150,6 @@ class concatenate(Operator):
                     # the corresponding input tensor is empty
                     if shape_utils.is_empty_rank1_tensor(shape):
                         continue
-                    # if output_dim != shape[idx]:
                     if (
                         (output_dim._attrs["values"] != shape[idx]._attrs["values"])
                         and (
@@ -161,6 +160,7 @@ class concatenate(Operator):
                             output_dim._attrs["values"][0]
                             != shape[idx]._attrs["values"][1]
                         )
+                        and not (shape[idx]._attrs["values"][0] == 1 or output_dim._attrs["values"][0] == 1)
                     ):
                         raise RuntimeError(
                             "tensors expected to have the same dimensions "
