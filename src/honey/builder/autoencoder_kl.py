@@ -38,15 +38,17 @@ def build(
         min_res, max_res = resolution
         height = IntVar([min_res // vae_scale_factor, max_res // vae_scale_factor])
         width = IntVar([min_res // vae_scale_factor, max_res // vae_scale_factor])
+        resolution_label = max_res
     elif isinstance(resolution, int):
         height = IntImm(resolution)
         width = IntImm(resolution)
+        resolution_label = resolution
     else:
         raise ValueError("`resolution` expected `int` or `Tuple[int, int].")
     model_name = model_name.format(
         model_type=model_type,
         label=label,
-        resolution=resolution,
+        resolution=resolution_label,
         device_name=device_name,
         sm=sm,
     )
