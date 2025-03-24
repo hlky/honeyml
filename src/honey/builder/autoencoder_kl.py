@@ -36,8 +36,8 @@ def build(
         raise ValueError("`batch_size` expected `int` or `Tuple[int, int].")
     if isinstance(resolution, tuple):
         min_res, max_res = resolution
-        height = IntVar(min_res // vae_scale_factor, max_res // vae_scale_factor)
-        width = IntVar(min_res // vae_scale_factor, max_res // vae_scale_factor)
+        height = IntVar([min_res // vae_scale_factor, max_res // vae_scale_factor])
+        width = IntVar([min_res // vae_scale_factor, max_res // vae_scale_factor])
     elif isinstance(resolution, int):
         height = IntImm(resolution)
         width = IntImm(resolution)
