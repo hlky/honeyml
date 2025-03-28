@@ -4,7 +4,7 @@ import torch
 
 from honey.compiler import compile_model
 from honey.frontend import IntImm, IntVar, Tensor, nn
-from honey.mapping.unet2d_condition import map_unet2d_condition
+from honey.mapping.pixart_transformer_2d import map_pixart_transformer_2d
 from honey.testing import detect_target
 from honey.testing.benchmark_honey import benchmark_module
 from honey.utils.build_utils import get_device_name, get_sm
@@ -92,7 +92,7 @@ def build(
     # Constants can also be applied at runtime with no limitation.
     if store_constants_in_module:
         pt_module = pt_cls.from_pretrained(hf_hub, **kwargs)
-        constants = map_unet2d_condition(
+        constants = map_pixart_transformer_2d(
             pt_module=pt_module,
             dtype=dtype,
             device=device,
