@@ -1,4 +1,4 @@
-from typing import cast, Tuple, Union
+from typing import Optional, cast, Tuple, Union
 
 import torch
 
@@ -25,6 +25,7 @@ def build(
     benchmark_after_compile: bool = True,
     extend_seq_len_by_multiple: int = 16,
     store_constants_in_module: bool = True,
+    num_add_time_ids: Optional[int] = None,
     **kwargs,
 ):
     device_name = get_device_name()
@@ -83,10 +84,26 @@ def build(
         is_input=True,
         dtype=honey_dtype,
     )
+    added_cond_kwargs = {}
+    if num_add_time_ids is not None:
+        add_time_ids = Tensor(
+            [batch_size, 6], name="add_time_ids", is_input=True
+        )
+        add_text_embeds = Tensor(
+            [
+                batch_size,
+                config["projection_class_embeddings_input_dim"]
+                - (6 * config["addition_time_embed_dim"]),
+            ],
+            name="add_text_embeds",
+            is_input=True,
+        )
+        added_cond_kwargs = {"text_embeds": add_text_embeds, "time_ids": add_time_ids}
     Y = honey_module.forward(
         sample=sample,
         encoder_hidden_states=encoder_hidden_states,
         timestep=timestep,
+        added_cond_kwargs=added_cond_kwargs,
     ).sample
     Y = mark_output(Y, "Y")
     # NOTE: Limited to 2gb stored constants on Windows.
