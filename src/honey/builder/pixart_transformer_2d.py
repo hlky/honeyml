@@ -51,13 +51,13 @@ def build(
         device_name=device_name,
         sm=sm,
     )
-    config, honey_cls, pt_cls = load_config(hf_hub, **kwargs)
-    honey_module = cast(nn.Module, honey_cls(**config))
-    honey_module.name_parameter_tensor()
     if isinstance(dtype, torch.dtype):
         honey_dtype = torch_dtype_to_string(dtype)
     else:
         honey_dtype = dtype
+    config, honey_cls, pt_cls = load_config(hf_hub, **kwargs)
+    honey_module = cast(nn.Module, honey_cls(**config, dtype=honey_dtype))
+    honey_module.name_parameter_tensor()
     hidden_states = Tensor(
         [
             batch_size,
