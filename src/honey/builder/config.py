@@ -11,7 +11,7 @@ from honey.frontend import Tensor
 import honey.modeling.diffusers
 
 from diffusers.models.model_loading_utils import _CLASS_REMAPPING_DICT
-
+from huggingface_hub.utils import build_hf_headers
 
 def mark_output(tensor: Tensor, name: str):
     tensor._attrs["is_output"] = True
@@ -117,7 +117,7 @@ def load_config(
         if subfolder:
             filename = f"{subfolder}/{filename}"
         url = f"https://huggingface.co/{hf_hub}/resolve/main/{filename}?download=true"
-        r = requests.get(url)
+        r = requests.get(url, headers=build_hf_headers())
         if not r.ok:
             raise RuntimeError(f"{hf_hub}/{filename}: {r.status_code} - {r.content.decode()}")
         try:
