@@ -127,7 +127,7 @@ def load_config(
     config = j
     _class_name = config.pop("_class_name", "")
     _diffusers_version = config.pop("_diffusers_version")
-    _name_or_path = config.pop("_name_or_path")
+    _name_or_path = config.pop("_name_or_path", None)
     remapped_class = _CLASS_REMAPPING_DICT.get(_class_name, {}).get(
         config.get("norm_type", None), None
     )
