@@ -56,5 +56,7 @@ def _map(
         key = key.replace(".", "_")
         for map_fn in mapping_fn:
             tensor = map_fn(key, tensor)
+        if tensor.device != device:
+            tensor = tensor.to(device)
         honey_params[key] = tensor
     return honey_params
