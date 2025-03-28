@@ -58,14 +58,14 @@ def build(
         honey_dtype = torch_dtype_to_string(dtype)
     else:
         honey_dtype = dtype
-    sample = Tensor(
+    hidden_states = Tensor(
         [
             batch_size,
             height,
             width,
             config["in_channels"],
         ],
-        name="sample",
+        name="hidden_states",
         is_input=True,
         dtype=honey_dtype,
     )
@@ -83,7 +83,7 @@ def build(
         dtype=honey_dtype,
     )
     Y = honey_module.forward(
-        sample=sample,
+        hidden_states=hidden_states,
         encoder_hidden_states=encoder_hidden_states,
         timestep=timestep,
     ).sample
