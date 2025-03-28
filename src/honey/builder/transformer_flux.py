@@ -77,14 +77,16 @@ def build(
         ],  # allow more tokens
         name="encoder_hidden_states",
         is_input=True,
+        dtype=honey_dtype,
     )
     pooled_projections = Tensor(
         [batch_size, config["pooled_projection_dim"]],
         name="pooled_projections",
         is_input=True,
+        dtype=honey_dtype,
     )
-    timestep = Tensor([batch_size], name="timestep", is_input=True)
-    txt_ids = Tensor([batch_size, seq_len, 3], name="txt_ids", is_input=True)
+    timestep = Tensor([batch_size], name="timestep", is_input=True, dtype=honey_dtype)
+    txt_ids = Tensor([batch_size, seq_len, 3], name="txt_ids", is_input=True, dtype=honey_dtype)
     img_ids = Tensor(
         [
             batch_size,
@@ -93,9 +95,10 @@ def build(
         ],
         name="img_ids",
         is_input=True,
+        dtype=honey_dtype,
     )
     guidance = (
-        Tensor([batch_size], name="guidance", is_input=True)
+        Tensor([batch_size], name="guidance", is_input=True, dtype=honey_dtype)
         if config["guidance_embeds"]
         else None
     )
