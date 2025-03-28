@@ -141,7 +141,7 @@ class FluxSingleTransformerBlock(nn.Module):
         )
 
         hidden_states = ops.concatenate()([attn_output, mlp_hidden_states], dim=2)
-        hidden_states = gate * self.proj_out(hidden_states)
+        hidden_states = ops.unsqueeze(1)(gate) * self.proj_out(hidden_states)
         hidden_states = residual + hidden_states
 
         return hidden_states
