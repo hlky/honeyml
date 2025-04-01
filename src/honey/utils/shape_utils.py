@@ -256,3 +256,14 @@ def is_empty_rank1_tensor(shape) -> bool:
     from honey.compiler.base import IntImm
 
     return len(shape) == 1 and isinstance(shape[0], IntImm) and shape[0].value() == 0
+
+def get_shape(x):
+    shape = [
+        (
+            it.value()
+            if not isinstance(it, IntVar)
+            else [it.lower_bound(), it.upper_bound()]
+        )
+        for it in x._attrs["shape"]
+    ]
+    return shape

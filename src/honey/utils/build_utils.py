@@ -95,8 +95,10 @@ class Shape:
         self,
         symbolic_values: Dict[str, Union[int, Tuple[int, int]]],
         config: Dict[str, int],
-    ) -> Union[IntImm, IntVar]:
+    ) -> Optional[Union[IntImm, IntVar]]:
         if self.config_name:
+            if self.config_name not in config:
+                return None
             base = config[self.config_name]
         else:
             if self.name not in symbolic_values:
@@ -104,9 +106,13 @@ class Shape:
             base = symbolic_values[self.name]
         if isinstance(base, tuple):
             evaluated = tuple(self._apply_ops(b, config) for b in base)
-            return IntVar(evaluated)
+            if evaluated[0] == evaluated[-1]:
+                evaluated = evaluated[0]
         else:
             evaluated = self._apply_ops(base, config)
+        if isinstance(evaluated, tuple):
+            return IntVar(evaluated)
+        else:
             return IntImm(evaluated)
 
     def _apply_ops(self, base: int, config: Dict[str, int]) -> int:
@@ -140,10 +146,17 @@ def build_tensors_from_annotations(
                     else:
                         shape_list = shape_spec
                     dims = []
+                    remove_tensor = False
                     for shape in shape_list:
-                        dims.append(shape.evaluate(symbolic_values, config))
-                    nested_tensors[key] = Tensor(tuple(dims), name=key, is_input=True)
-                tensors[param_name] = nested_tensors
+                        evaluated = shape.evaluate(symbolic_values, config)
+                        if evaluated is not None:
+                            dims.append(evaluated)
+                        else:
+                            remove_tensor = True
+                    if dims and not remove_tensor:
+                        nested_tensors[key] = Tensor(tuple(dims), name=key, is_input=True)
+                if nested_tensors:
+                    tensors[param_name] = nested_tensors
             elif metadata:
                 shape_spec = metadata[0]
                 if not isinstance(shape_spec, (list, tuple)):
@@ -151,10 +164,14 @@ def build_tensors_from_annotations(
                 else:
                     shape_list = shape_spec
                 dims = []
+                remove_tensor = False
                 for shape in shape_list:
-                    dims.append(shape.evaluate(symbolic_values, config))
-                tensors[param_name] = Tensor(
-                    tuple(dims), name=param_name, is_input=True
-                )
+                    evaluated = shape.evaluate(symbolic_values, config)
+                    if evaluated is not None:
+                        dims.append(evaluated)
+                    else:
+                        remove_tensor = True
+                if dims and not remove_tensor:
+                    tensors[param_name] = Tensor(tuple(dims), name=param_name, is_input=True)
 
     return tensors

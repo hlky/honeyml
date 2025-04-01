@@ -13,6 +13,7 @@ from honey.utils.build_utils import (
     get_device_name,
     get_sm,
 )
+from honey.utils.shape_utils import get_shape
 from honey.utils.torch_utils import torch_dtype_to_string
 
 from honey.builder.config import load_config, mark_output
@@ -20,17 +21,17 @@ from honey.builder.config import load_config, mark_output
 
 class Build:
     model_name: str = "model.{label}.{device_name}.sm{sm}"
-    model_type: Optional[str]
+    model_type: Optional[str] = None
 
     model_forward: str = "forward"
     model_output: str = "sample"
-    model_output_names: List[str]
+    model_output_names: List[str] = []
 
-    map_function: Callable
+    map_function: Callable = ()
     map_function_skip_keys: Tuple = ()
 
-    constants: Optional[Dict[str, torch.Tensor]]
-    honey_dtype: str
+    constants: Optional[Dict[str, torch.Tensor]] = None
+    honey_dtype: Optional[str] = None
 
     def __init__(
         self,
@@ -89,6 +90,16 @@ class Build:
             symbolic_values=self.build_kwargs,
             config=self.config,
         )
+        batch = list(self.input_tensors.values())[0]._attrs["shape"][0]
+        for name, tensor in self.input_tensors.items():
+            if isinstance(tensor, dict):
+                for sub_name, sub_tensor in tensor.items():
+                    print(f"{sub_name=}: {get_shape(sub_tensor)}")
+            else:
+                # TODO
+                print(f"{name=}: {get_shape(tensor)}")
+                tensor._attrs["shape"][0] = batch
+                
 
     def create_output_tensors(self):
         output_tensors: Union[Tensor, List[Tensor]] = getattr(
@@ -138,31 +149,6 @@ class Build:
         self.create_output_tensors()
         self.create_constants()
         return self.compile()
-
-
-class AutoencoderKLDecodeBuilder(Build):
-    model_name = "autoencoder_kl.{model_type}.{label}.{resolution}.{device_name}.sm{sm}"
-    model_type = "decode"
-    map_function = map_autoencoder_kl
-    map_function_skip_keys = (
-        "quant.",
-        "encoder.",
-    )
-    model_forward = "_decode"
-    model_output_names = ["Y"]
-
-    def _model_name(self):
-        if "resolution" not in self.build_kwargs:
-            raise ValueError("Expected `resolution` in `build_kwargs`.")
-        resolution = self.build_kwargs.pop("resolution")
-        if isinstance(resolution, tuple):
-            resolution_label = resolution[-1]
-        else:
-            resolution_label = resolution
-        self.build_kwargs["height"] = resolution
-        self.build_kwargs["width"] = resolution
-        return {"resolution": resolution_label}
-
 
 def _model_name_with_resolution(self):
     if "resolution" not in self.build_kwargs:
