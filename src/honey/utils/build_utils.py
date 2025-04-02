@@ -104,6 +104,7 @@ class Shape:
             if self.name not in symbolic_values:
                 raise ValueError(f"Missing value for shape '{self.name}'")
             base = symbolic_values[self.name]
+        config.update(symbolic_values)
         if isinstance(base, tuple):
             evaluated = tuple(self._apply_ops(b, config) for b in base)
             if evaluated[0] == evaluated[-1]:
