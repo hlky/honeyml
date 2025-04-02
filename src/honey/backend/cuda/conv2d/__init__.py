@@ -27,6 +27,7 @@ from honey.backend.cuda.conv2d import (
     conv2d_bias_hardswish_few_channels,
     conv2d_bias_relu,
     conv2d_bias_relu_few_channels,
+    conv2d_bias_silu,
     conv2d_bias_sigmoid,
     conv2d_depthwise,
     conv2d_depthwise_bias,
