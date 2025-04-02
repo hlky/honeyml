@@ -23,6 +23,7 @@ from honey.backend.cuda.conv2d import common
 EXTRA_HEADER = """
 #include <cutlass/epilogue/thread/linear_combination_bias_relu.h>
 #include <cutlass/epilogue/thread/linear_combination_hardswish.h>
+#include <cutlass/epilogue/thread/linear_combination_silu.h>
 """
 
 
