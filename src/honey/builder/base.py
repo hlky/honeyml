@@ -94,6 +94,7 @@ class Build:
         for name, tensor in self.input_tensors.items():
             if isinstance(tensor, dict):
                 for sub_name, sub_tensor in tensor.items():
+                    sub_tensor._attrs["shape"][0] = batch
                     print(f"{sub_name=}: {get_shape(sub_tensor)}")
             else:
                 # TODO
