@@ -47,6 +47,29 @@ def benchmark_module(
     return mean, std
 
 
+
+def profile_module(
+    module: Model,
+    device: str = "cuda",
+    filename: str = "profile.txt"
+):
+    inputs = {}
+    outputs = {}
+    for name, idx in module.get_input_name_to_index_map().items():
+        shape = module.get_input_maximum_shape(idx)
+        dtype = _ENUM_TO_TORCH_DTYPE[module.get_input_dtype(idx)]
+        tensor = torch.randn(*shape, dtype=dtype).to(device)
+        inputs[name] = tensor
+    for name, idx in module.get_output_name_to_index_map().items():
+        shape = module.get_output_maximum_shape(idx)
+        dtype = _ENUM_TO_TORCH_DTYPE[module.get_output_dtype(idx)]
+        tensor = torch.empty(*shape, dtype=dtype).to(device)
+        outputs[name] = tensor
+    module.profile_with_tensors(
+        inputs, outputs, num_iters=100, filename=filename
+    )
+
+
 def make_input_output_pools(
     *, pool_size, eval_pt_func, input_filter_func, output_filter_func
 ):
