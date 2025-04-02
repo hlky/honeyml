@@ -407,7 +407,7 @@ class ResnetBlock2D(nn.Module):
         hidden_states = input_tensor
 
         hidden_states = self.norm1(hidden_states)
-        if self._nonlinearity != "swish":
+        if self._non_linearity != "swish":
             hidden_states = self.nonlinearity(hidden_states)
 
         if self.upsample is not None:
@@ -420,7 +420,7 @@ class ResnetBlock2D(nn.Module):
         hidden_states = self.conv1(hidden_states)
 
         if self.time_emb_proj is not None:
-            if not self.skip_time_act and self._nonlinearity != "swish":
+            if not self.skip_time_act and self._non_linearity != "swish":
                 temb = self.nonlinearity(temb)
             temb = ops.unsqueeze(1)(ops.unsqueeze(1)(self.time_emb_proj(temb)))
 
@@ -439,7 +439,7 @@ class ResnetBlock2D(nn.Module):
         else:
             hidden_states = self.norm2(hidden_states)
 
-        if self._nonlinearity != "swish":
+        if self._non_linearity != "swish":
             hidden_states = self.nonlinearity(hidden_states)
 
         hidden_states = self.dropout(hidden_states)
