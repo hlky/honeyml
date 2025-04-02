@@ -34,6 +34,7 @@ from honey.compiler.ops.conv.conv2d_bias_relu import conv2d_bias_relu
 from honey.compiler.ops.conv.conv2d_bias_relu_few_channels import (
     conv2d_bias_relu_few_channels,
 )
+from honey.compiler.ops.conv.conv2d_bias_silu import conv2d_bias_silu
 from honey.compiler.ops.conv.conv2d_bias_sigmoid import conv2d_bias_sigmoid
 from honey.compiler.ops.conv.conv2d_depthwise import conv2d_depthwise
 from honey.compiler.ops.conv.conv2d_depthwise_bias import conv2d_depthwise_bias
