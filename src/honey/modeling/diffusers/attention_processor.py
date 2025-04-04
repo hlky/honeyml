@@ -588,15 +588,15 @@ class AttnProcessor2_0:
         inner_dim = ops.size()(key, dim=-1)._attrs["int_var"]
         head_dim = inner_dim / attn.heads
 
-        query = ops.permute0213()(
-            ops.reshape()(query, [batch_size, -1, attn.heads, head_dim])
+        query = ops.permute()(
+            ops.reshape()(query, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
         )
 
-        key = ops.permute0213()(
-            ops.reshape()(key, [batch_size, -1, attn.heads, head_dim])
+        key = ops.permute()(
+            ops.reshape()(key, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
         )
-        value = ops.permute0213()(
-            ops.reshape()(value, [batch_size, -1, attn.heads, head_dim])
+        value = ops.permute()(
+            ops.reshape()(value, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
         )
 
         attn_op = ops.mem_eff_attention(causal=False)
@@ -706,15 +706,15 @@ class FluxSingleAttnProcessor2_0:
         inner_dim = ops.size()(key, dim=-1)._attrs["int_var"]
         head_dim = inner_dim / attn.heads
 
-        query = ops.permute0213()(
-            ops.reshape()(query, [batch_size, -1, attn.heads, head_dim])
+        query = ops.permute()(
+            ops.reshape()(query, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
         )
 
-        key = ops.permute0213()(
-            ops.reshape()(key, [batch_size, -1, attn.heads, head_dim])
+        key = ops.permute()(
+            ops.reshape()(key, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
         )
-        value = ops.permute0213()(
-            ops.reshape()(value, [batch_size, -1, attn.heads, head_dim])
+        value = ops.permute()(
+            ops.reshape()(value, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
         )
 
         if attn.norm_q is not None:
@@ -781,15 +781,15 @@ class FluxAttnProcessor2_0:
         inner_dim = ops.size()(key, dim=-1)._attrs["int_var"]
         head_dim = inner_dim / attn.heads
 
-        query = ops.permute0213()(
-            ops.reshape()(query, [batch_size, -1, attn.heads, head_dim])
+        query = ops.permute()(
+            ops.reshape()(query, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
         )
 
-        key = ops.permute0213()(
-            ops.reshape()(key, [batch_size, -1, attn.heads, head_dim])
+        key = ops.permute()(
+            ops.reshape()(key, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
         )
-        value = ops.permute0213()(
-            ops.reshape()(value, [batch_size, -1, attn.heads, head_dim])
+        value = ops.permute()(
+            ops.reshape()(value, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
         )
 
         if attn.norm_q is not None:
@@ -802,20 +802,20 @@ class FluxAttnProcessor2_0:
         encoder_hidden_states_key_proj = attn.add_k_proj(encoder_hidden_states)
         encoder_hidden_states_value_proj = attn.add_v_proj(encoder_hidden_states)
 
-        encoder_hidden_states_query_proj = ops.permute0213()(
+        encoder_hidden_states_query_proj = ops.permute()(
             ops.reshape()(
-                encoder_hidden_states_query_proj, [batch_size, -1, attn.heads, head_dim]
+                encoder_hidden_states_query_proj, [batch_size, -1, attn.heads, head_dim], [0, 2, 1, 3]
             )
         )
 
-        encoder_hidden_states_key_proj = ops.permute0213()(
+        encoder_hidden_states_key_proj = ops.permute()(
             ops.reshape()(
-                encoder_hidden_states_key_proj, [batch_size, -1, attn.heads, head_dim]
+                encoder_hidden_states_key_proj, [batch_size, -1, attn.heads, head_dim], [0, 2, 1, 3]
             )
         )
-        encoder_hidden_states_value_proj = ops.permute0213()(
+        encoder_hidden_states_value_proj = ops.permute()(
             ops.reshape()(
-                encoder_hidden_states_value_proj, [batch_size, -1, attn.heads, head_dim]
+                encoder_hidden_states_value_proj, [batch_size, -1, attn.heads, head_dim], [0, 2, 1, 3]
             )
         )
 
@@ -932,15 +932,15 @@ class JointAttnProcessor2_0:
 
         inner_dim = ops.size()(key, dim=-1)._attrs["int_var"]
         head_dim = inner_dim / attn.heads
-        query = ops.permute0213()(
-            ops.reshape()(query, [batch_size, -1, attn.heads, head_dim])
+        query = ops.permute()(
+            ops.reshape()(query, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
         )
 
-        key = ops.permute0213()(
-            ops.reshape()(key, [batch_size, -1, attn.heads, head_dim])
+        key = ops.permute()(
+            ops.reshape()(key, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
         )
-        value = ops.permute0213()(
-            ops.reshape()(value, [batch_size, -1, attn.heads, head_dim])
+        value = ops.permute()(
+            ops.reshape()(value, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
         )
         attn_op = ops.mem_eff_attention(causal=False)
         hidden_states = attn_op(query, key, value)
