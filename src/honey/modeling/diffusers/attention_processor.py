@@ -620,7 +620,8 @@ class AttnProcessor2_0:
                 hidden_states, [batch_size, height, width, channel]
             )
 
-        hidden_states = hidden_states / attn.rescale_output_factor
+        if attn.rescale_output_factor != 1.0:
+            hidden_states = hidden_states / attn.rescale_output_factor
 
         return hidden_states
 
