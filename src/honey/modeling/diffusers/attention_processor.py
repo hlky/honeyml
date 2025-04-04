@@ -242,7 +242,7 @@ class Attention(nn.Module):
         if not self.pre_only:
             self.to_out = nn.ModuleList([])
             self.to_out.append(
-                nn.Linear(self.inner_dim, self.out_dim, bias=out_bias, dtype=dtype)
+                nn.Linear(self.inner_dim, self.out_dim, bias=out_bias, dtype=dtype, specialization="add" if residual_connection else None)
             )
             self.to_out.append(nn.Dropout(dropout))
 
@@ -608,7 +608,10 @@ class AttnProcessor2_0:
         hidden_states = ops.cast()(hidden_states, dtype=query.dtype())
 
         # linear proj
-        hidden_states = attn.to_out[0](hidden_states)
+        if attn.residual_connection:
+            hidden_states = attn.to_out[0](hidden_states, residual)
+        else:
+            hidden_states = attn.to_out[0](hidden_states)
         # dropout
         hidden_states = attn.to_out[1](hidden_states)
 
@@ -616,9 +619,6 @@ class AttnProcessor2_0:
             hidden_states = ops.reshape()(
                 hidden_states, [batch_size, height, width, channel]
             )
-
-        if attn.residual_connection:
-            hidden_states = hidden_states + residual
 
         hidden_states = hidden_states / attn.rescale_output_factor
 
