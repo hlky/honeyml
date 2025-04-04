@@ -28,6 +28,7 @@ def conv2d_pad(key: str, tensor: torch.Tensor, pad_to_multiple_of: int = 4):
 
 
 def map_unet2d_condition(
+    self,
     pt_module: Union[torch.nn.Module, Dict[str, torch.Tensor]],
     dtype: Union[str, torch.dtype],
     device: Union[str, torch.device],

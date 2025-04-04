@@ -1,1 +1,1 @@
-from diffusers import *
+from .diffusers import *
