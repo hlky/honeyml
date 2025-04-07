@@ -4,7 +4,7 @@ from honey.testing import detect_target
 from honey.testing.benchmark_honey import benchmark_module
 from honey.utils.build_utils import get_device_name, get_sm
 
-from config import load_config, mark_output
+from honey.builder.config import load_config, mark_output
 
 import torch
 
