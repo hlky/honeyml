@@ -825,16 +825,17 @@ def extract_config(
     if include_cutlass_3x_ops:
         gemm_kinds.add(cutlass_lib.library.GemmKind.Universal3x)
     gemm_ops = OrderedDict()
-    extract_ops = list(Target.current()._operators[op_kind].items())
+    extract_ops = Target.current()._operators[op_kind].items()
 
-    for _, value in extract_ops:
-        op = value[0]
-        if op.gemm_kind in gemm_kinds:
-            ret = f_proc_op(op)
-            if len(ret) > 0:
-                for op_inst in ret:
-                    key = f_kernel_name(op_inst)
-                    gemm_ops[key] = op_inst
+    for _, values in extract_ops:
+        for _, value in values.items():
+            op = value[0]
+            if op.gemm_kind in gemm_kinds:
+                ret = f_proc_op(op)
+                if len(ret) > 0:
+                    for op_inst in ret:
+                        key = f_kernel_name(op_inst)
+                        gemm_ops[key] = op_inst
     return gemm_ops
 
 
@@ -1455,9 +1456,6 @@ def function_filter(cfg, func_attrs, ab_alignment):
     align_c = int(tmp[-1])
     align_ab = int(tmp[-2])
     size_a, size_b = tmp[-6].split("x")
-    # TODO: investigate
-    if size_a == "256" or size_b == "256":
-        return False
     if align_c != func_attrs["epilogue_alignment"]:
         return False
     if align_ab != ab_alignment:

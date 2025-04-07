@@ -41,7 +41,7 @@ from cuda import nvrtc
 
 # CUTLASS imports
 from .library import *
-from gemm_operation import EmitGemmUniversalInstance
+from .gemm_operation import EmitGemmUniversalInstance
 
 #################################################################################################
 #

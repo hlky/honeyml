@@ -40,6 +40,8 @@ class Args:
         self.interface_dir = None
         self.filter_by_cc = True
         self.disable_full_archs_compilation = False
+        self.exclude_kernels = ""
+        self.instantiation_level = ""
 
 
 @registry.reg("cuda.gen_cutlass_ops")

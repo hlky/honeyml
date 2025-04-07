@@ -36,7 +36,7 @@ def get_compiler_opt_level() -> str:
     # So, it is safe to allow users to override this option in order
     # to significantly speedup the computations / testing, especially
     # for very large models.
-    compiler_opt = os.getenv("Honey_COMPILER_OPT", "-O3")
+    compiler_opt = os.getenv("Honey_COMPILER_OPT", "-O1")
 
     return compiler_opt
 

@@ -76,7 +76,7 @@ def mk_cutlass_lib(scripts_path, cutlass_lib_path):
 
 
 def main() -> None:
-    scripts_path = pathlib.Path(__file__).parent.resolve().parent.joinpath("cutlass_scripts")
+    scripts_path = pathlib.Path(__file__).parent.resolve().parent.parent.joinpath("3rdparty/cutlass/python/cutlass_library")
     cutlass_lib_path = pathlib.Path(__file__).parent.resolve().parent.parent.joinpath("src/honey/utils/cutlass_lib")
     print(scripts_path)
     print(cutlass_lib_path)
