@@ -23,8 +23,9 @@ def conv2d_pad(key: str, tensor: torch.Tensor, pad_to_multiple_of: int = 4):
         and tensor.shape[-1] % 4 != 0
     ):
         channels = tensor.shape[-1]
-        pad_by = pad_to_multiple_of - (channels - pad_to_multiple_of)
+        pad_by = pad_to_multiple_of - (channels % pad_to_multiple_of)
         pad = (0, pad_by, 0, 0, 0, 0, 0, 0)
+        print(f"Padding {key=}, {channels=}, {pad_by=}.")
         return torch.nn.functional.pad(tensor, pad=pad)
     else:
         return tensor
