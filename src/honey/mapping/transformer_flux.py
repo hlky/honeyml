@@ -4,6 +4,7 @@ from typing import Callable, Dict, Iterable, Union
 import torch
 
 def map_transformer_flux(
+    self,
     pt_module: Union[torch.nn.Module, Dict[str, torch.Tensor]],
     dtype: Union[str, torch.dtype],
     device: Union[str, torch.device],
