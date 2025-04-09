@@ -991,7 +991,7 @@ class Tensor(Node):
         if tensor_size != len(data):
             raise ValueError(
                 (
-                    "ConstantTensor's maximum size is not equal to len(data)! "
+                    f"ConstantTensor's {self._attrs['name']} maximum size is not equal to len(data)! "
                     f"Got {len(data)=}, but expected at least {tensor_size} bytes. "
                     "Check that the ConstantTensor's size and dtype are correct."
                 )
