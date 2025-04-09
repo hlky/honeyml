@@ -95,6 +95,7 @@ class Downsample2D(nn.Module):
         self.padding = padding
         stride = 2
         self.name = name
+        self.dtype = dtype
 
         if norm_type == "ln_norm":
             self.norm = nn.LayerNorm(
