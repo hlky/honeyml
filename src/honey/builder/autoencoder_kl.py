@@ -72,5 +72,6 @@ class AutoencoderKLEncodeBuilder(Build):
     )
     model_forward = "encode"
     model_output_names = ["Y"]
+    model_output = None
 
     _model_name = _model_name_with_resolution

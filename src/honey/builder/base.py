@@ -24,7 +24,7 @@ class Build:
     model_type: Optional[str] = None
 
     model_forward: str = "forward"
-    model_output: str = "sample"
+    model_output: Optional[str] = "sample"
     model_output_names: List[str] = []
 
     map_function: Callable = ()
@@ -103,10 +103,11 @@ class Build:
                 
 
     def create_output_tensors(self):
-        output_tensors: Union[Tensor, List[Tensor]] = getattr(
-            getattr(self.honey_module, self.model_forward)(**self.input_tensors),
-            self.model_output,
-        )
+        model_output = getattr(self.honey_module, self.model_forward)(**self.input_tensors)
+        if self.model_output is not None:
+            output_tensors: Union[Tensor, List[Tensor]] = getattr(model_output, self.model_output)
+        else:
+            output_tensors = model_output
         if isinstance(output_tensors, Tensor):
             output_tensors = [output_tensors]
         for idx, output_tensor in enumerate(output_tensors):
