@@ -1,8 +1,8 @@
-from typing import Dict, Optional, Tuple, Union
+from typing import Annotated, Dict, Optional, Tuple, Union
 
-from honey.compiler import ops
-
-from honey.frontend import nn, Tensor
+from ....compiler import ops
+from ....frontend import nn, Tensor
+from ....utils.build_utils import Shape, DimAdd, DimDiv, DimMul, DimSub
 
 from ..attention_processor import AttentionProcessor
 from ..modeling_outputs import AutoencoderKLOutput
@@ -191,7 +191,25 @@ class AutoencoderKL(nn.Module):
             fn_recursive_attn_processor(name, module, processor)
 
     def encode(
-        self, x: Tensor, return_dict: bool = True
+        self, x: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+                Shape(name="height"),
+                Shape(name="width"),
+                Shape(name="channels", config_name="out_channels"),
+            ),
+        ],
+        sample: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+                Shape(name="height", dim_operations=(DimDiv(8),)),
+                Shape(name="width", dim_operations=(DimDiv(8),)),
+                Shape(name="channels", config_name="latent_channels"),
+            ),
+        ],
+        return_dict: bool = True
     ) -> Union[AutoencoderKLOutput, Tuple[DiagonalGaussianDistribution]]:
         """
         Encode a batch of images into latents.
@@ -223,14 +241,24 @@ class AutoencoderKL(nn.Module):
             moments = h
 
         posterior = DiagonalGaussianDistribution(moments)
+        
+        z = posterior.sample(sample=sample)
 
         if not return_dict:
-            return (posterior,)
+            return (z,)
 
-        return AutoencoderKLOutput(latent_dist=posterior)
+        return z
 
     def _decode(
-        self, z: Tensor, return_dict: bool = True
+        self, z: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+                Shape(name="height", dim_operations=(DimDiv(8),)),
+                Shape(name="width", dim_operations=(DimDiv(8),)),
+                Shape(name="channels", config_name="latent_channels"),
+            ),
+        ], return_dict: bool = True
     ) -> Union[DecoderOutput, Tensor]:
         if self.use_tiling and (
             ops.size()(z, dim=1) > self.tile_sample_min_size
@@ -249,7 +277,15 @@ class AutoencoderKL(nn.Module):
         return DecoderOutput(sample=dec)
 
     def decode(
-        self, z: Tensor, return_dict: bool = True, generator=None
+        self, z: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+                Shape(name="height", dim_operations=(DimDiv(8),)),
+                Shape(name="width", dim_operations=(DimDiv(8),)),
+                Shape(name="channels", config_name="latent_channels"),
+            ),
+        ], return_dict: bool = True, generator=None
     ) -> Union[DecoderOutput, Tensor]:
         """
         Decode a batch of images.
