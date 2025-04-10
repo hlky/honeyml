@@ -155,7 +155,7 @@ def build_tensors_from_annotations(
                         else:
                             remove_tensor = True
                     if dims and not remove_tensor:
-                        nested_tensors[key] = Tensor(tuple(dims), name=key, is_input=True)
+                        nested_tensors[key] = Tensor(tuple(dims), name=key, is_input=True, dtype=config["dtype"])
                 if nested_tensors:
                     tensors[param_name] = nested_tensors
             elif metadata:
@@ -173,6 +173,6 @@ def build_tensors_from_annotations(
                     else:
                         remove_tensor = True
                 if dims and not remove_tensor:
-                    tensors[param_name] = Tensor(tuple(dims), name=param_name, is_input=True)
+                    tensors[param_name] = Tensor(tuple(dims), name=param_name, is_input=True, dtype=config["dtype"])
 
     return tensors

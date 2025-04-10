@@ -74,6 +74,7 @@ class Build:
             self.honey_dtype = torch_dtype_to_string(self.dtype)
         else:
             self.honey_dtype = self.dtype
+        self.build_kwargs["dtype"] = self.honey_dtype
 
     def create_module(self):
         self.config, self.honey_cls, self.pt_cls = load_config(
