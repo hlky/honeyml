@@ -10,13 +10,9 @@ from honey.frontend import Tensor
 from honey.testing import detect_target
 from honey.testing.test_utils import get_random_torch_tensor
 
-from honey.utils.import_path import import_parent
+import honey.modeling.diffusers.downsampling as downsampling
+from honey.builder.config import mark_output
 
-if __name__ == "__main__":
-    import_parent(filepath=__file__, level=1)
-
-import modeling.downsampling as downsampling
-from utils import mark_output
 
 # TODO: FirDownsample2D
 # TODO: KDownsample2D

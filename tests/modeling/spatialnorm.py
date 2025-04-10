@@ -7,16 +7,11 @@ from honey.compiler import compile_model, ops
 from honey.frontend import Tensor
 from honey.testing import detect_target
 from honey.testing.test_utils import get_random_torch_tensor
-
-from honey.utils.import_path import import_parent
+from honey.modeling.diffusers.attention_processor import SpatialNorm
+from honey.builder.config import mark_output
 
 from diffusers.models.attention_processor import SpatialNorm as SpatialNorm_torch
 
-if __name__ == "__main__":
-    import_parent(filepath=__file__, level=1)
-
-from modeling.attention_processor import SpatialNorm
-from utils import mark_output
 
 
 class SpatialNormTestCase(unittest.TestCase):

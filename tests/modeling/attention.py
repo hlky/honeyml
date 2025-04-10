@@ -9,13 +9,8 @@ from honey.frontend import nn, Tensor
 from honey.testing import detect_target
 from honey.testing.test_utils import get_random_torch_tensor
 
-from honey.utils.import_path import import_parent
-
-if __name__ == "__main__":
-    import_parent(filepath=__file__, level=1)
-
-import modeling.attention_processor as attention_processor
-from utils import mark_output
+import honey.modeling.diffusers.attention_processor as attention_processor
+from honey.builder.config import mark_output
 
 
 class AttentionTestCase(unittest.TestCase):

@@ -7,12 +7,8 @@ from honey.compiler import compile_model, ops
 from honey.frontend import Tensor
 from honey.testing import detect_target
 from honey.testing.test_utils import get_random_torch_tensor
-
-from honey.utils.import_path import import_parent
-
-if __name__ == "__main__":
-    import_parent(filepath=__file__, level=1)
-
+from honey.modeling.diffusers.activations import ApproximateGELU, GEGLU, GELU, get_activation
+from honey.builder.config import mark_output
 
 from diffusers.models.activations import (
     ApproximateGELU as ApproximateGELU_torch,
@@ -20,8 +16,6 @@ from diffusers.models.activations import (
     GELU as GELU_torch,
     get_activation as get_activation_torch,
 )
-from modeling.activations import ApproximateGELU, GEGLU, GELU, get_activation
-from utils import mark_output
 
 
 class ActivationsTestCase(unittest.TestCase):

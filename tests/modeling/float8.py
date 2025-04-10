@@ -8,12 +8,7 @@ from honey.frontend import nn, Tensor
 from honey.testing import detect_target
 from honey.testing.test_utils import get_random_torch_tensor, string_to_torch_dtype
 
-from honey.utils.import_path import import_parent
-
-if __name__ == "__main__":
-    import_parent(filepath=__file__, level=1)
-
-from utils import mark_output
+from honey.builder.config import mark_output
 
 
 class Float8TestModel(nn.Module):
