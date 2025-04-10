@@ -1,142 +1,33 @@
-from typing import cast, Tuple, Union
-
-import torch
-
-from honey.compiler import compile_model
-from honey.frontend import IntImm, IntVar, Tensor, nn
+from honey.builder.base import Build, _model_name_with_resolution
 from honey.mapping.transformer_flux import map_transformer_flux
-from honey.testing import detect_target
-from honey.testing.benchmark_honey import benchmark_module
-from honey.utils.build_utils import get_device_name, get_sm
-from honey.utils.torch_utils import torch_dtype_to_string
-
-from honey.builder.config import load_config, mark_output
 
 
-def build(
-    batch_size: Union[int, Tuple[int, int]],
-    resolution: Union[int, Tuple[int, int]],
-    hf_hub: str,
-    label: str,
-    dtype: Union[str, torch.dtype],
-    device: Union[str, torch.device],
-    model_name: str = "transformer_flux.{label}.{resolution}.{device_name}.sm{sm}",
-    vae_scale_factor: int = 16,
-    benchmark_after_compile: bool = True,
-    store_constants_in_module: bool = True,
-    **kwargs,
-):
-    device_name = get_device_name()
-    sm = get_sm()
-    if isinstance(batch_size, tuple):
-        batch_size = IntVar(batch_size)
-    elif isinstance(batch_size, int):
-        batch_size = IntImm(batch_size)
-    else:
-        raise ValueError("`batch_size` expected `int` or `Tuple[int, int].")
-    if isinstance(resolution, tuple):
-        min_res, max_res = resolution
-        height = IntVar([min_res // vae_scale_factor, max_res // vae_scale_factor])
-        width = IntVar([min_res // vae_scale_factor, max_res // vae_scale_factor])
-        resolution_label = max_res
-    elif isinstance(resolution, int):
-        height = IntImm(resolution)
-        width = IntImm(resolution)
-        resolution_label = resolution
-    else:
-        raise ValueError("`resolution` expected `int` or `Tuple[int, int].")
-    model_name = model_name.format(
-        label=label,
-        resolution=resolution_label,
-        device_name=device_name,
-        sm=sm,
-    )
-    if isinstance(dtype, torch.dtype):
-        honey_dtype = torch_dtype_to_string(dtype)
-    else:
-        honey_dtype = dtype
-    config, honey_cls, pt_cls = load_config(hf_hub, **kwargs)
-    honey_module = cast(nn.Module, honey_cls(**config, dtype=honey_dtype))
-    honey_module.name_parameter_tensor()
-    hidden_states = Tensor(
-        [
-            batch_size,
-            height * width,
-            config["in_channels"],
-        ],
-        name="hidden_states",
-        is_input=True,
-        dtype=honey_dtype,
-    )
-    seq_len = 512
-    encoder_hidden_states = Tensor(
-        [
-            batch_size,
-            seq_len,
-            config["joint_attention_dim"],
-        ],  # allow more tokens
-        name="encoder_hidden_states",
-        is_input=True,
-        dtype=honey_dtype,
-    )
-    pooled_projections = Tensor(
-        [batch_size, config["pooled_projection_dim"]],
-        name="pooled_projections",
-        is_input=True,
-        dtype=honey_dtype,
-    )
-    timestep = Tensor([batch_size], name="timestep", is_input=True, dtype=honey_dtype)
-    txt_ids = Tensor([batch_size, seq_len, 3], name="txt_ids", is_input=True, dtype=honey_dtype)
-    img_ids = Tensor(
-        [
-            batch_size,
-            height * width,
-            3,
-        ],
-        name="img_ids",
-        is_input=True,
-        dtype=honey_dtype,
-    )
-    guidance = (
-        Tensor([batch_size], name="guidance", is_input=True, dtype=honey_dtype)
-        if config["guidance_embeds"]
-        else None
-    )
+class FluxTransformer2DBuilder(Build):
+    """
 
-    Y = honey_module.forward(
-        hidden_states=hidden_states,
-        encoder_hidden_states=encoder_hidden_states,
-        timestep=timestep,
-        pooled_projections=pooled_projections,
-        img_ids=img_ids,
-        txt_ids=txt_ids,
-        guidance=guidance,
-    ).sample
-    Y = mark_output(Y, "Y")
-    # NOTE: Limited to 2gb stored constants on Windows.
-    # Constants can also be applied at runtime with no limitation.
-    if store_constants_in_module:
-        pt_module = pt_cls.from_pretrained(hf_hub, **kwargs)
-        constants = map_transformer_flux(
-            pt_module=pt_module,
-            dtype=dtype,
-            device=device,
-            skip_keys=(),
+    Example:
+    ```
+        builder = FluxTransformer2DBuilder(
+            hf_hub="black-forest-labs/FLUX.1-schnell",
+            label="schnell",
+            dtype="bfloat16",
+            device="cuda",
+            build_kwargs={
+                "batch_size": (1, 2),
+                "resolution": (512, 1024),
+                "seq_len": 512,
+                "ids_size": 3,
+            },
+            model_kwargs={
+                "subfolder": "transformer",
+            }
         )
-    else:
-        constants = None
-    target = detect_target()
-    module = compile_model(
-        Y,
-        target,
-        "./tmp",
-        model_name,
-        constants=constants,
-        dll_name=f"{model_name}.so",
-    )
-    if benchmark_after_compile:
-        if not store_constants_in_module:
-            print("`benchmark_after_compile` requires `store_constants_in_module`.")
-        else:
-            benchmark_module(module=module, count=50, repeat=3)
-    return module
+    ```
+
+    """
+
+    model_name = "transformer_flux.{label}.{resolution}.{device_name}.sm{sm}"
+    map_function = map_transformer_flux
+    model_output_names = ["Y"]
+
+    _model_name = _model_name_with_resolution

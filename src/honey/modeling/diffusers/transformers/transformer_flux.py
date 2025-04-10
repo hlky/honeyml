@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Annotated, Any, Dict, List, Optional, Union
 
 from honey.compiler import ops
 
@@ -19,6 +19,7 @@ from ..normalization import (
 from .transformer_2d import Transformer2DModelOutput
 
 from ..modeling_outputs import Transformer2DModelOutput
+from ....utils.build_utils import Shape, DimAdd, DimDiv, DimMul, DimSub
 
 
 def get_shape(x):
@@ -362,13 +363,59 @@ class FluxTransformer2DModel(nn.Module):
 
     def forward(
         self,
-        hidden_states: Tensor,
-        encoder_hidden_states: Tensor = None,
-        pooled_projections: Tensor = None,
-        timestep: Tensor = None,
-        img_ids: Tensor = None,
-        txt_ids: Tensor = None,
-        guidance: Tensor = None,
+        hidden_states: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+                Shape(name="height", dim_operations=(DimDiv(8),),),
+                Shape(name="width", dim_operations=(DimDiv(8),),),
+                Shape(name="channels", config_name="in_channels"),
+            )
+        ],
+        encoder_hidden_states: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+                Shape(name="seq_len"),
+                Shape(name="features", config_name="joint_attention_dim"),
+            )
+        ] = None,
+        pooled_projections: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+                Shape(name="embed_dim", config_name="pooled_projection_dim"),
+            )
+        ] = None,
+        timestep: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+            )
+        ] = None,
+        img_ids: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+                Shape(name="height", dim_operations=(DimDiv(8),),),
+                Shape(name="width", dim_operations=(DimDiv(8),),),
+                Shape(name="ids_size", config_name="ids_size"),
+            )
+        ] = None,
+        txt_ids: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+                Shape(name="seq_len"),
+                Shape(name="ids_size", config_name="ids_size"),
+            )
+        ] = None,
+        guidance: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size", config_name="use_guidance_embeds"),
+            )
+        ] = None,
         joint_attention_kwargs: Optional[Dict[str, Any]] = None,
         return_dict: bool = True,
     ) -> Union[Tensor, Transformer2DModelOutput]:
@@ -396,6 +443,10 @@ class FluxTransformer2DModel(nn.Module):
             If `return_dict` is True, an [`~models.transformer_2d.Transformer2DModelOutput`] is returned, otherwise a
             `tuple` where the first element is the sample tensor.
         """
+        B, H, W, C = ops.size()(hidden_states)
+        ids_size = ops.size()(txt_ids, dim=-1)
+        hidden_states = ops.reshape()(hidden_states, [B, H * W, C])
+        img_ids = ops.reshape()(img_ids, [B, H * W, ids_size])
 
         hidden_states = self.x_embedder(hidden_states)
 
