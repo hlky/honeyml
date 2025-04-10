@@ -3,20 +3,14 @@ from honey.frontend import IntVar, Tensor
 from honey.testing import detect_target
 from honey.utils.import_path import import_parent
 
-from config import load_config, mark_output
-
-
-import_parent(filepath=__file__, level=1)
-
-import modeling
+from honey.builder.config import load_config, mark_output
 
 batch_size = 1
 resolution = 512, 1024
 height, width = resolution, resolution
 
 model_name = "flux"
-honey = modeling.transformers.FluxTransformer2DModel
-config, honey_cls, pt_cls = load_config(config_file="builder/flux_dev_config.json")
+config, honey_cls, pt_cls = load_config("black-forest-labs/FLUX.1-dev")
 
 honey_module = honey_cls(**config)
 honey_module.name_parameter_tensor()
@@ -31,11 +25,11 @@ height = IntVar(
     [height[0] // vae_scale_factor, height[1] // vae_scale_factor], "height"
 )
 width = IntVar([width[0] // vae_scale_factor, width[1] // vae_scale_factor], "width")
-h_w = height * width
 hidden_states = Tensor(
     [
         batch,
-        h_w,
+        height,
+        width,
         config["in_channels"],
     ],
     name="hidden_states",
@@ -60,7 +54,8 @@ txt_ids = Tensor([batch, seq_len, 3], name="txt_ids", is_input=True)
 img_ids = Tensor(
     [
         batch,
-        h_w,
+        height,
+        width,
         3,
     ],
     name="img_ids",

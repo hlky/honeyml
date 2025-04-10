@@ -1,24 +1,17 @@
 from honey.compiler import compile_model
 from honey.frontend import IntVar, Tensor
 from honey.testing import detect_target
-from honey.utils.import_path import import_parent
 
-from config import load_config, mark_output
+from honey.builder.config import load_config, mark_output
 
-
-import_parent(filepath=__file__, level=1)
-
-import modeling
 
 batch_size = 1, 1
 resolution = 512, 1024
 height, width = resolution, resolution
 
-# TODO: update load_config for gated models
-# hf_hub = "stabilityai/stable-diffusion-3-medium"
+hf_hub = "stabilityai/stable-diffusion-3-medium"
 model_name = "stable-diffusion-3"
-honey = modeling.transformers.SD3Transformer2DModel
-# config, honey_cls, pt_cls = load_config(hf_hub, subfolder="unet")
+config, honey_cls, pt_cls = load_config(hf_hub, subfolder="unet")
 
 honey_module = honey_cls()
 honey_module.name_parameter_tensor()

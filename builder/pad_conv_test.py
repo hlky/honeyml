@@ -3,7 +3,7 @@ from honey.frontend import IntVar, Tensor, nn
 from honey.testing import detect_target
 from honey.testing.benchmark_honey import benchmark_module
 
-from config import load_config, mark_output
+from honey.builder.config import load_config, mark_output
 
 import torch
 

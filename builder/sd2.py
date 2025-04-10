@@ -1,10 +1,8 @@
-from typing import Optional
-
 from honey.compiler import compile_model
 from honey.frontend import IntVar, Tensor
 from honey.testing import detect_target
 
-from config import load_config, mark_output
+from honey.builder.config import load_config, mark_output
 
 batch_size = 1, 1
 resolution = 512, 1024
