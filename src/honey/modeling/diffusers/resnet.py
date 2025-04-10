@@ -1,6 +1,6 @@
 import math
 from functools import partial
-from typing import cast, Optional, Tuple, Union
+from typing import Annotated, cast, Optional, Tuple, Union
 
 from honey.compiler import ops
 
@@ -27,6 +27,7 @@ from .upsampling import (  # noqa
     Upsample2D,
     upsample_2d,
 )
+from ...utils.build_utils import Shape, DimAdd, DimDiv, DimMul, DimSub
 
 
 def sigmoid(x):
@@ -402,8 +403,28 @@ class ResnetBlock2D(nn.Module):
             )
 
     def forward(
-        self, input_tensor: Tensor, temb: Optional[Tensor], *args, **kwargs
+        self,
+        input_tensor: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+                Shape(name="height"),
+                Shape(name="width"),
+                Shape(name="channels", config_name="in_channels"),
+            ),
+        ],
+        temb: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+                Shape(name="temb_channels", config_name="temb_channels")
+            )    
+        ] = None,
+        *args, **kwargs
     ) -> Tensor:
+        print("input_tensor ", get_shape(input_tensor))
+        if temb is not None:
+            print("temb ", get_shape(temb))
         hidden_states = input_tensor
 
         hidden_states = self.norm1(hidden_states)
