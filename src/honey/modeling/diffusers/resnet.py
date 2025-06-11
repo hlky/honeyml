@@ -422,9 +422,6 @@ class ResnetBlock2D(nn.Module):
         ] = None,
         *args, **kwargs
     ) -> Tensor:
-        print("input_tensor ", get_shape(input_tensor))
-        if temb is not None:
-            print("temb ", get_shape(temb))
         hidden_states = input_tensor
 
         hidden_states = self.norm1(hidden_states)
