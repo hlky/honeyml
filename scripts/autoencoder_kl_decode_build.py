@@ -59,7 +59,7 @@ def build(
         dtype=dtype,
         device=device,
         build_kwargs={
-            "batch_size": batch_size,
+            "batch_size": (1, batch_size),
             "resolution": (min_res, max_res),
         },
         model_kwargs={
