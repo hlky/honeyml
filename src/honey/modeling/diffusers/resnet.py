@@ -304,7 +304,7 @@ class ResnetBlock2D(nn.Module):
             num_channels=in_channels,
             eps=eps,
             affine=True,
-            use_swish=False,
+            use_swish=True if (non_linearity == "swish" or non_linearity == "silu") else False,
             dtype=dtype,
         )
 
@@ -331,7 +331,7 @@ class ResnetBlock2D(nn.Module):
             num_channels=out_channels,
             eps=eps,
             affine=True,
-            use_swish=False,
+            use_swish=True if (non_linearity == "swish" or non_linearity == "silu") else False,
             dtype=dtype,
         )
 
@@ -423,8 +423,8 @@ class ResnetBlock2D(nn.Module):
         hidden_states = input_tensor
 
         hidden_states = self.norm1(hidden_states)
-        # if self._non_linearity != "swish" and self._non_linearity != "silu":
-        hidden_states = self.nonlinearity(hidden_states)
+        if self._non_linearity != "swish" and self._non_linearity != "silu":
+            hidden_states = self.nonlinearity(hidden_states)
 
         if self.upsample is not None:
             input_tensor = self.upsample(input_tensor)
@@ -436,7 +436,7 @@ class ResnetBlock2D(nn.Module):
         hidden_states = self.conv1(hidden_states)
 
         if self.time_emb_proj is not None:
-            if not self.skip_time_act:# and self._non_linearity != "swish" and self._non_linearity != "silu":
+            if not self.skip_time_act:
                 temb = self.nonlinearity(temb)
             temb = ops.unsqueeze(1)(ops.unsqueeze(1)(self.time_emb_proj(temb)))
 
@@ -455,8 +455,8 @@ class ResnetBlock2D(nn.Module):
         else:
             hidden_states = self.norm2(hidden_states)
 
-        # if self._non_linearity != "swish" and self._non_linearity != "silu":
-        hidden_states = self.nonlinearity(hidden_states)
+        if self._non_linearity != "swish" and self._non_linearity != "silu":
+            hidden_states = self.nonlinearity(hidden_states)
 
         hidden_states = self.dropout(hidden_states)
         hidden_states = self.conv2(hidden_states)
@@ -465,8 +465,8 @@ class ResnetBlock2D(nn.Module):
             input_tensor = self.conv_shortcut(input_tensor)
 
         output_tensor = (input_tensor + hidden_states)
-        # if self.output_scale_factor != 1.0:
-        output_tensor = output_tensor / self.output_scale_factor
+        if self.output_scale_factor != 1.0:
+            output_tensor = output_tensor / self.output_scale_factor
 
         return output_tensor
 
