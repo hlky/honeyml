@@ -14,13 +14,13 @@ class ResidualDenseBlock(nn.Module):
         num_grow_ch (int): Channels for each growth.
     """
 
-    def __init__(self, num_feat: int = 64, num_grow_ch: int = 32):
+    def __init__(self, num_feat: int = 64, num_grow_ch: int = 32, dtype: str = "float16"):
         super().__init__()
-        self.conv1 = nn.Conv2dBias(num_feat, num_grow_ch, 3, 1, 1)
-        self.conv2 = nn.Conv2dBias(num_feat + num_grow_ch, num_grow_ch, 3, 1, 1)
-        self.conv3 = nn.Conv2dBias(num_feat + 2 * num_grow_ch, num_grow_ch, 3, 1, 1)
-        self.conv4 = nn.Conv2dBias(num_feat + 3 * num_grow_ch, num_grow_ch, 3, 1, 1)
-        self.conv5 = nn.Conv2dBias(num_feat + 4 * num_grow_ch, num_feat, 3, 1, 1)
+        self.conv1 = nn.Conv2dBias(num_feat, num_grow_ch, 3, 1, 1, dtype=dtype)
+        self.conv2 = nn.Conv2dBias(num_feat + num_grow_ch, num_grow_ch, 3, 1, 1, dtype=dtype)
+        self.conv3 = nn.Conv2dBias(num_feat + 2 * num_grow_ch, num_grow_ch, 3, 1, 1, dtype=dtype)
+        self.conv4 = nn.Conv2dBias(num_feat + 3 * num_grow_ch, num_grow_ch, 3, 1, 1, dtype=dtype)
+        self.conv5 = nn.Conv2dBias(num_feat + 4 * num_grow_ch, num_feat, 3, 1, 1, dtype=dtype)
 
         self.lrelu = nn.LeakyReLU(negative_slope=0.2)
 
@@ -49,11 +49,11 @@ class RRDB(nn.Module):
         num_grow_ch (int): Channels for each growth.
     """
 
-    def __init__(self, num_feat: int, num_grow_ch: int = 32):
+    def __init__(self, num_feat: int, num_grow_ch: int = 32, dtype: str = "float16"):
         super().__init__()
-        self.rdb1 = ResidualDenseBlock(num_feat, num_grow_ch)
-        self.rdb2 = ResidualDenseBlock(num_feat, num_grow_ch)
-        self.rdb3 = ResidualDenseBlock(num_feat, num_grow_ch)
+        self.rdb1 = ResidualDenseBlock(num_feat, num_grow_ch, dtype=dtype)
+        self.rdb2 = ResidualDenseBlock(num_feat, num_grow_ch, dtype=dtype)
+        self.rdb3 = ResidualDenseBlock(num_feat, num_grow_ch, dtype=dtype)
 
     def forward(self, x: Tensor):
         out = self.rdb1(x)

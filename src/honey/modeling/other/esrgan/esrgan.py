@@ -31,6 +31,7 @@ class ESRGAN(nn.Module):
         num_feat: int = 64,
         num_block: int = 23,
         num_grow_ch: int = 32,
+        dtype: str = "float16",
     ):
         super().__init__()
         self.scale = scale
@@ -39,21 +40,21 @@ class ESRGAN(nn.Module):
         elif scale == 1:
             num_in_ch = num_in_ch * 16
         if num_in_ch < 8:
-            self.conv_first = nn.Conv2dBiasFewChannels(num_in_ch, num_feat, 3, 1, 1)
+            self.conv_first = nn.Conv2dBiasFewChannels(num_in_ch, num_feat, 3, 1, 1, dtype=dtype)
         else:
-            self.conv_first = nn.Conv2dBias(num_in_ch, num_feat, 3, 1, 1)
+            self.conv_first = nn.Conv2dBias(num_in_ch, num_feat, 3, 1, 1, dtype=dtype)
         self.body = nn.Sequential(
             *[
-                RRDB(num_feat=num_feat, num_grow_ch=num_grow_ch)
+                RRDB(num_feat=num_feat, num_grow_ch=num_grow_ch, dtype=dtype)
                 for _ in range(num_block)
             ]
         )
-        self.conv_body = nn.Conv2dBias(num_feat, num_feat, 3, 1, 1)
+        self.conv_body = nn.Conv2dBias(num_feat, num_feat, 3, 1, 1, dtype=dtype)
         # upsample
-        self.conv_up1 = nn.Conv2dBias(num_feat, num_feat, 3, 1, 1)
-        self.conv_up2 = nn.Conv2dBias(num_feat, num_feat, 3, 1, 1)
-        self.conv_hr = nn.Conv2dBias(num_feat, num_feat, 3, 1, 1)
-        self.conv_last = nn.Conv2dBias(num_feat, num_out_ch, 3, 1, 1)
+        self.conv_up1 = nn.Conv2dBias(num_feat, num_feat, 3, 1, 1, dtype=dtype)
+        self.conv_up2 = nn.Conv2dBias(num_feat, num_feat, 3, 1, 1, dtype=dtype)
+        self.conv_hr = nn.Conv2dBias(num_feat, num_feat, 3, 1, 1, dtype=dtype)
+        self.conv_last = nn.Conv2dBias(num_feat, num_out_ch, 3, 1, 1, dtype=dtype)
 
         self.lrelu = nn.LeakyReLU(negative_slope=0.2)
 
