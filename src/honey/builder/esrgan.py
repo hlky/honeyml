@@ -26,6 +26,7 @@ class ESRGANBuilder(Build):
     model_name = "ESRGAN.{label}.{resolution}.{device_name}.sm{sm}"
     map_function = map_esrgan
     model_output_names = ["Y"]
+    model_output = None
 
     _model_name = _model_name_with_resolution
 
