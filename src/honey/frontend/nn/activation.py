@@ -16,6 +16,8 @@
 activation modules.
 """
 
+from honey.compiler import ops
+from honey.compiler.base import Tensor
 from honey.compiler.public import elementwise, FuncEnum
 from honey.frontend.nn.module import Module
 
@@ -51,3 +53,14 @@ class GELU(Module):
             result = elementwise(FuncEnum.GELU)(input_val)
 
         return result
+
+
+class LeakyReLU(Module):
+    def __init__(self, negative_slope: float) -> None:
+        super().__init__()
+        self.negative_slope = negative_slope
+        self.op = ops.leaky_relu
+
+    def forward(self, tensor: Tensor) -> Tensor:
+        out = self.op(tensor, self.negative_slope)
+        return out

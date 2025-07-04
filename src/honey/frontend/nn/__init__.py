@@ -13,6 +13,7 @@
 #  limitations under the License.
 #
 # flake8: noqa
+from honey.frontend.nn.activation import *
 from honey.frontend.nn.container import ModuleDict, ModuleList, Sequential
 from honey.frontend.nn.embedding import BertEmbeddings, Embedding
 from honey.frontend.nn.module import Module

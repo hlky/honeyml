@@ -13,6 +13,11 @@ import honey.modeling.diffusers
 from diffusers.models.model_loading_utils import _CLASS_REMAPPING_DICT
 from huggingface_hub.utils import build_hf_headers
 
+import honey.modeling.other
+import honey.modeling.other.esrgan
+import honey.modeling.other.esrgan.esrgan
+import honey.modeling.other.esrgan.esrgan_pt
+
 def mark_output(tensor: Tensor, name: str):
     tensor._attrs["is_output"] = True
     tensor._attrs["name"] = name
@@ -102,6 +107,10 @@ _CLASS_MAPPING = {
         "honey": honey.modeling.diffusers.autoencoders.AutoencoderKL,
         "pt": diffusers.models.autoencoders.autoencoder_kl.AutoencoderKL,
     },
+    "ESRGAN": {
+        "honey": honey.modeling.other.esrgan.esrgan.ESRGAN,
+        "pt": honey.modeling.other.esrgan.esrgan_pt.RRDBNet,
+    }
 }
 
 
