@@ -69,7 +69,7 @@ class ESRGAN(nn.Module):
                 Shape(name="batch_size"),
                 Shape(name="height"),
                 Shape(name="width"),
-                Shape(name="channels", config_name="in_channels"),
+                Shape(name="channels", config_name="num_in_ch"),
             ),
         ]):
         if self.scale == 2:
