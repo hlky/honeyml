@@ -39,8 +39,8 @@ class Build:
         label: str,
         dtype: Union[str, torch.dtype],
         device: Union[str, torch.device],
-        build_kwargs: Dict[str, Any],
-        model_kwargs: Dict[str, Any],
+        build_kwargs: Dict[str, Any] = {},
+        model_kwargs: Dict[str, Any] = {},
         benchmark_after_compile: bool = True,
         store_constants_in_module: bool = True,
     ):
