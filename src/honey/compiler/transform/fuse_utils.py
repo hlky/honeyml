@@ -166,6 +166,8 @@ def transform_simple_fusion_patterns(
         new_op = fusion_patterns[fusion_idx][1]
         if isinstance(new_op, tuple):
             new_op, op_attributes = new_op
+        else:
+            op_attributes = {}
 
         # For bias_add fusion, use is_valid_inputs
         check_inputs_func = getattr(new_op, "is_valid_inputs", None)

@@ -33,7 +33,7 @@ def mk_cutlass_lib(scripts_path, cutlass_lib_path):
         fo.write("from . import extra_operation\n")
 
     def process_code(src_path, dst_path, code_set):
-        pattern = re.compile(r"(\s+)from\s([a-z_0-9]+)\simport\s(.+)")
+        pattern = re.compile(r"from\s([a-z_0-9]+)\simport\s(.+)")
         with open(src_path, newline="\n") as fi:
             lines = fi.readlines()
         output = []
@@ -41,8 +41,9 @@ def mk_cutlass_lib(scripts_path, cutlass_lib_path):
         for line in lines:
             match = pattern.match(line)
             if match is not None:
-                whitespace, name, _import = match.groups()
-                line = "{whitespace}from .{name} import {_import}\n".format(name=name, whitespace=whitespace, _import=_import)
+                name, _import = match.groups()
+                if name + ".py" in code_set:
+                    line = "from .{name} import {_import}\n".format(name=name, _import=_import)
             output.append(line)
         if "library.py" in dst_path:
             lines = extra_enum.emit_library()
@@ -75,7 +76,7 @@ def mk_cutlass_lib(scripts_path, cutlass_lib_path):
 
 
 def main() -> None:
-    scripts_path = pathlib.Path(__file__).parent.resolve().parent.parent.joinpath("3rdparty/cutlass/python/cutlass_library")
+    scripts_path = pathlib.Path(__file__).parent.resolve().parent.parent.joinpath("3rdparty/cutlass/tools/library/scripts")
     cutlass_lib_path = pathlib.Path(__file__).parent.resolve().parent.parent.joinpath("src/honey/utils/cutlass_lib")
     print(scripts_path)
     print(cutlass_lib_path)
