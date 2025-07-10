@@ -164,6 +164,7 @@ def conv2d_gen_profiler(
     is_bias_add = False
     is_transpose = False
     is_depthwise = False
+    extra_header = ""
     if func_attrs["bias"] and not func_attrs["add"]:
         is_bias = True
     elif func_attrs["bias"] and func_attrs["add"]:
@@ -199,6 +200,7 @@ def conv2d_gen_function(
     is_bias_add = False
     is_transpose = False
     is_depthwise = False
+    extra_header = ""
     if func_attrs["bias"] and not func_attrs["add"]:
         is_bias = True
     elif func_attrs["bias"] and func_attrs["add"]:
