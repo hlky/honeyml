@@ -15,7 +15,7 @@
 """
 Conv1d Module.
 """
-from honey.compiler.ops import conv2d, conv2d_bias, squeeze, unsqueeze
+from honey.compiler.ops import conv2d, squeeze, unsqueeze
 from honey.frontend import Tensor
 from honey.frontend.nn.module import Module
 from honey.frontend.nn.parameter import Parameter
@@ -63,9 +63,8 @@ class Conv1d(Module):
         # note that conv1d is functionally equivalent to conv2d,
         # but we need to reshape the input, weight and output tensors,
         # as well as use the correct stride, padding and dilation for the conv2d op.
-        fwd_func = conv2d_bias if bias else conv2d
-        self.op = fwd_func(
-            stride=(stride, 1), pad=(padding, 0), dilate=(dilation, 1), group=groups
+        self.op = conv2d(
+            stride=(stride, 1), pad=(padding, 0), dilate=(dilation, 1), group=groups, bias=bias,
         )
 
     def forward(self, x: Tensor) -> Tensor:
