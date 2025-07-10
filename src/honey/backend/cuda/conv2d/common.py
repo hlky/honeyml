@@ -589,15 +589,14 @@ def extract_config(
     conv_kind = cutlass_lib.library.ConvKind.Fprop
 
     conv_ops = OrderedDict()
-    for _, values in extract_ops:
-        for _, value in values.items():
-            op = value[0]
-            if op.conv_kind == conv_kind:
-                ret = f_proc_op(op)
-                if len(ret) > 0:
-                    for op_inst in ret:
-                        key = kernel_name(op_inst, layout=op_layout)
-                        conv_ops[key] = op_inst
+    for _, value in extract_ops:
+        op = value[0]
+        if op.conv_kind == conv_kind:
+            ret = f_proc_op(op)
+            if len(ret) > 0:
+                for op_inst in ret:
+                    key = kernel_name(op_inst, layout=op_layout)
+                    conv_ops[key] = op_inst
     return conv_ops
 
 
