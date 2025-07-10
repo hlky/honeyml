@@ -19,5 +19,4 @@ cuda conv2d module init
 from honey.backend.cuda.conv2d import (
     conv2d,
     transposed_conv2d,
-    transposed_conv2d_bias,
 )

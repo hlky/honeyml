@@ -54,7 +54,7 @@ class FuseConvCase(unittest.TestCase):
             is_input=True,
         )
         if transpose:
-            conv2d = ops.transposed_conv2d(stride=stride, pad=0)(X, W)
+            conv2d = ops.transposed_conv2d(stride=stride, pad=0, bias=False)(X, W)
         else:
             conv2d = ops.conv2d(stride=stride, pad=0, bias=False)(X, W)
 
@@ -542,15 +542,15 @@ class FuseTransposedConvCase(unittest.TestCase):
         B = Tensor(shape=[CO], dtype="float16", name="input_2", is_input=True)
         if decomposed:
             transposed_conv2d = ops.transposed_conv2d(
-                stride=stride, pad=pad, dilate=dilate
+                stride=stride, pad=pad, dilate=dilate, bias=False
             )(X, W)
             if depth == 0:
                 return transposed_conv2d
 
             transposed_conv2d_bias = ops.elementwise(FuncEnum.ADD)(transposed_conv2d, B)
         else:
-            transposed_conv2d_bias = ops.transposed_conv2d_bias(
-                stride=stride, pad=pad, dilate=dilate
+            transposed_conv2d_bias = ops.transposed_conv2d(
+                stride=stride, pad=pad, dilate=dilate, bias=True,
             )(X, W, B)
             if depth == 0:
                 raise RuntimeError("depth == 0 needs to be decomposed.")

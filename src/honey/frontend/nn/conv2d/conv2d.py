@@ -104,10 +104,17 @@ class Conv2d(Module):
         groups=1,
         dtype="float16",
         bias=True,
-        specialization=None,
+        activation=None,
+        add=False,
+        few_channels=False,
+        auto_padding=True,
     ):
         super().__init__()
         self.dtype = dtype
+        if auto_padding and in_channels < 4:
+            in_channels = 4
+        elif auto_padding and in_channels > 4 and in_channels < 8:
+            in_channels = 8
         self.weight = Parameter(
             shape=[out_channels, kernel_size, kernel_size, in_channels // groups],
             dtype=dtype,
@@ -116,16 +123,24 @@ class Conv2d(Module):
             self.bias = Parameter(shape=[out_channels], dtype=dtype)
         else:
             self.bias = None
+        self._add = add
+        is_depthwise = in_channels == out_channels == groups
         self.op = conv2d(
             stride=stride,
             pad=padding,
             dilate=dilation,
             group=groups,
             bias=bias,
-            specialization=specialization,
+            activation=activation,
+            add=add,
+            few_channels=few_channels,
+            auto_padding=auto_padding,
+            depthwise=is_depthwise,
         )
 
     def forward(self, x: Tensor, r: Optional[Tensor] = None):
+        if self._add and r is None:
+            raise ValueError("`r` required when add=True.")
         return self.op(
             x=x,
             w=self.weight.tensor(),

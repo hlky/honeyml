@@ -53,9 +53,9 @@ class Conv2dTransposeBiasReluTestCase(unittest.TestCase):
             name="input_2",
             is_input=True,
         )
-        OP = ops.transposed_conv2d_bias_relu(stride=2, pad=0, dilate=1)
+        OP = ops.transposed_conv2d(stride=2, pad=0, dilate=1, bias=True, activation="relu")
         if copy_op:
-            OP = ops.transposed_conv2d_bias_relu(**OP._get_op_attributes())
+            OP = ops.transposed_conv2d(**OP._get_op_attributes())
         Y = OP(X, W, B)
         Y._attrs["name"] = "output_0"
         Y._attrs["is_output"] = True

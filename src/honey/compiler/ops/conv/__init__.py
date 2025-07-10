@@ -17,13 +17,7 @@
 Conv2d family operators.
 """
 from honey.compiler.ops.conv.conv2d import conv2d
-from honey.compiler.ops.conv.conv2d_depthwise import conv2d_depthwise
-from honey.compiler.ops.conv.conv2d_depthwise_bias import conv2d_depthwise_bias
 from honey.compiler.ops.conv.conv3d import conv3d
 from honey.compiler.ops.conv.conv3d_bias import conv3d_bias
 from honey.compiler.ops.conv.depthwise_conv3d import depthwise_conv3d
 from honey.compiler.ops.conv.transposed_conv2d import transposed_conv2d
-from honey.compiler.ops.conv.transposed_conv2d_bias import transposed_conv2d_bias
-from honey.compiler.ops.conv.transposed_conv2d_bias_relu import (
-    transposed_conv2d_bias_relu,
-)

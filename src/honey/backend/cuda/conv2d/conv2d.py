@@ -146,6 +146,7 @@ def conv2d_config(
         dtype=dtype,
         f_apply_special_config=f_apply_special_config,
         skip_simt_kernels=skip_simt_kernels,
+        force_alignment=is_depthwise,
     )
 
 

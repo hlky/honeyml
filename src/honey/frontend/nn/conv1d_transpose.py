@@ -1,7 +1,6 @@
 from honey.compiler.ops import (
     squeeze,
     transposed_conv2d,
-    transposed_conv2d_bias,
     unsqueeze,
 )
 from honey.frontend import Tensor
@@ -36,9 +35,8 @@ class ConvTranspose1d(Module):
             self.bias = Parameter(shape=[out_channels], dtype=dtype)
         else:
             self.bias = None
-        fwd_func = transposed_conv2d_bias if bias else transposed_conv2d
-        self.op = fwd_func(
-            stride=(stride, 1), pad=(padding, 0), dilate=(dilation, 1), group=groups
+        self.op = transposed_conv2d(
+            stride=(stride, 1), pad=(padding, 0), dilate=(dilation, 1), group=groups, bias=bias,
         )
 
     def forward(self, x: Tensor) -> Tensor:

@@ -17,9 +17,4 @@
 modules for conv2d
 """
 from honey.frontend.nn.conv2d.conv2d import Conv2d
-from honey.frontend.nn.conv2d.conv2d_depthwise import Conv2dDepthwise
-from honey.frontend.nn.conv2d.conv2d_depthwise_bias import Conv2dDepthwiseBias
-from honey.frontend.nn.conv2d.transposed_conv2d_bias import ConvTranspose2dBias
-from honey.frontend.nn.conv2d.transposed_conv2d_bias_relu import (
-    ConvTranspose2dBiasRelu,
-)
+from honey.frontend.nn.conv2d.conv2d_transposed import ConvTranspose2d

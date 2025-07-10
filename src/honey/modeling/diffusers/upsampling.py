@@ -379,7 +379,7 @@ class KUpsample2D(nn.Module):
         )
         # TODO
         weight[indices, indices] = kernel
-        return ops.transposed_conv2d(stride=2, pad=self.pad * 2 + 1)(inputs, weight)
+        return ops.transposed_conv2d(stride=2, pad=self.pad * 2 + 1, bias=False)(inputs, weight)
 
 
 def upfirdn2d_native(

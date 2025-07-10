@@ -60,7 +60,6 @@ from honey.compiler.ops.conv.conv3d import conv3d
 from honey.compiler.ops.conv.conv3d_bias import conv3d_bias
 from honey.compiler.ops.conv.depthwise_conv3d import depthwise_conv3d
 from honey.compiler.ops.conv.transposed_conv2d import transposed_conv2d
-from honey.compiler.ops.conv.transposed_conv2d_bias import transposed_conv2d_bias
 from honey.compiler.ops.groupnorm.groupnorm import group_norm
 from honey.compiler.ops.layernorm.group_layernorm import group_layernorm
 from honey.compiler.ops.layernorm.group_layernorm_sigmoid_mul import (

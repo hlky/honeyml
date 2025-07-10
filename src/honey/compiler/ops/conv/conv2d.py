@@ -42,6 +42,7 @@ from honey.compiler.ops.conv.conv_common import (
     generate_profiler_sources,
     get_profiler_filename,
 )
+from honey.compiler.ops.padding import nhwc3to4, nhwc3to8
 from honey.utils import alignment, environ, shape_utils
 
 # pylint: disable=C0103,W0221,R1732,W0102,W1202,C0301,R1716
@@ -196,7 +197,7 @@ class conv2d(Operator):
         https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
     """
 
-    def __init__(self, stride, pad, dilate=1, group=1, bias=True, activation=None, add=False, few_channels=False) -> None:
+    def __init__(self, stride, pad, dilate=1, group=1, bias=True, activation=None, add=False, few_channels=False, auto_padding=True, depthwise=False, op_name="conv2d") -> None:
         """Conv2d constructor.
 
         Parameters
@@ -220,8 +221,9 @@ class conv2d(Operator):
             The name of the specialization
         """
         super().__init__()
-        op_name = "conv2d"
         epilogue = activation
+        if depthwise:
+            op_name += "_depthwise"
         if bias:
             op_name += "_bias"
         if add:
@@ -237,6 +239,8 @@ class conv2d(Operator):
         self._attrs["op"] = op_name
         self._attrs["activation"] = activation
         self._attrs["few_channels"] = few_channels
+        self._attrs["auto_padding"] = auto_padding
+        self._attrs["depthwise"] = depthwise
         self._attrs["add"] = add
         self._attrs["bias"] = bias
         self._attrs["stride"] = stride
@@ -274,6 +278,9 @@ class conv2d(Operator):
     def _infer_shape(self, x: List[int], w: List[int]) -> List[int]:
         if x[3] != w[3] * self._attrs["group"]:
             raise RuntimeError("X/W Shape mismatch for conv2d")
+
+        if self._attrs["depthwise"] and w[0] != self._attrs["group"]:
+            raise RuntimeError("W Shape mismatch for conv2d_depthwise")
 
         eval_func = self.shape_eval_template.render(
             indent="",
@@ -402,6 +409,12 @@ class conv2d(Operator):
         List[Tensor]
             includes the output tensor in shape (N, H_out, W_out, C_out)
         """
+        if self._attrs["auto_padding"]:
+            last_dim = x._attrs["shape"][-1]._attrs["values"][0]
+            if last_dim in range(1, 4):
+                x = nhwc3to4()(x)
+            elif last_dim in range(5, 8):
+                x = nhwc3to8()(x)
         self._attrs["inputs"] = [x, w]
         if self._attrs.get("bias"):
             if b is None:

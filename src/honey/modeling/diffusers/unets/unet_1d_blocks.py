@@ -398,7 +398,7 @@ class Upsample1d(nn.Module):
         # TODO nicer interface for conv_transpose1d
         return ops.squeeze(2)(
             ops.transposed_conv2d(
-                stride=(2, 1), pad=(self.pad * 2 + 1, 0), dilate=(1, 1)
+                stride=(2, 1), pad=(self.pad * 2 + 1, 0), dilate=(1, 1), bias=False,
             )(ops.unsqueeze(2)(hidden_states), ops.unsqueeze(2)(weight))
         )
 
