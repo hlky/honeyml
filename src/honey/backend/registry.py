@@ -96,6 +96,13 @@ def get(func_name: str) -> Callable:
     RuntimeError
         If key is not founded in registry, will raise a RuntimeError
     """
+    func_override = {"func_decl", "func_call"}
+    backend, op, func = func_name.split(".")
+    if op.startswith("conv2d") and func in func_override:
+        op = "conv2d"
+    if op.startswith("transposed_conv2d") and func in func_override:
+        op = "transposed_conv2d"
+    func_name = f"{backend}.{op}.{func}"
     if func_name not in BACKEND_FUNCTIONS:
         raise RuntimeError(f"{func_name} function has not been registered.")
     return BACKEND_FUNCTIONS[func_name]
