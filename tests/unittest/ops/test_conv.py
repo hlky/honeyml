@@ -49,7 +49,7 @@ class ConvTestCase(unittest.TestCase):
             name="input_1",
             is_input=True,
         )
-        OP = ops.conv2d(stride=1, pad=1, dilate=1)
+        OP = ops.conv2d(stride=1, pad=1, dilate=1, bias=False)
         if copy_op:
             OP = ops.conv2d(**OP._get_op_attributes())
         Y = OP(X, W)

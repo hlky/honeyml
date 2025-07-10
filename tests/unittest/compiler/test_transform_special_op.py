@@ -307,9 +307,9 @@ class OneByOneConvTestCase(unittest.TestCase):
                 name="bias",
                 is_input=True,
             )
-            conv2d = ops.conv2d_bias(stride=1, pad=0)(X, W, bias)
+            conv2d = ops.conv2d(stride=1, pad=0)(X, W, bias)
         else:
-            conv2d = ops.conv2d(stride=1, pad=0)(X, W)
+            conv2d = ops.conv2d(stride=1, pad=0, bias=False)(X, W)
 
         if activation == "relu":
             conv2d = ops.elementwise(FuncEnum.RELU)(conv2d)

@@ -588,20 +588,20 @@ class AutoencoderTinyBlock(nn.Module):
         super().__init__()
         act_fn = get_activation(act_fn)
         self.conv = nn.Sequential(
-            nn.Conv2dBias(
+            nn.Conv2d(
                 in_channels, out_channels, kernel_size=3, padding=1, dtype=dtype
             ),
             act_fn,
-            nn.Conv2dBias(
+            nn.Conv2d(
                 out_channels, out_channels, kernel_size=3, padding=1, dtype=dtype
             ),
             act_fn,
-            nn.Conv2dBias(
+            nn.Conv2d(
                 out_channels, out_channels, kernel_size=3, padding=1, dtype=dtype
             ),
         )
         self.skip = (
-            nn.Conv2d(in_channels, out_channels, kernel_size=1, dtype=dtype)
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, dtype=dtype, bias=False)
             if in_channels != out_channels
             else nn.Identity()
         )
@@ -1646,7 +1646,7 @@ class AttnSkipDownBlock2D(nn.Module):
             self.downsamplers = nn.ModuleList(
                 [FirDownsample2D(out_channels, out_channels=out_channels)]
             )
-            self.skip_conv = nn.Conv2dBias(
+            self.skip_conv = nn.Conv2d(
                 3, out_channels, kernel_size=(1, 1), stride=(1, 1), dtype=dtype
             )
         else:
@@ -1740,7 +1740,7 @@ class SkipDownBlock2D(nn.Module):
             self.downsamplers = nn.ModuleList(
                 [FirDownsample2D(out_channels, out_channels=out_channels)]
             )
-            self.skip_conv = nn.Conv2dBias(
+            self.skip_conv = nn.Conv2d(
                 3, out_channels, kernel_size=(1, 1), stride=(1, 1), dtype=dtype
             )
         else:
@@ -2846,7 +2846,7 @@ class AttnSkipUpBlock2D(nn.Module):
                 kernel="fir",
                 dtype=dtype,
             )
-            self.skip_conv = nn.Conv2dBias(
+            self.skip_conv = nn.Conv2d(
                 out_channels,
                 3,
                 kernel_size=(3, 3),
@@ -2972,7 +2972,7 @@ class SkipUpBlock2D(nn.Module):
                 kernel="fir",
                 dtype=dtype,
             )
-            self.skip_conv = nn.Conv2dBias(
+            self.skip_conv = nn.Conv2d(
                 out_channels,
                 3,
                 kernel_size=(3, 3),

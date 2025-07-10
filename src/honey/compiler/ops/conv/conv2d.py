@@ -22,7 +22,7 @@ import re
 from collections import OrderedDict
 from hashlib import sha1
 from operator import itemgetter
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, Optional
 
 import jinja2
 
@@ -105,6 +105,57 @@ EXEC_COND_TEMPLATE = jinja2.Template(
 )
 
 
+EPILOGUE = {
+  None: "LinearCombination",
+  "clamp": "LinearCombinationClamp",
+  "relu": "LinearCombinationRelu",
+  "sigmoid": "LinearCombinationSigmoid",
+  "tanh": "LinearCombinationTanh",
+  "add": "LinearCombinationResidualBlock",
+  "hardswish": "LinearCombinationHardSwish",
+  "gelu": "LinearCombinationGELU",
+  "fast_gelu": "LinearCombinationFastGELU",
+  "silu": "LinearCombinationSilu",
+  "elup1": "LinearCombinationELUp1",
+  "leftsiluandmul": "LeftSiLUAndMul",
+  "leftfastgeluandmul": "LeftFastGeluAndMul",
+  "div": "Div",
+}
+
+ACTIVATION = {
+    None: None,
+    "clamp": "clamp",
+    "relu": "relu",
+    "sigmoid": "sigmoid",
+    "tanh": "tanh",
+    "add": "identity",
+    "hardswish": "hardswish",
+    "gelu": "gelu",
+    "fast_gelu": "fast_gelu",
+    "silu": "silu",
+    "elup1": "elup1",
+    "leftsiluandmul": "leftsiluandmul",
+    "leftfastgeluandmul": "leftfastgeluandmul",
+    "div": "div",
+}
+
+SPECIALIZATION = [
+None,
+"clamp",
+"relu",
+"sigmoid",
+"tanh",
+"add",
+"hardswish",
+"gelu",
+"fast_gelu",
+"silu",
+"elup1",
+"leftsiluandmul",
+"leftfastgeluandmul",
+"div",
+]
+
 class conv2d(Operator):
     r"""
     Applies a 2D convolution on input with size (N, H, W, C_in), and produces output with size (N, H_out, W_out, C_out) where N is batch size, H, W are the height and width of the image in pixels, and C is the number of channels.
@@ -161,7 +212,7 @@ class conv2d(Operator):
         https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
     """
 
-    def __init__(self, stride, pad, dilate=1, group=1) -> None:
+    def __init__(self, stride, pad, dilate=1, group=1, bias=True, specialization=None) -> None:
         """Conv2d constructor.
 
         Parameters
@@ -181,16 +232,27 @@ class conv2d(Operator):
         group : int, optional
            Number of blocked connections from input
             channels to output channels, by default 1
+        specialization : str
+            The name of the specialization
         """
         super().__init__()
-        self._attrs["op"] = "conv2d"
+        if bias and specialization is None:
+            op_name = "conv2d_bias"
+        elif bias and specialization is not None:
+            op_name = "conv2d_bias_{act}".format(act=specialization)
+        else:
+            op_name = "conv2d"
+        epilogue = EPILOGUE[specialization]
+        self._attrs["op"] = op_name
+        self._attrs["specialization"] = specialization
+        self._attrs["bias"] = bias
         self._attrs["stride"] = stride
         self._attrs["pad"] = pad
         self._attrs["dilate"] = dilate
         self._attrs["group"] = group
         self._attrs["has_profiler"] = True
         self._attrs["epilogue_alignment"] = 1
-        self._attrs["epilogue"] = "LinearCombination"
+        self._attrs["epilogue"] = epilogue
         self._attrs["workspace"] = 0
         self._attrs["split_k"] = None
         self.shape_eval_template = SHAPE_FUNC_TEMPLATE
@@ -328,7 +390,7 @@ class conv2d(Operator):
             dtype=self._attrs["inputs"][0]._attrs["dtype"],
         )
 
-    def __call__(self, x: Tensor, w: Tensor) -> List[Tensor]:
+    def __call__(self, x: Tensor, w: Tensor, b: Optional[Tensor] = None, r: Optional[Tensor] = None) -> List[Tensor]:
         """Call conv2d with tensors x, w
 
         Parameters
@@ -337,6 +399,10 @@ class conv2d(Operator):
             in shape (N, H, W, C_in)
         w : Tensor
             in shape (C_out, K_h, K_w, C_in)
+        b : Tensor
+            in shape (C_out)
+        r : Tensor
+            in shape (N, H_out, W_out, C_out)
 
         Returns
         -------
@@ -344,6 +410,12 @@ class conv2d(Operator):
             includes the output tensor in shape (N, H_out, W_out, C_out)
         """
         self._attrs["inputs"] = [x, w]
+        if self._attrs.get("bias"):
+            if b is None:
+                raise RuntimeError("Bias tensor is required for conv2d with bias")
+            self._attrs["inputs"].append(b)
+        if r is not None:
+            self._attrs["inputs"].append(r)
         self._set_depth()
         output_shape = self._infer_shapes(x, w)
         self._extract_exec_path(x)
@@ -353,12 +425,13 @@ class conv2d(Operator):
         return output
 
     def _get_op_attributes(self) -> Dict[str, Any]:
-        target_attrs = ["dilate", "group", "pad", "stride"]
+        target_attrs = ["dilate", "group", "pad", "stride", "bias"]
         attr = {}
 
         for target_attr in target_attrs:
             if target_attr in self._attrs:
                 attr[target_attr] = self._attrs[target_attr]
+        del attr["activation"]
 
         return attr
 
@@ -790,7 +863,39 @@ class conv2d(Operator):
             self.exec_cond_template,
             self.shape_eval_template,
             self.shape_save_template,
+            is_bias=self._attrs["bias"],
         )
+
+    @staticmethod
+    def is_valid_inputs(x: Tensor, w: Tensor, b: Optional[Tensor] = None, r: Optional[Tensor] = None) -> Tuple[bool, str]:
+        x_shape = x._attrs["shape"]
+        if len(x_shape) != 4:
+            return False, f"x should be 4D: {x_shape=}"
+
+        w_shape = w._attrs["shape"]
+        if len(w_shape) != 4:
+            return False, f"w should be 4D: {w_shape=}"
+
+        if b is not None:
+            b_shape = b._attrs["shape"]
+            if len(b_shape) != 1:
+                return False, f"b should be 1D: {b_shape=}"
+
+            if b_shape[0] != w_shape[0]:
+                return (
+                    False,
+                    f"out channels in bias does not match: {b_shape[0]=} != {w_shape[0]=}",
+                )
+
+        if r is not None:
+            r_shape = r._attrs["shape"]
+            if len(r_shape) != 4:
+                return False, f"r should be 4D: {r_shape=}"
+
+        # No need to check compatibility of x/w. This function is only used
+        # for fusing conv/elementwise into conv_bias. If x and w were not compatible,
+        # it would fail in the original conv.__call__.
+        return True, ""
 
 
 def _maybe_int_to_tuple(x: Union[int, Tuple[int, int]], name: str) -> Tuple[int, int]:

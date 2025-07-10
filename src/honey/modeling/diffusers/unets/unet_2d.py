@@ -139,7 +139,7 @@ class UNet2DModel(nn.Module):
             )
 
         # input
-        self.conv_in = nn.Conv2dBias(
+        self.conv_in = nn.Conv2d(
             in_channels,
             block_out_channels[0],
             kernel_size=3,
@@ -285,7 +285,7 @@ class UNet2DModel(nn.Module):
             dtype=dtype,
         )
         self.conv_act = ops.silu
-        self.conv_out = nn.Conv2dBias(
+        self.conv_out = nn.Conv2d(
             block_out_channels[0], out_channels, kernel_size=3, padding=1, dtype=dtype
         )
 

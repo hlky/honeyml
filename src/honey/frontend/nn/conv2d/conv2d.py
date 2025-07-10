@@ -16,6 +16,7 @@
 conv2d Module.
 """
 from honey.compiler.ops import conv2d
+from honey.compiler import ops
 from honey.frontend.nn.module import Module
 from honey.frontend.nn.parameter import Parameter
 
@@ -100,16 +101,40 @@ class Conv2d(Module):
         dilation=1,
         groups=1,
         dtype="float16",
+        bias=True,
+        specialization=None,
     ):
         super().__init__()
+        self.dtype = dtype
         self.weight = Parameter(
             shape=[out_channels, kernel_size, kernel_size, in_channels // groups],
             dtype=dtype,
         )
-        self.op = conv2d(stride=stride, pad=padding, dilate=dilation, group=groups)
+        if bias:
+            self.bias = Parameter(shape=[out_channels], dtype=dtype)
+        else:
+            self.bias = None
+        self.op = conv2d(
+            stride=stride, pad=padding, dilate=dilation, group=groups, bias=bias, specialization=specialization,
+        )
 
     def forward(self, *args):
         """Applies Conv2d on the input tensor."""
         assert len(args) == 1
         x = args[0]
+        if self.bias is not None:
+            dtype = x.dtype()
+            return self.op(
+                x,
+                (
+                    self.weight.tensor()
+                    if dtype == self.dtype
+                    else ops.cast()(self.weight.tensor(), dtype)
+                ),
+                (
+                    self.bias.tensor()
+                    if dtype == self.dtype
+                    else ops.cast()(self.bias.tensor(), dtype)
+                ),
+            )
         return self.op(x, self.weight.tensor())

@@ -121,7 +121,7 @@ class ResnetBlockCondNorm2D(nn.Module):
                 f" unsupported time_embedding_norm: {self.time_embedding_norm}"
             )
 
-        self.conv1 = nn.Conv2dBias(
+        self.conv1 = nn.Conv2d(
             in_channels, out_channels, kernel_size=3, stride=1, padding=1, dtype=dtype
         )
 
@@ -139,7 +139,7 @@ class ResnetBlockCondNorm2D(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         conv_2d_out_channels = conv_2d_out_channels or out_channels
-        self.conv2 = nn.Conv2dBias(
+        self.conv2 = nn.Conv2d(
             out_channels,
             conv_2d_out_channels,
             kernel_size=3,
@@ -167,22 +167,14 @@ class ResnetBlockCondNorm2D(nn.Module):
         self.conv_shortcut = None
         if self.use_in_shortcut:
             self.conv_shortcut = (
-                nn.Conv2dBias(
+                nn.Conv2d(
                     in_channels,
                     conv_2d_out_channels,
                     kernel_size=1,
                     stride=1,
                     padding=0,
                     dtype=dtype,
-                )
-                if conv_shortcut_bias
-                else nn.Conv2d(
-                    in_channels,
-                    conv_2d_out_channels,
-                    kernel_size=1,
-                    stride=1,
-                    padding=0,
-                    dtype=dtype,
+                    bias=conv_shortcut_bias,
                 )
             )
 
@@ -308,7 +300,7 @@ class ResnetBlock2D(nn.Module):
             dtype=dtype,
         )
 
-        self.conv1 = nn.Conv2dBias(
+        self.conv1 = nn.Conv2d(
             in_channels, out_channels, kernel_size=3, stride=1, padding=1, dtype=dtype
         )
 
@@ -337,7 +329,7 @@ class ResnetBlock2D(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
         conv_2d_out_channels = conv_2d_out_channels or out_channels
-        self.conv2 = nn.Conv2dBias(
+        self.conv2 = nn.Conv2d(
             out_channels,
             conv_2d_out_channels,
             kernel_size=3,
@@ -381,22 +373,14 @@ class ResnetBlock2D(nn.Module):
         self.conv_shortcut = None
         if self.use_in_shortcut:
             self.conv_shortcut = (
-                nn.Conv2dBias(
+                nn.Conv2d(
                     in_channels,
                     conv_2d_out_channels,
                     kernel_size=1,
                     stride=1,
                     padding=0,
                     dtype=dtype,
-                )
-                if conv_shortcut_bias
-                else nn.Conv2d(
-                    in_channels,
-                    conv_2d_out_channels,
-                    kernel_size=1,
-                    stride=1,
-                    padding=0,
-                    dtype=dtype,
+                    bias=conv_shortcut_bias,
                 )
             )
 

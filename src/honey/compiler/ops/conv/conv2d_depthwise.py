@@ -15,7 +15,7 @@
 """
 Fused conv2d_depthwise op.
 """
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from honey.compiler.base import Tensor
 from honey.compiler.ops.conv.conv2d import conv2d
@@ -25,7 +25,7 @@ from honey.compiler.ops.conv.conv2d import conv2d
 class conv2d_depthwise(conv2d):
     """Base class of conv2d with groups."""
 
-    def __init__(self, stride, pad, dilate=1, group=1) -> None:
+    def __init__(self, stride, pad, dilate=1, group=1, bias=False) -> None:
         """conv2d_depthwise constructor.
 
         Parameters
@@ -40,10 +40,10 @@ class conv2d_depthwise(conv2d):
            Number of blocked connections from input
             channels to output channels, by default 1
         """
-        super().__init__(stride, pad, dilate=dilate, group=group)
-        self._attrs["op"] = "conv2d_depthwise"
+        super().__init__(stride, pad, dilate=dilate, group=group, bias=bias)
+        self._attrs["op"] = "conv2d_depthwise_bias" if bias else "conv2d_depthwise"
 
-    def __call__(self, x: Tensor, w: Tensor):
+    def __call__(self, x: Tensor, w: Tensor, b: Optional[Tensor] = None):
         """Call conv2d_depthwise with tensors x, w
 
         Parameters
@@ -59,6 +59,15 @@ class conv2d_depthwise(conv2d):
             includes the output tensor in shape (N, H_out, W_out, C_out)
         """
         self._attrs["inputs"] = [x, w]
+        if self._attrs.get("bias"):
+            if b is None:
+                raise RuntimeError("Bias tensor is required for depthwise conv2d with bias")
+            self._attrs["inputs"].append(b)
+        elif b is not None:
+            self._attrs["inputs"].append(b)
+            self._attrs["bias"] = True
+            if self._attrs["op"] == "conv2d_depthwise":
+                self._attrs["op"] = "conv2d_depthwise_bias"
         self._set_depth()
         output_shape = self._infer_shapes(x, w)
         output = Tensor(output_shape, src_ops={self})

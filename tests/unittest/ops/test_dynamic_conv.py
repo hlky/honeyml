@@ -53,7 +53,7 @@ class ConvDynamicTestCase(unittest.TestCase):
             name="input_1",
             is_input=True,
         )
-        OP = ops.conv2d(stride=2, pad=1, dilate=1)
+        OP = ops.conv2d(stride=2, pad=1, dilate=1, bias=False)
         Y = OP(X, W)
         Y._attrs["name"] = "output_0"
         Y._attrs["is_output"] = True
@@ -120,9 +120,9 @@ class ConvDynamicTestCase(unittest.TestCase):
             name="weight_2",
             is_input=True,
         )
-        conv_op1 = ops.conv2d(stride=2, pad=1, dilate=1)
+        conv_op1 = ops.conv2d(stride=2, pad=1, dilate=1, bias=False)
         Y1 = conv_op1(X, W1)
-        conv_op2 = ops.conv2d(stride=2, pad=1, dilate=1)
+        conv_op2 = ops.conv2d(stride=2, pad=1, dilate=1, bias=False)
         Y = conv_op2(Y1, W2)
         Y._attrs["name"] = "output_0"
         Y._attrs["is_output"] = True

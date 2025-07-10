@@ -69,7 +69,7 @@ class PadConvTestPT(torch.nn.Module):
 class PadConvTest(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv = nn.Conv2dBias(
+        self.conv = nn.Conv2d(
             4,
             64,
             kernel_size=3,

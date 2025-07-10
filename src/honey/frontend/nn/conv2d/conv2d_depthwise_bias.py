@@ -15,10 +15,10 @@
 """
 conv2d depthwise bias module
 """
-from honey.frontend.nn.conv2d.common_conv2d_bias_act import Conv2dBiasAct
+from honey.frontend.nn.conv2d.conv2d_depthwise import Conv2dDepthwise
 
 
-class Conv2dDepthwiseBias(Conv2dBiasAct):
+class Conv2dDepthwiseBias(Conv2dDepthwise):
     def __init__(
         self,
         in_channels,
@@ -31,7 +31,6 @@ class Conv2dDepthwiseBias(Conv2dBiasAct):
         dtype="float16",
     ):
         super().__init__(
-            "conv2d_depthwise_bias",
             in_channels,
             out_channels,
             kernel_size,
@@ -40,4 +39,5 @@ class Conv2dDepthwiseBias(Conv2dBiasAct):
             dilation,
             groups,
             dtype,
+            bias=True,
         )

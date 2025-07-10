@@ -40,7 +40,7 @@ class conv2d_depthwise_bias(conv2d):
            Number of blocked connections from input
             channels to output channels, by default 1
         """
-        super().__init__(stride, pad, dilate=dilate, group=group)
+        super().__init__(stride, pad, dilate=dilate, group=group, bias=True)
         self._attrs["op"] = "conv2d_depthwise_bias"
 
     def __call__(self, x: Tensor, w: Tensor, b: Tensor):

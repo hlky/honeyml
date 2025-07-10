@@ -15,7 +15,7 @@
 """
 conv2d depthwise module
 """
-from honey.compiler.ops import conv2d_depthwise
+from honey.compiler.ops import conv2d_depthwise, conv2d_depthwise_bias
 from honey.frontend.nn.conv2d.conv2d import Conv2d
 
 
@@ -30,6 +30,7 @@ class Conv2dDepthwise(Conv2d):
         dilation=1,
         groups=1,
         dtype="float16",
+        bias=False,
     ):
         super().__init__(
             in_channels,
@@ -40,7 +41,7 @@ class Conv2dDepthwise(Conv2d):
             dilation,
             groups,
             dtype,
+            bias=bias,
         )
-        self.op = conv2d_depthwise(
-            stride=stride, pad=padding, dilate=dilation, group=groups
-        )
+        op_cls = conv2d_depthwise_bias if self.bias_flag else conv2d_depthwise
+        self.op = op_cls(stride=stride, pad=padding, dilate=dilation, group=groups)

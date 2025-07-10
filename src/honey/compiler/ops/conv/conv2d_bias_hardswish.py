@@ -15,13 +15,13 @@
 """
 Fused conv2d_bias_hardswish op.
 """
-from honey.compiler.ops.conv.common_conv2d_bias_activation import (
-    conv2d_bias_activation,
+from honey.compiler.ops.conv.conv2d import (
+    conv2d,
 )
 
 
 # pylint: disable=C0103
-class conv2d_bias_hardswish(conv2d_bias_activation):
+class conv2d_bias_hardswish(conv2d):
     r"""Conv2d with bias + hardswish.
 
     Applies a 2D convolution on input in shape (N, H, W, C_in), adds a bias in shape (C_out), performs hardswish and produces output in shape (N, H_out, W_out, C_out). N is batch size, H, W are the height and width of the input images in pixels, and C is the number of channels.
@@ -71,7 +71,6 @@ class conv2d_bias_hardswish(conv2d_bias_activation):
             Number of input channels to process to compute one output channel, by default 1
         """
         super().__init__("hardswish", stride, pad, dilate=dilate, group=group)
-        self._attrs["epilogue"] = "LinearCombinationHardSwish"
 
     def _get_op_attributes(self):
         attr = super()._get_op_attributes()

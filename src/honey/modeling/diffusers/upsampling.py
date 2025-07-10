@@ -130,7 +130,7 @@ class Upsample2D(nn.Module):
         elif use_conv:
             if kernel_size is None:
                 kernel_size = 3
-            conv = nn.Conv2dBias(
+            conv = nn.Conv2d(
                 self.channels,
                 self.out_channels,
                 kernel_size=kernel_size,
@@ -223,7 +223,7 @@ class FirUpsample2D(nn.Module):
         super().__init__()
         out_channels = out_channels if out_channels else channels
         if use_conv:
-            self.Conv2d_0 = nn.Conv2dBias(
+            self.Conv2d_0 = nn.Conv2d(
                 channels, out_channels, kernel_size=3, stride=1, padding=1
             )
         self.use_conv = use_conv

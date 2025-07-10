@@ -15,10 +15,10 @@
 """
 conv2d bias module
 """
-from honey.frontend.nn.conv2d.common_conv2d_bias_act import Conv2dBiasAct
+from honey.frontend.nn.conv2d.conv2d import Conv2d
 
 
-class Conv2dBias(Conv2dBiasAct):
+class Conv2dBias(Conv2d):
     r"""Applies 2D convolution with bias.
 
     Args:
@@ -72,7 +72,6 @@ class Conv2dBias(Conv2dBiasAct):
         dtype="float16",
     ):
         super().__init__(
-            "conv2d_bias",
             in_channels,
             out_channels,
             kernel_size,
@@ -81,4 +80,5 @@ class Conv2dBias(Conv2dBiasAct):
             dilation,
             groups,
             dtype,
+            bias=True,
         )

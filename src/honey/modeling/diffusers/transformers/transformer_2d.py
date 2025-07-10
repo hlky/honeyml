@@ -177,7 +177,7 @@ class Transformer2DModel(nn.Module):
         if self.use_linear_projection:
             self.proj_in = nn.Linear(self.in_channels, self.inner_dim, dtype=self.dtype)
         else:
-            self.proj_in = nn.Conv2dBias(
+            self.proj_in = nn.Conv2d(
                 self.in_channels,
                 self.inner_dim,
                 kernel_size=1,
@@ -215,7 +215,7 @@ class Transformer2DModel(nn.Module):
                 self.inner_dim, self.out_channels, dtype=self.dtype
             )
         else:
-            self.proj_out = nn.Conv2dBias(
+            self.proj_out = nn.Conv2d(
                 self.inner_dim,
                 self.out_channels,
                 kernel_size=1,

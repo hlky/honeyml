@@ -109,7 +109,7 @@ class Downsample2D(nn.Module):
             raise ValueError(f"unknown norm_type: {norm_type}")
 
         if use_conv:
-            conv = nn.Conv2dBias(
+            conv = nn.Conv2d(
                 self.channels,
                 self.out_channels,
                 kernel_size=kernel_size,
@@ -180,7 +180,7 @@ class FirDownsample2D(nn.Module):
         super().__init__()
         out_channels = out_channels if out_channels else channels
         if use_conv:
-            self.Conv2d_0 = nn.Conv2dBias(
+            self.Conv2d_0 = nn.Conv2d(
                 channels, out_channels, kernel_size=3, stride=1, padding=1
             )
         self.fir_kernel = fir_kernel
@@ -240,7 +240,7 @@ class FirDownsample2D(nn.Module):
                 torch.tensor(kernel, device=hidden_states.device),
                 pad=((pad_value + 1) // 2, pad_value // 2),
             )
-            output = ops.conv2d(stride=stride_value, pad=0)(upfirdn_input, weight)
+            output = ops.conv2d(stride=stride_value, pad=0, bias=False)(upfirdn_input, weight)
         else:
             pad_value = kernel.shape[0] - factor
             output = upfirdn2d_native(
@@ -313,7 +313,7 @@ class KDownsample2D(nn.Module):
         )
         # TODO
         weight[indices, indices] = kernel
-        return ops.conv2d(stride=2, pad=0)(inputs, weight)
+        return ops.conv2d(stride=2, pad=0, bias=False)(inputs, weight)
 
 
 def downsample_2d(
