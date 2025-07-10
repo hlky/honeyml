@@ -23,7 +23,7 @@ from honey.compiler.ops.conv import (
 
 def get_conv2d_bias_pattern():
     # Attribute in conv2d is not of concern, it will be passed-through directly.
-    return [((conv2d(stride=1, pad=0, bias=False), elementwise(FuncEnum.ADD)), partial(conv2d(bias=True)),)]
+    return [((conv2d(stride=1, pad=0, bias=False), elementwise(FuncEnum.ADD)), (conv2d, {"bias": True},),)]
 
 
 def get_conv2d_bias_elementwise_patterns():
@@ -43,21 +43,21 @@ def get_conv2d_bias_elementwise_patterns():
                 elementwise(FuncEnum.ADD),
                 elementwise(FuncEnum.RELU),
             ),
-            partial(conv2d(activation="relu", add=True, bias=True)),
+            (conv2d, {"activation": "relu", "add": True, "bias": True}),
         ),
         (
             (
                 conv2d(stride=1, pad=0, bias=True),
                 elementwise(FuncEnum.RELU),
             ),
-            partial(conv2d(activation="relu", bias=True)),
+            (conv2d, {"activation": "relu", "bias": True}),
         ),
         (
             (
                 conv2d(stride=1, pad=0, bias=True),
                 elementwise(FuncEnum.SIGMOID),
             ),
-            partial(conv2d(activation="sigmoid", add=True, bias=True)),
+            (conv2d, {"activation": "sigmoid", "add": True, "bias": True}),
         ),
     ]
 
@@ -67,7 +67,7 @@ def get_conv2d_bias_elementwise_patterns():
                 transposed_conv2d(stride=1, pad=0, bias=True),
                 elementwise(FuncEnum.RELU),
             ),
-            partial(transposed_conv2d(bias=True, activation="relu")),
+            (transposed_conv2d, {"activation": "relu", "bias": True}),
         ),
     ]
 
@@ -78,14 +78,14 @@ def get_conv2d_bias_elementwise_patterns():
                 elementwise(FuncEnum.ADD),
                 elementwise(FuncEnum.RELU),
             ),
-            partial(transposed_conv2d(bias=True, activation="relu")),
+            (transposed_conv2d, {"activation": "relu", "bias": True}),
         ),
         (
             (
                 transposed_conv2d(stride=1, pad=0, bias=True),
                 elementwise(FuncEnum.RELU),
             ),
-            partial(transposed_conv2d(bias=True, activation="relu")),
+            (transposed_conv2d, {"activation": "relu", "bias": True}),
         ),
     ]
 
@@ -105,14 +105,14 @@ def get_cuda_only_conv2d_bias_elementwise_patterns():
                 conv2d(stride=1, pad=0, bias=True, few_channels=True),
                 elementwise(FuncEnum.RELU),
             ),
-            partial(conv2d(bias=True, few_channels=True, activation="relu")),
+            (conv2d, {"activation": "relu", "bias": True, "few_channels": True}),
         ),
         (
             (
                 conv2d(stride=1, pad=0, bias=True),
                 elementwise(FuncEnum.ADD),
             ),
-            partial(conv2d(add=True, bias=True)),
+            (conv2d, {"bias": True, "add": True}),
         ),
     ]
 
@@ -122,7 +122,7 @@ def get_cuda_only_conv2d_bias_elementwise_patterns():
                 transposed_conv2d(stride=1, pad=0, bias=False),
                 elementwise(FuncEnum.ADD),
             ),
-            partial(transposed_conv2d(bias=True)),
+            (transposed_conv2d, {"bias": True}),
         ),
     ]
 
