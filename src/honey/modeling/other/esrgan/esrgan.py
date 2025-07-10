@@ -40,7 +40,7 @@ class ESRGAN(nn.Module):
         elif scale == 1:
             num_in_ch = num_in_ch * 16
         if num_in_ch < 8:
-            self.conv_first = nn.Conv2dBiasFewChannels(num_in_ch, num_feat, 3, 1, 1, dtype=dtype)
+            self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1, dtype=dtype, few_channels=True)
         else:
             self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1, dtype=dtype)
         self.body = nn.Sequential(
