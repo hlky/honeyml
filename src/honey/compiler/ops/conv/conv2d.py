@@ -883,7 +883,6 @@ class conv2d(Operator):
             self.exec_cond_template,
             self.shape_eval_template,
             self.shape_save_template,
-            is_bias=self._attrs["bias"],
         )
 
     @staticmethod
