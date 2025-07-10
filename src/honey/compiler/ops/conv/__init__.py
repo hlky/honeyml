@@ -17,25 +17,6 @@
 Conv2d family operators.
 """
 from honey.compiler.ops.conv.conv2d import conv2d
-from honey.compiler.ops.conv.conv2d_bias import conv2d_bias
-from honey.compiler.ops.conv.conv2d_bias_add import conv2d_bias_add
-from honey.compiler.ops.conv.conv2d_bias_add_hardswish import (
-    conv2d_bias_add_hardswish,
-)
-from honey.compiler.ops.conv.conv2d_bias_add_relu import conv2d_bias_add_relu
-from honey.compiler.ops.conv.conv2d_bias_few_channels import (
-    conv2d_bias_few_channels,
-)
-from honey.compiler.ops.conv.conv2d_bias_hardswish import conv2d_bias_hardswish
-from honey.compiler.ops.conv.conv2d_bias_hardswish_few_channels import (
-    conv2d_bias_hardswish_few_channels,
-)
-from honey.compiler.ops.conv.conv2d_bias_relu import conv2d_bias_relu
-from honey.compiler.ops.conv.conv2d_bias_relu_few_channels import (
-    conv2d_bias_relu_few_channels,
-)
-from honey.compiler.ops.conv.conv2d_bias_silu import conv2d_bias_silu
-from honey.compiler.ops.conv.conv2d_bias_sigmoid import conv2d_bias_sigmoid
 from honey.compiler.ops.conv.conv2d_depthwise import conv2d_depthwise
 from honey.compiler.ops.conv.conv2d_depthwise_bias import conv2d_depthwise_bias
 from honey.compiler.ops.conv.conv3d import conv3d

@@ -485,7 +485,7 @@ class FuseConvBiasFewChannelCase(unittest.TestCase):
             shape=[CO, KK, KK, CI], dtype="float16", name="input_1", is_input=True
         )
         B = Tensor(shape=[CO], dtype="float16", name="input_2", is_input=True)
-        OP = ops.conv2d_bias_few_channels(stride=stride, pad=pad, dilate=1)
+        OP = ops.conv2d(stride=stride, pad=pad, dilate=1, bias=True, few_channels=True)
         Y = OP(X, W, B)
         Y = ops.elementwise(FuncEnum.RELU)(Y)
         Y._attrs["name"] = "output_0"

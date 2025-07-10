@@ -55,9 +55,9 @@ class ConvBiasSigmoidTestCase(unittest.TestCase):
             name="input_2",
             is_input=True,
         )
-        OP = ops.conv2d_bias_sigmoid(stride=1, pad=1, dilate=1)
+        OP = ops.conv2d(stride=1, pad=1, dilate=1, bias=True, activation="sigmoid")
         if copy_op:
-            OP = ops.conv2d_bias_sigmoid(**OP._get_op_attributes())
+            OP = ops.conv2d(**OP._get_op_attributes())
         Y = OP(X, W, B)
         Y._attrs["name"] = "output_0"
         Y._attrs["is_output"] = True

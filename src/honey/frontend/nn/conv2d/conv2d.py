@@ -15,6 +15,8 @@
 """
 conv2d Module.
 """
+from typing import Optional
+from honey.compiler.base import Tensor
 from honey.compiler.ops import conv2d
 from honey.compiler import ops
 from honey.frontend.nn.module import Module
@@ -115,26 +117,18 @@ class Conv2d(Module):
         else:
             self.bias = None
         self.op = conv2d(
-            stride=stride, pad=padding, dilate=dilation, group=groups, bias=bias, specialization=specialization,
+            stride=stride,
+            pad=padding,
+            dilate=dilation,
+            group=groups,
+            bias=bias,
+            specialization=specialization,
         )
 
-    def forward(self, *args):
-        """Applies Conv2d on the input tensor."""
-        assert len(args) == 1
-        x = args[0]
-        if self.bias is not None:
-            dtype = x.dtype()
-            return self.op(
-                x,
-                (
-                    self.weight.tensor()
-                    if dtype == self.dtype
-                    else ops.cast()(self.weight.tensor(), dtype)
-                ),
-                (
-                    self.bias.tensor()
-                    if dtype == self.dtype
-                    else ops.cast()(self.bias.tensor(), dtype)
-                ),
-            )
-        return self.op(x, self.weight.tensor())
+    def forward(self, x: Tensor, r: Optional[Tensor] = None):
+        return self.op(
+            x=x,
+            w=self.weight.tensor(),
+            b=self.bias.tensor() if self.bias is not None else None,
+            r=r,
+        )

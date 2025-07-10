@@ -17,22 +17,6 @@
 modules for conv2d
 """
 from honey.frontend.nn.conv2d.conv2d import Conv2d
-from honey.frontend.nn.conv2d.conv2d_bias import Conv2dBias
-from honey.frontend.nn.conv2d.conv2d_bias_add_hardswish import (
-    Conv2dBiasAddHardswish,
-)
-from honey.frontend.nn.conv2d.conv2d_bias_add_relu import Conv2dBiasAddRelu
-from honey.frontend.nn.conv2d.conv2d_bias_few_channels import Conv2dBiasFewChannels
-from honey.frontend.nn.conv2d.conv2d_bias_hardswish import Conv2dBiasHardswish
-from honey.frontend.nn.conv2d.conv2d_bias_hardswish_few_channels import (
-    Conv2dBiasHardswishFewChannels,
-)
-from honey.frontend.nn.conv2d.conv2d_bias_relu import Conv2dBiasRelu
-from honey.frontend.nn.conv2d.conv2d_bias_relu_few_channels import (
-    Conv2dBiasReluFewChannels,
-)
-from honey.frontend.nn.conv2d.conv2d_bias_silu import Conv2dBiasSilu
-from honey.frontend.nn.conv2d.conv2d_bias_sigmoid import Conv2dBiasSigmoid
 from honey.frontend.nn.conv2d.conv2d_depthwise import Conv2dDepthwise
 from honey.frontend.nn.conv2d.conv2d_depthwise_bias import Conv2dDepthwiseBias
 from honey.frontend.nn.conv2d.transposed_conv2d_bias import ConvTranspose2dBias

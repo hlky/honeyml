@@ -122,22 +122,6 @@ EPILOGUE = {
   "div": "Div",
 }
 
-ACTIVATION = {
-    None: None,
-    "clamp": "clamp",
-    "relu": "relu",
-    "sigmoid": "sigmoid",
-    "tanh": "tanh",
-    "add": "identity",
-    "hardswish": "hardswish",
-    "gelu": "gelu",
-    "fast_gelu": "fast_gelu",
-    "silu": "silu",
-    "elup1": "elup1",
-    "leftsiluandmul": "leftsiluandmul",
-    "leftfastgeluandmul": "leftfastgeluandmul",
-    "div": "div",
-}
 
 SPECIALIZATION = [
 None,
@@ -212,7 +196,7 @@ class conv2d(Operator):
         https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
     """
 
-    def __init__(self, stride, pad, dilate=1, group=1, bias=True, specialization=None) -> None:
+    def __init__(self, stride, pad, dilate=1, group=1, bias=True, activation=None, add=False, few_channels=False) -> None:
         """Conv2d constructor.
 
         Parameters
@@ -236,15 +220,24 @@ class conv2d(Operator):
             The name of the specialization
         """
         super().__init__()
-        if bias and specialization is None:
-            op_name = "conv2d_bias"
-        elif bias and specialization is not None:
-            op_name = "conv2d_bias_{act}".format(act=specialization)
-        else:
-            op_name = "conv2d"
-        epilogue = EPILOGUE[specialization]
+        op_name = "conv2d"
+        epilogue = activation
+        if bias:
+            op_name += "_bias"
+        if add:
+            if activation is None:
+                activation = "identity"
+            epilogue = "add"
+            op_name += "_add"
+        if activation is not None:
+            op_name += f"_{activation}"
+        if few_channels:
+            op_name += "_few_channels"
+        epilogue = EPILOGUE[epilogue]
         self._attrs["op"] = op_name
-        self._attrs["specialization"] = specialization
+        self._attrs["activation"] = activation
+        self._attrs["few_channels"] = few_channels
+        self._attrs["add"] = add
         self._attrs["bias"] = bias
         self._attrs["stride"] = stride
         self._attrs["pad"] = pad

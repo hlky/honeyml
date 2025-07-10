@@ -186,6 +186,13 @@ def transform_simple_fusion_patterns(
         # inputs here might not be ready in graph. But we will toposort again
         # at end of pass so it's okay.
         has_modified = True
+        # TODO
+        # example:
+        # conv2d(stride=1, pad=0, bias=False), elementwise(FuncEnum.ADD) ->
+        # partial(conv2d(bias=True))
+        # _get_op_attributes returns `bias=False` -> overrides partial
+        # in this case we are only interested in stride, pad, etc
+        
         new_tensor = new_op(**src_op._get_op_attributes())(*inputs)
         copy_tensor_attributes(new_tensor, last_tensor)
         if new_tensor._attrs["is_output"]:

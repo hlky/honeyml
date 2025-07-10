@@ -12,6 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+from functools import partial
 from honey.compiler.ops.common import elementwise
 from honey.compiler.ops.common.epilogue import FuncEnum
 from honey.compiler.ops.conv import (
@@ -31,7 +32,7 @@ from honey.compiler.ops.conv import (
 
 def get_conv2d_bias_pattern():
     # Attribute in conv2d is not of concern, it will be passed-through directly.
-    return [((conv2d(stride=1, pad=0), elementwise(FuncEnum.ADD)), conv2d_bias)]
+    return [((conv2d(stride=1, pad=0, bias=False), elementwise(FuncEnum.ADD)), partial(conv2d(bias=True)),)]
 
 
 def get_conv2d_bias_elementwise_patterns():
@@ -47,25 +48,25 @@ def get_conv2d_bias_elementwise_patterns():
     conv2d_bias_patterns = [
         (
             (
-                conv2d_bias(stride=1, pad=0),
+                conv2d(stride=1, pad=0, bias=True),
                 elementwise(FuncEnum.ADD),
                 elementwise(FuncEnum.RELU),
             ),
-            conv2d_bias_add_relu,
+            partial(conv2d(activation="relu", add=True, bias=True)),
         ),
         (
             (
-                conv2d_bias(stride=1, pad=0),
+                conv2d(stride=1, pad=0, bias=True),
                 elementwise(FuncEnum.RELU),
             ),
-            conv2d_bias_relu,
+            partial(conv2d(activation="relu", bias=True)),
         ),
         (
             (
-                conv2d_bias(stride=1, pad=0),
+                conv2d(stride=1, pad=0, bias=True),
                 elementwise(FuncEnum.SIGMOID),
             ),
-            conv2d_bias_sigmoid,
+            partial(conv2d(activation="sigmoid", add=True, bias=True)),
         ),
     ]
 
@@ -117,10 +118,10 @@ def get_cuda_only_conv2d_bias_elementwise_patterns():
         ),
         (
             (
-                conv2d_bias(stride=1, pad=0),
+                conv2d(stride=1, pad=0, bias=True),
                 elementwise(FuncEnum.ADD),
             ),
-            conv2d_bias_add,
+            partial(conv2d(add=True, bias=True)),
         ),
     ]
 

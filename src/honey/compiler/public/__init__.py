@@ -56,8 +56,6 @@ from honey.compiler.ops.common.view_ops import flatten, reshape, squeeze, unsque
 
 """Functions"""
 from honey.compiler.ops.conv.conv2d import conv2d
-from honey.compiler.ops.conv.conv2d_bias import conv2d_bias
-from honey.compiler.ops.conv.conv2d_bias_relu import conv2d_bias_relu
 from honey.compiler.ops.conv.conv3d import conv3d
 from honey.compiler.ops.conv.conv3d_bias import conv3d_bias
 from honey.compiler.ops.conv.depthwise_conv3d import depthwise_conv3d

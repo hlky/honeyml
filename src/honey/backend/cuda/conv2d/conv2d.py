@@ -15,6 +15,7 @@
 """
 Codegen for conv2d.
 """
+from typing import Optional
 from honey.backend import registry
 from honey.backend.cuda.conv2d import common
 from honey.utils import alignment
@@ -32,7 +33,16 @@ BIAS_ADD_ACT_EXTRA_HEADER = """
 #include <cutlass/epilogue/thread/linear_combination_residual_block.h>
 """
 
-def get_apply_special_config(few_channels: bool = False, transpose: bool = False, depthwise: bool = False, dtype="float16"):
+
+def get_apply_special_config(
+    few_channels: bool = False,
+    transpose: bool = False,
+    depthwise: bool = False,
+    activation_op_name: Optional[str] = None,
+    binary_op_name: Optional[str] = None,
+    unary_op_name: Optional[str] = None,
+    dtype="float16",
+):
     def apply_special_config(func_attrs, op):
         import honey.utils.cutlass_lib as cutlass_lib
 
@@ -45,7 +55,7 @@ def get_apply_special_config(few_channels: bool = False, transpose: bool = False
             op.tile_description.threadblock_shape[-1] = 8
 
         if transpose:
-            op.group_mode = cutlass_lib.library.GroupMode.NoneGroup 
+            op.group_mode = cutlass_lib.library.GroupMode.NoneGroup
 
         if few_channels:
             x = func_attrs["inputs"][0]
@@ -57,36 +67,80 @@ def get_apply_special_config(few_channels: bool = False, transpose: bool = False
             op.group_mode = cutlass_lib.library.GroupMode.NoneGroup
             if in_ch == 3:
                 # By default we don't use it since the perf is worse than pad4+fixchannel
-                op.iterator_algorithm = cutlass_lib.library.IteratorAlgorithm.FewChannels
+                op.iterator_algorithm = (
+                    cutlass_lib.library.IteratorAlgorithm.FewChannels
+                )
                 op.A.alignment = 1
                 op.B.alignment = 1
                 op.tile_description.stages = 2
             elif in_ch in alignment.get_alignments(dtype):
-                op.iterator_algorithm = cutlass_lib.library.IteratorAlgorithm.FixedChannels
+                op.iterator_algorithm = (
+                    cutlass_lib.library.IteratorAlgorithm.FixedChannels
+                )
                 op.A.alignment = in_ch
                 op.B.alignment = in_ch
                 op.tile_description.stages = 3
+
+        if (
+            activation_op_name is not None
+            and binary_op_name is not None
+            and unary_op_name is not None
+        ):
+            op.activation_op = cutlass_lib.library.EpilogueMathName[activation_op_name]
+            op.binary_op = cutlass_lib.library.EpilogueMathName[binary_op_name]
+            op.unary_op = cutlass_lib.library.EpilogueMathName[unary_op_name]
+
         return op
+
     return apply_special_config
+
 
 @registry.reg("cuda.conv2d.config")
 def conv2d_config(
     func_attrs,
     dtype="float16",
-    is_bias=False,
-    is_bias_add=False,
-    is_transpose=False,
-    is_depthwise=False,
-    is_few_channels=False,
-    skip_simt_kernels=False,
-    f_apply_special_config=None,
-    op_kind=None,
-    op_layout=None,
 ):
-    """Populates conv2d cutlass configs into 'op_instance' field."""
-    if is_few_channels:
+    is_bias = False
+    is_bias_add = False
+    is_transpose = False
+    is_depthwise = False
+    is_few_channels = False
+    skip_simt_kernels = False
+    if func_attrs["bias"] and not func_attrs["add"]:
+        is_bias = True
+    elif func_attrs["bias"] and func_attrs["add"]:
+        is_bias_add = True
+    if func_attrs["few_channels"]:
         skip_simt_kernels = True
-    f_apply_special_config = get_apply_special_config(few_channels=is_few_channels, transpose=is_transpose, depthwise=is_depthwise, dtype=dtype)
+        is_few_channels = True
+    activation_op_name = None
+    binary_op_name = None
+    unary_op_name = None
+    activation = func_attrs["activation"]
+    if is_bias_add and activation is not None:
+        if activation == "identity":
+            activation_op_name="Identity"
+            binary_op_name="Plus"
+            unary_op_name="Identity"
+        elif activation == "relu":
+            activation_op_name="Identity"
+            binary_op_name="Plus"
+            unary_op_name="ReLu"
+        elif activation == "hardswish":
+            activation_op_name="Identity"
+            binary_op_name="Add"
+            unary_op_name="HardSwish"
+        else:
+            raise NotImplementedError(f"is_bias_add with {activation=}.")
+    f_apply_special_config = get_apply_special_config(
+        few_channels=is_few_channels,
+        transpose=is_transpose,
+        depthwise=is_depthwise,
+        activation_op_name=activation_op_name,
+        binary_op_name=binary_op_name,
+        unary_op_name=unary_op_name,
+        dtype=dtype,
+    )
     func_attrs["op_instance"] = common.extract_config(
         func_attrs=func_attrs,
         dtype=dtype,
@@ -101,13 +155,16 @@ def conv2d_gen_profiler(
     workdir,
     profiler_filename,
     shape_template,
-    is_bias=False,
-    is_bias_add=False,
-    is_transpose=False,
-    is_depthwise=False,
-    extra_header="",
 ):
     """Codegen for conv2d profiler."""
+    is_bias = False
+    is_bias_add = False
+    is_transpose = False
+    is_depthwise = False
+    if func_attrs["bias"] and not func_attrs["add"]:
+        is_bias = True
+    elif func_attrs["bias"] and func_attrs["add"]:
+        is_bias_add = True
     if is_bias:
         extra_header = BIAS_ACT_EXTRA_HEADER
     if is_bias_add:
@@ -131,13 +188,16 @@ def conv2d_gen_function(
     exec_cond_template,
     shape_eval_template,
     shape_save_template,
-    is_bias=False,
-    is_bias_add=False,
-    is_transpose=False,
-    is_depthwise=False,
-    extra_header="",
 ):
     """Codegen for conv2d function."""
+    is_bias = False
+    is_bias_add = False
+    is_transpose = False
+    is_depthwise = False
+    if func_attrs["bias"] and not func_attrs["add"]:
+        is_bias = True
+    elif func_attrs["bias"] and func_attrs["add"]:
+        is_bias_add = True
     if is_bias:
         extra_header = BIAS_ACT_EXTRA_HEADER
     if is_bias_add:
@@ -158,10 +218,14 @@ def conv2d_gen_function(
 @registry.reg("cuda.conv2d.func_decl")
 def conv2d_func_decl(
     func_attrs,
-    is_bias=False,
-    is_bias_add=False,
 ):
     """Codegen for conv2d function declaration."""
+    is_bias = False
+    is_bias_add = False
+    if func_attrs["bias"] and not func_attrs["add"]:
+        is_bias = True
+    elif func_attrs["bias"] and func_attrs["add"]:
+        is_bias_add = True
     return common.gen_function_decl(
         func_attrs=func_attrs,
         is_bias=is_bias,
@@ -173,11 +237,15 @@ def conv2d_func_decl(
 def conv2d_func_call(
     func_attrs,
     indent="  ",
-    is_bias=False,
-    is_bias_add=False,
-    is_transpose=False,
 ):
     """Codegen for conv2d function call."""
+    is_bias = False
+    is_bias_add = False
+    is_transpose = False
+    if func_attrs["bias"] and not func_attrs["add"]:
+        is_bias = True
+    elif func_attrs["bias"] and func_attrs["add"]:
+        is_bias_add = True
     return common.gen_function_call(
         func_attrs=func_attrs,
         indent=indent,
