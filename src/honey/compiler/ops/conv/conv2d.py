@@ -431,13 +431,12 @@ class conv2d(Operator):
         return output
 
     def _get_op_attributes(self) -> Dict[str, Any]:
-        target_attrs = ["dilate", "group", "pad", "stride", "bias"]
+        target_attrs = ["dilate", "group", "pad", "stride", "bias", "activation", "add", "few_channels", "auto_padding", "depthwise", "op_name"]
         attr = {}
 
         for target_attr in target_attrs:
             if target_attr in self._attrs:
                 attr[target_attr] = self._attrs[target_attr]
-        del attr["activation"]
 
         return attr
 
