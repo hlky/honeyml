@@ -523,8 +523,13 @@ class conv2d(Operator):
         """
         target = backend.target.Target.current()
 
+        op = self._attrs["op"]
+        if op.startswith("conv2d"):
+            op = "conv2d"
+        if op.startswith("transposed_conv2d"):
+            op = "transposed_conv2d"
         func_key = "{target}.{op}.config".format(
-            target=target.name(), op=self._attrs["op"]
+            target=target.name(), op=op,
         )
         func = registry.get(func_key)
         func(self._attrs, dtype=self._attrs["inputs"][0]._attrs["dtype"])
@@ -690,8 +695,13 @@ class conv2d(Operator):
         target = backend.target.Target.current()
         if "op_instance" not in self._attrs:
             # init candidate ops
+            op = self._attrs["op"]
+            if op.startswith("conv2d"):
+                op = "conv2d"
+            if op.startswith("transposed_conv2d"):
+                op = "transposed_conv2d"
             func_key = "{target}.{op}.config".format(
-                target=target.name(), op=self._attrs["op"]
+                target=target.name(), op=op,
             )
             func = registry.get(func_key)
             func(self._attrs, dtype=self._attrs["inputs"][0]._attrs["dtype"])
@@ -859,8 +869,13 @@ class conv2d(Operator):
 
     def gen_function(self) -> str:
         target = backend.target.Target.current()
+        op = self._attrs["op"]
+        if op.startswith("conv2d"):
+            op = "conv2d"
+        if op.startswith("transposed_conv2d"):
+            op = "transposed_conv2d"
         func_key = "{target}.{op}.gen_function".format(
-            target=target.name(), op=self._attrs["op"]
+            target=target.name(), op=op,
         )
         func = registry.get(func_key)
         return func(
