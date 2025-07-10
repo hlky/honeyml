@@ -113,6 +113,8 @@ def conv2d_config(
     if func_attrs["few_channels"]:
         skip_simt_kernels = True
         is_few_channels = True
+    if func_attrs["depthwise"]:
+        is_depthwise = True
     activation_op_name = None
     binary_op_name = None
     unary_op_name = None
@@ -166,6 +168,8 @@ def conv2d_gen_profiler(
         is_bias = True
     elif func_attrs["bias"] and func_attrs["add"]:
         is_bias_add = True
+    if func_attrs["depthwise"]:
+        is_depthwise = True
     if is_bias:
         extra_header = BIAS_ACT_EXTRA_HEADER
     if is_bias_add:
@@ -199,6 +203,8 @@ def conv2d_gen_function(
         is_bias = True
     elif func_attrs["bias"] and func_attrs["add"]:
         is_bias_add = True
+    if func_attrs["depthwise"]:
+        is_depthwise = True
     if is_bias:
         extra_header = BIAS_ACT_EXTRA_HEADER
     if is_bias_add:
@@ -278,6 +284,8 @@ def conv2d_filter(
     bool
         If input cfg should be filtered.
     """
+    if func_attrs["depthwise"]:
+        return True
     return common.function_filter(
         cfg=cfg,
         func_attrs=func_attrs,
