@@ -79,13 +79,15 @@ class Encoder(nn.Module):
         super().__init__()
         self.layers_per_block = layers_per_block
 
-        self.conv_in = nn.Conv2dBiasFewChannels(
+        self.conv_in = nn.Conv2d(
             in_channels,
             block_out_channels[0],
             kernel_size=3,
             stride=1,
             padding=1,
             dtype=dtype,
+            bias=True,
+            few_channels=True,
         )
 
         self.down_blocks = nn.ModuleList([])
