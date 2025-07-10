@@ -22,7 +22,7 @@ import re
 from collections import OrderedDict
 from hashlib import sha1
 from operator import itemgetter
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, Optional
 
 import jinja2
 
@@ -42,6 +42,7 @@ from honey.compiler.ops.conv.conv_common import (
     generate_profiler_sources,
     get_profiler_filename,
 )
+from honey.compiler.ops.padding import nhwc3to4, nhwc3to8
 from honey.utils import alignment, environ, shape_utils
 
 # pylint: disable=C0103,W0221,R1732,W0102,W1202,C0301,R1716
@@ -105,6 +106,41 @@ EXEC_COND_TEMPLATE = jinja2.Template(
 )
 
 
+EPILOGUE = {
+  None: "LinearCombination",
+  "clamp": "LinearCombinationClamp",
+  "relu": "LinearCombinationRelu",
+  "sigmoid": "LinearCombinationSigmoid",
+  "tanh": "LinearCombinationTanh",
+  "add": "LinearCombinationResidualBlock",
+  "hardswish": "LinearCombinationHardSwish",
+  "gelu": "LinearCombinationGELU",
+  "fast_gelu": "LinearCombinationFastGELU",
+  "silu": "LinearCombinationSilu",
+  "elup1": "LinearCombinationELUp1",
+  "leftsiluandmul": "LeftSiLUAndMul",
+  "leftfastgeluandmul": "LeftFastGeluAndMul",
+  "div": "Div",
+}
+
+
+SPECIALIZATION = [
+None,
+"clamp",
+"relu",
+"sigmoid",
+"tanh",
+"add",
+"hardswish",
+"gelu",
+"fast_gelu",
+"silu",
+"elup1",
+"leftsiluandmul",
+"leftfastgeluandmul",
+"div",
+]
+
 class conv2d(Operator):
     r"""
     Applies a 2D convolution on input with size (N, H, W, C_in), and produces output with size (N, H_out, W_out, C_out) where N is batch size, H, W are the height and width of the image in pixels, and C is the number of channels.
@@ -161,7 +197,7 @@ class conv2d(Operator):
         https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
     """
 
-    def __init__(self, stride, pad, dilate=1, group=1) -> None:
+    def __init__(self, stride, pad, dilate=1, group=1, bias=True, activation=None, add=False, few_channels=False, auto_padding=True, depthwise=False, op_name="conv2d") -> None:
         """Conv2d constructor.
 
         Parameters
@@ -181,16 +217,39 @@ class conv2d(Operator):
         group : int, optional
            Number of blocked connections from input
             channels to output channels, by default 1
+        specialization : str
+            The name of the specialization
         """
         super().__init__()
-        self._attrs["op"] = "conv2d"
+        epilogue = activation
+        if depthwise:
+            op_name += "_depthwise"
+        if bias:
+            op_name += "_bias"
+        if add:
+            if activation is None:
+                activation = "identity"
+            epilogue = "add"
+            op_name += "_add"
+        if activation is not None:
+            op_name += f"_{activation}"
+        if few_channels:
+            op_name += "_few_channels"
+        epilogue = EPILOGUE[epilogue]
+        self._attrs["op"] = op_name
+        self._attrs["activation"] = activation
+        self._attrs["few_channels"] = few_channels
+        self._attrs["auto_padding"] = auto_padding
+        self._attrs["depthwise"] = depthwise
+        self._attrs["add"] = add
+        self._attrs["bias"] = bias
         self._attrs["stride"] = stride
         self._attrs["pad"] = pad
         self._attrs["dilate"] = dilate
         self._attrs["group"] = group
         self._attrs["has_profiler"] = True
         self._attrs["epilogue_alignment"] = 1
-        self._attrs["epilogue"] = "LinearCombination"
+        self._attrs["epilogue"] = epilogue
         self._attrs["workspace"] = 0
         self._attrs["split_k"] = None
         self.shape_eval_template = SHAPE_FUNC_TEMPLATE
@@ -219,6 +278,9 @@ class conv2d(Operator):
     def _infer_shape(self, x: List[int], w: List[int]) -> List[int]:
         if x[3] != w[3] * self._attrs["group"]:
             raise RuntimeError("X/W Shape mismatch for conv2d")
+
+        if self._attrs["depthwise"] and w[0] != self._attrs["group"]:
+            raise RuntimeError("W Shape mismatch for conv2d_depthwise")
 
         eval_func = self.shape_eval_template.render(
             indent="",
@@ -328,7 +390,7 @@ class conv2d(Operator):
             dtype=self._attrs["inputs"][0]._attrs["dtype"],
         )
 
-    def __call__(self, x: Tensor, w: Tensor) -> List[Tensor]:
+    def __call__(self, x: Tensor, w: Tensor, b: Optional[Tensor] = None, r: Optional[Tensor] = None) -> List[Tensor]:
         """Call conv2d with tensors x, w
 
         Parameters
@@ -337,13 +399,29 @@ class conv2d(Operator):
             in shape (N, H, W, C_in)
         w : Tensor
             in shape (C_out, K_h, K_w, C_in)
+        b : Tensor
+            in shape (C_out)
+        r : Tensor
+            in shape (N, H_out, W_out, C_out)
 
         Returns
         -------
         List[Tensor]
             includes the output tensor in shape (N, H_out, W_out, C_out)
         """
+        if self._attrs["auto_padding"]:
+            last_dim = x._attrs["shape"][-1]._attrs["values"][0]
+            if last_dim in range(1, 4):
+                x = nhwc3to4()(x)
+            elif last_dim in range(5, 8):
+                x = nhwc3to8()(x)
         self._attrs["inputs"] = [x, w]
+        if self._attrs.get("bias"):
+            if b is None:
+                raise RuntimeError("Bias tensor is required for conv2d with bias")
+            self._attrs["inputs"].append(b)
+        if r is not None:
+            self._attrs["inputs"].append(r)
         self._set_depth()
         output_shape = self._infer_shapes(x, w)
         self._extract_exec_path(x)
@@ -353,7 +431,7 @@ class conv2d(Operator):
         return output
 
     def _get_op_attributes(self) -> Dict[str, Any]:
-        target_attrs = ["dilate", "group", "pad", "stride"]
+        target_attrs = ["dilate", "group", "pad", "stride", "bias", "activation", "add", "few_channels", "auto_padding", "depthwise", "op_name"]
         attr = {}
 
         for target_attr in target_attrs:
@@ -445,8 +523,13 @@ class conv2d(Operator):
         """
         target = backend.target.Target.current()
 
+        op = self._attrs["op"]
+        if op.startswith("conv2d"):
+            op = "conv2d"
+        if op.startswith("transposed_conv2d"):
+            op = "transposed_conv2d"
         func_key = "{target}.{op}.config".format(
-            target=target.name(), op=self._attrs["op"]
+            target=target.name(), op=op,
         )
         func = registry.get(func_key)
         func(self._attrs, dtype=self._attrs["inputs"][0]._attrs["dtype"])
@@ -612,8 +695,13 @@ class conv2d(Operator):
         target = backend.target.Target.current()
         if "op_instance" not in self._attrs:
             # init candidate ops
+            op = self._attrs["op"]
+            if op.startswith("conv2d"):
+                op = "conv2d"
+            if op.startswith("transposed_conv2d"):
+                op = "transposed_conv2d"
             func_key = "{target}.{op}.config".format(
-                target=target.name(), op=self._attrs["op"]
+                target=target.name(), op=op,
             )
             func = registry.get(func_key)
             func(self._attrs, dtype=self._attrs["inputs"][0]._attrs["dtype"])
@@ -781,8 +869,13 @@ class conv2d(Operator):
 
     def gen_function(self) -> str:
         target = backend.target.Target.current()
+        op = self._attrs["op"]
+        if op.startswith("conv2d"):
+            op = "conv2d"
+        if op.startswith("transposed_conv2d"):
+            op = "transposed_conv2d"
         func_key = "{target}.{op}.gen_function".format(
-            target=target.name(), op=self._attrs["op"]
+            target=target.name(), op=op,
         )
         func = registry.get(func_key)
         return func(
@@ -791,6 +884,37 @@ class conv2d(Operator):
             self.shape_eval_template,
             self.shape_save_template,
         )
+
+    @staticmethod
+    def is_valid_inputs(x: Tensor, w: Tensor, b: Optional[Tensor] = None, r: Optional[Tensor] = None) -> Tuple[bool, str]:
+        x_shape = x._attrs["shape"]
+        if len(x_shape) != 4:
+            return False, f"x should be 4D: {x_shape=}"
+
+        w_shape = w._attrs["shape"]
+        if len(w_shape) != 4:
+            return False, f"w should be 4D: {w_shape=}"
+
+        if b is not None:
+            b_shape = b._attrs["shape"]
+            if len(b_shape) != 1:
+                return False, f"b should be 1D: {b_shape=}"
+
+            if b_shape[0] != w_shape[0]:
+                return (
+                    False,
+                    f"out channels in bias does not match: {b_shape[0]=} != {w_shape[0]=}",
+                )
+
+        if r is not None:
+            r_shape = r._attrs["shape"]
+            if len(r_shape) != 4:
+                return False, f"r should be 4D: {r_shape=}"
+
+        # No need to check compatibility of x/w. This function is only used
+        # for fusing conv/elementwise into conv_bias. If x and w were not compatible,
+        # it would fail in the original conv.__call__.
+        return True, ""
 
 
 def _maybe_int_to_tuple(x: Union[int, Tuple[int, int]], name: str) -> Tuple[int, int]:

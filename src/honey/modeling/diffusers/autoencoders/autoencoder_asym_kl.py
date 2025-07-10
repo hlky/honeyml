@@ -96,10 +96,10 @@ class AsymmetricAutoencoderKL(nn.Module):
             dtype=dtype,
         )
 
-        self.quant_conv = nn.Conv2dBias(
+        self.quant_conv = nn.Conv2d(
             2 * latent_channels, 2 * latent_channels, 1, dtype=dtype
         )
-        self.post_quant_conv = nn.Conv2dBias(
+        self.post_quant_conv = nn.Conv2d(
             latent_channels,
             latent_channels,
             1,

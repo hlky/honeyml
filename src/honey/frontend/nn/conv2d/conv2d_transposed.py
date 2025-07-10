@@ -13,21 +13,19 @@
 #  limitations under the License.
 #
 """
-common module for conv_bias_act subgraph
+common module for ConvTranspose2d subgraph
 """
 from honey.compiler import ops
+from honey.compiler.base import Tensor
 from honey.frontend.nn.module import Module
 from honey.frontend.nn.parameter import Parameter
 
 # pylint: disable=C0103
 
 
-class Conv2dBiasAct(Module):
-    """common functions for conv2d_bias_act"""
-
+class ConvTranspose2d(Module):
     def __init__(
         self,
-        op_name,
         in_channels,
         out_channels,
         kernel_size,
@@ -35,9 +33,11 @@ class Conv2dBiasAct(Module):
         padding=0,
         dilation=1,
         groups=1,
+        bias=True,
+        activation=None,
         dtype="float16",
     ):
-        """Initialize the Conv2dBiasAct class
+        """Initialize the ConvTranspose2d class
 
         Parameters
         ----------
@@ -62,29 +62,19 @@ class Conv2dBiasAct(Module):
             [description]
         """
         super().__init__()
-        self.dtype = dtype
         self.weight = Parameter(
-            shape=[out_channels, kernel_size, kernel_size, in_channels // groups],
+            shape=[in_channels, kernel_size, kernel_size, out_channels // groups],
             dtype=dtype,
         )
-        self.bias = Parameter(shape=[out_channels], dtype=dtype)
-        op_func = getattr(ops, op_name)
-        self.op = op_func(stride=stride, pad=padding, dilate=dilation, group=groups)
+        if bias:
+            self.bias = Parameter(shape=[out_channels], dtype=dtype)
+        else:
+            self.bias = None
+        self.op = ops.transposed_conv2d(stride=stride, pad=padding, dilate=dilation, group=groups, bias=bias, activation=activation)
 
-    def forward(self, *args):
-        assert len(args) == 1
-        x = args[0]
-        dtype = x.dtype()
+    def forward(self, x: Tensor):
         return self.op(
-            x,
-            (
-                self.weight.tensor()
-                if dtype == self.dtype
-                else ops.cast()(self.weight.tensor(), dtype)
-            ),
-            (
-                self.bias.tensor()
-                if dtype == self.dtype
-                else ops.cast()(self.bias.tensor(), dtype)
-            ),
+            x=x,
+            w=self.weight.tensor(),
+            b=self.bias.tensor() if self.bias is not None else None,
         )

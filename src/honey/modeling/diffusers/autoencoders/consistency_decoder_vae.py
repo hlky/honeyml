@@ -136,7 +136,7 @@ class ConsistencyDecoderVAE(nn.Module):
             persistent=False,
         )
 
-        self.quant_conv = nn.Conv2dBias(2 * latent_channels, 2 * latent_channels, 1)
+        self.quant_conv = nn.Conv2d(2 * latent_channels, 2 * latent_channels, 1)
 
         self.use_slicing = False
         self.use_tiling = False

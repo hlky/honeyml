@@ -159,7 +159,7 @@ class I2VGenXLUNet(nn.Module):
             )
 
         # input
-        self.conv_in = nn.Conv2dBias(
+        self.conv_in = nn.Conv2d(
             in_channels + in_channels,
             block_out_channels[0],
             kernel_size=3,
@@ -178,13 +178,13 @@ class I2VGenXLUNet(nn.Module):
 
         # image embedding
         self.image_latents_proj_in = nn.Sequential(
-            nn.Conv2dBias(4, in_channels * 4, 3, padding=1, dtype=dtype),
+            nn.Conv2d(4, in_channels * 4, 3, padding=1, dtype=dtype),
             SiLU(),
-            nn.Conv2dBias(
+            nn.Conv2d(
                 in_channels * 4, in_channels * 4, 3, stride=1, padding=1, dtype=dtype
             ),
             SiLU(),
-            nn.Conv2dBias(
+            nn.Conv2d(
                 in_channels * 4, in_channels, 3, stride=1, padding=1, dtype=dtype
             ),
         )
@@ -197,14 +197,14 @@ class I2VGenXLUNet(nn.Module):
             dtype=dtype,
         )
         self.image_latents_context_embedding = nn.Sequential(
-            nn.Conv2dBias(4, in_channels * 8, 3, padding=1, dtype=dtype),
+            nn.Conv2d(4, in_channels * 8, 3, padding=1, dtype=dtype),
             SiLU(),
             nn.AvgPool2d(32, 1, 0),
-            nn.Conv2dBias(
+            nn.Conv2d(
                 in_channels * 8, in_channels * 16, 3, stride=2, padding=1, dtype=dtype
             ),
             SiLU(),
-            nn.Conv2dBias(
+            nn.Conv2d(
                 in_channels * 16,
                 cross_attention_dim,
                 3,
@@ -331,7 +331,7 @@ class I2VGenXLUNet(nn.Module):
             dtype=dtype,
         )
         self.conv_act = get_activation("silu")
-        self.conv_out = nn.Conv2dBias(
+        self.conv_out = nn.Conv2d(
             block_out_channels[0], out_channels, kernel_size=3, padding=1, dtype=dtype
         )
 

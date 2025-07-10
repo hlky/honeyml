@@ -16,7 +16,8 @@
 transposed conv2d op codegen
 """
 from honey.backend import registry
-from honey.backend.cuda.conv2d import common, common_transposed_conv2d as ctc
+from honey.backend.cuda.conv2d import common
+from honey.backend.cuda.conv2d.conv2d import get_apply_special_config
 
 # pylint: disable=C0103,C0415,W0613,C0301
 
@@ -26,9 +27,53 @@ def transposed_conv2d_config(
     func_attrs,
     dtype="float16",
 ):
-    func_attrs["op_instance"] = ctc.extract_config(
+    is_bias = False
+    is_bias_add = False
+    is_transpose = True
+    is_depthwise = False
+    is_few_channels = False
+    skip_simt_kernels = False
+    if func_attrs["bias"] and not func_attrs["add"]:
+        is_bias = True
+    elif func_attrs["bias"] and func_attrs["add"]:
+        is_bias_add = True
+    if func_attrs["few_channels"]:
+        skip_simt_kernels = True
+        is_few_channels = True
+    activation_op_name = None
+    binary_op_name = None
+    unary_op_name = None
+    activation = func_attrs["activation"]
+    if is_bias_add and activation is not None:
+        if activation == "identity":
+            activation_op_name="Identity"
+            binary_op_name="Plus"
+            unary_op_name="Identity"
+        elif activation == "relu":
+            activation_op_name="Identity"
+            binary_op_name="Plus"
+            unary_op_name="ReLu"
+        elif activation == "hardswish":
+            activation_op_name="Identity"
+            binary_op_name="Add"
+            unary_op_name="HardSwish"
+        else:
+            raise NotImplementedError(f"is_bias_add with {activation=}.")
+    f_apply_special_config = get_apply_special_config(
+        few_channels=is_few_channels,
+        transpose=is_transpose,
+        depthwise=is_depthwise,
+        activation_op_name=activation_op_name,
+        binary_op_name=binary_op_name,
+        unary_op_name=unary_op_name,
+        dtype=dtype,
+    )
+    func_attrs["op_instance"] = common.extract_config(
         func_attrs=func_attrs,
         dtype=dtype,
+        f_apply_special_config=f_apply_special_config,
+        skip_simt_kernels=skip_simt_kernels,
+        force_alignment=is_depthwise,
     )
 
 
@@ -39,13 +84,21 @@ def transposed_conv2d_gen_profiler(
     profiler_filename,
     shape_template,
 ):
+    is_bias = False
+    is_bias_add = False
+    is_transpose = True
+    is_depthwise = False
+    if func_attrs["bias"] and not func_attrs["add"]:
+        is_bias = True
+    elif func_attrs["bias"] and func_attrs["add"]:
+        is_bias_add = True
     return common.gen_profiler(
         func_attrs=func_attrs,
         workdir=workdir,
         profiler_filename=profiler_filename,
         shape_template=shape_template,
-        f_emit_instance=ctc.emit_instance,
-        is_transpose=True,
+        is_bias=is_bias,
+        is_transpose=is_transpose,
         instance_name_base="DeviceConvBwdInstance",
     )
 
@@ -57,13 +110,21 @@ def transposed_conv2d_gen_function(
     shape_eval_template,
     shape_save_template,
 ):
+    is_bias = False
+    is_bias_add = False
+    is_transpose = True
+    is_depthwise = False
+    if func_attrs["bias"] and not func_attrs["add"]:
+        is_bias = True
+    elif func_attrs["bias"] and func_attrs["add"]:
+        is_bias_add = True
     return common.gen_function(
         func_attrs=func_attrs,
         exec_cond_template=exec_cond_template,
         shape_eval_template=shape_eval_template,
         shape_save_template=shape_save_template,
-        f_emit_instance=ctc.emit_instance,
-        is_transpose=True,
+        is_transpose=is_transpose,
+        is_bias=is_bias,
     )
 
 
@@ -71,8 +132,18 @@ def transposed_conv2d_gen_function(
 def transposed_conv2d_func_decl(
     func_attrs,
 ):
+    is_bias = False
+    is_bias_add = False
+    is_transpose = True
+    is_depthwise = False
+    if func_attrs["bias"] and not func_attrs["add"]:
+        is_bias = True
+    elif func_attrs["bias"] and func_attrs["add"]:
+        is_bias_add = True
     return common.gen_function_decl(
         func_attrs=func_attrs,
+        is_bias=is_bias,
+        is_bias_add=is_bias_add,
     )
 
 
@@ -81,10 +152,20 @@ def transposed_conv2d_func_call(
     func_attrs,
     indent="  ",
 ):
+    is_bias = False
+    is_bias_add = False
+    is_transpose = True
+    is_depthwise = False
+    if func_attrs["bias"] and not func_attrs["add"]:
+        is_bias = True
+    elif func_attrs["bias"] and func_attrs["add"]:
+        is_bias_add = True
     return common.gen_function_call(
         func_attrs=func_attrs,
         indent=indent,
-        is_transpose=True,
+        is_transpose=is_transpose,
+        is_bias=is_bias,
+        is_bias_add=is_bias_add,
     )
 
 

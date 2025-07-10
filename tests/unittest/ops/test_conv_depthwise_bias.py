@@ -34,7 +34,7 @@ class ConvDepthwiseBiasTestCase(unittest.TestCase):
         )
         W = Tensor(shape=[32, 3, 3, 1], dtype="float16", name="input_1", is_input=True)
         B = Tensor(shape=[32], dtype="float16", name="input_2", is_input=True)
-        OP = ops.conv2d_depthwise_bias(stride=1, pad=1, dilate=1, group=groups)
+        OP = ops.conv2d(stride=1, pad=1, dilate=1, group=groups, bias=True, depthwise=True)
         Y = OP(X, W, B)
         Y._attrs["name"] = "output_0"
         Y._attrs["is_output"] = True

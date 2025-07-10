@@ -79,13 +79,15 @@ class Encoder(nn.Module):
         super().__init__()
         self.layers_per_block = layers_per_block
 
-        self.conv_in = nn.Conv2dBiasFewChannels(
+        self.conv_in = nn.Conv2d(
             in_channels,
             block_out_channels[0],
             kernel_size=3,
             stride=1,
             padding=1,
             dtype=dtype,
+            bias=True,
+            few_channels=True,
         )
 
         self.down_blocks = nn.ModuleList([])
@@ -137,7 +139,7 @@ class Encoder(nn.Module):
         self.conv_act = ops.silu
 
         conv_out_channels = 2 * out_channels if double_z else out_channels
-        self.conv_out = nn.Conv2dBias(
+        self.conv_out = nn.Conv2d(
             block_out_channels[-1], conv_out_channels, 3, padding=1, dtype=dtype
         )
 
@@ -203,7 +205,7 @@ class Decoder(nn.Module):
         super().__init__()
         self.layers_per_block = layers_per_block
 
-        self.conv_in = nn.Conv2dBias(
+        self.conv_in = nn.Conv2d(
             in_channels,
             block_out_channels[-1],
             kernel_size=3,
@@ -271,7 +273,7 @@ class Decoder(nn.Module):
             )
         self.conv_act = ops.silu
         self.conv_out = nn.Conv2d(
-            block_out_channels[0], out_channels, 3, padding=1, dtype=dtype
+            block_out_channels[0], out_channels, 3, padding=1, dtype=dtype, bias=False,
         )
 
         self.gradient_checkpointing = False
@@ -371,13 +373,13 @@ class MaskConditionEncoder(nn.Module):
             out_ch_ = out_channels[l]
             if l == 0 or l == 1:
                 layers.append(
-                    nn.Conv2dBias(
+                    nn.Conv2d(
                         in_ch_, out_ch_, kernel_size=3, stride=1, padding=1, dtype=dtype
                     )
                 )
             else:
                 layers.append(
-                    nn.Conv2dBias(
+                    nn.Conv2d(
                         in_ch_, out_ch_, kernel_size=4, stride=2, padding=1, dtype=dtype
                     )
                 )
@@ -434,7 +436,7 @@ class MaskConditionDecoder(nn.Module):
         super().__init__()
         self.layers_per_block = layers_per_block
 
-        self.conv_in = nn.Conv2dBias(
+        self.conv_in = nn.Conv2d(
             in_channels,
             block_out_channels[-1],
             kernel_size=3,
@@ -508,7 +510,7 @@ class MaskConditionDecoder(nn.Module):
                 dtype=dtype,
             )
         self.conv_act = ops.silu
-        self.conv_out = nn.Conv2dBias(
+        self.conv_out = nn.Conv2d(
             block_out_channels[0], out_channels, 3, padding=1, dtype=dtype
         )
 
@@ -781,7 +783,7 @@ class EncoderTiny(nn.Module):
 
             if i == 0:
                 layers.append(
-                    nn.Conv2dBias(
+                    nn.Conv2d(
                         in_channels, num_channels, kernel_size=3, padding=1, dtype=dtype
                     )
                 )
@@ -794,6 +796,7 @@ class EncoderTiny(nn.Module):
                         padding=1,
                         stride=2,
                         dtype=dtype,
+                        bias=False,
                     )
                 )
 
@@ -805,7 +808,7 @@ class EncoderTiny(nn.Module):
                 )
 
         layers.append(
-            nn.Conv2dBias(
+            nn.Conv2d(
                 block_out_channels[-1],
                 out_channels,
                 kernel_size=3,
@@ -858,7 +861,7 @@ class DecoderTiny(nn.Module):
         super().__init__()
 
         layers = [
-            nn.Conv2dBias(
+            nn.Conv2d(
                 in_channels,
                 block_out_channels[0],
                 kernel_size=3,
@@ -884,20 +887,13 @@ class DecoderTiny(nn.Module):
 
             conv_out_channel = num_channels if not is_final_block else out_channels
             layers.append(
-                nn.Conv2dBias(
+                nn.Conv2d(
                     num_channels,
                     conv_out_channel,
                     kernel_size=3,
                     padding=1,
                     dtype=dtype,
-                )
-                if is_final_block
-                else nn.Conv2d(
-                    num_channels,
-                    conv_out_channel,
-                    kernel_size=3,
-                    padding=1,
-                    dtype=dtype,
+                    bias=is_final_block,
                 )
             )
 

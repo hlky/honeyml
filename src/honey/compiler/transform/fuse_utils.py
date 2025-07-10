@@ -164,6 +164,10 @@ def transform_simple_fusion_patterns(
 
         # A final check to make sure our replacement is valid.
         new_op = fusion_patterns[fusion_idx][1]
+        if isinstance(new_op, tuple):
+            new_op, op_attributes = new_op
+        else:
+            op_attributes = {}
 
         # For bias_add fusion, use is_valid_inputs
         check_inputs_func = getattr(new_op, "is_valid_inputs", None)
@@ -186,7 +190,9 @@ def transform_simple_fusion_patterns(
         # inputs here might not be ready in graph. But we will toposort again
         # at end of pass so it's okay.
         has_modified = True
-        new_tensor = new_op(**src_op._get_op_attributes())(*inputs)
+        new_op_attributes = src_op._get_op_attributes()
+        new_op_attributes.update(op_attributes)
+        new_tensor = new_op(**new_op_attributes)(*inputs)
         copy_tensor_attributes(new_tensor, last_tensor)
         if new_tensor._attrs["is_output"]:
             output_tensors.append(new_tensor)

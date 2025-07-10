@@ -64,7 +64,7 @@ class CompilationFailureTestCase(unittest.TestCase):
             name="input_1",
             is_input=True,
         )
-        OP = ops.conv2d(stride=1, pad=1, dilate=1)
+        OP = ops.conv2d(stride=1, pad=1, dilate=1, bias=False)
         Y = OP(X, W)
         Y._attrs["name"] = "output_0"
         Y._attrs["is_output"] = True

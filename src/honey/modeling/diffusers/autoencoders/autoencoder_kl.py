@@ -95,7 +95,7 @@ class AutoencoderKL(nn.Module):
         )
 
         self.quant_conv = (
-            nn.Conv2dBias(
+            nn.Conv2d(
                 2 * latent_channels,
                 2 * latent_channels,
                 1,
@@ -105,7 +105,7 @@ class AutoencoderKL(nn.Module):
             else None
         )
         self.post_quant_conv = (
-            nn.Conv2dBias(
+            nn.Conv2d(
                 latent_channels,
                 latent_channels,
                 1,

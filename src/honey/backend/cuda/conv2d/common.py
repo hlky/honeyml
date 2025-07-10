@@ -498,7 +498,7 @@ def kernel_name(op, layout=None):
     return name.replace("\n", "")
 
 
-def emit_instance(op):
+def emit_instance(op, f_instance_convertor=None):
     """emit instance"""
     import honey.utils.cutlass_lib as cutlass_lib
 
@@ -507,6 +507,8 @@ def emit_instance(op):
     else:
         emiter = cutlass_lib.conv2d_operation.EmitConv2dInstance()
     op_def = emiter.emit(op)
+    if f_instance_convertor is not None:
+        op_def = f_instance_convertor(op_def)
     return op_def
 
 
@@ -517,6 +519,7 @@ def extract_config(
     f_apply_special_config=None,
     op_kind=None,
     op_layout=None,
+    force_alignment=False,
 ):
     """Extracts cutlass config for conv kernels."""
     import copy
@@ -570,7 +573,10 @@ def extract_config(
                 op = f_apply_special_config(func_attrs, op)
 
             # set C alignment depending on the dtype
-            for i in alignment.get_alignments(dtype):
+            alignments = alignment.get_alignments(dtype)
+            if force_alignment:
+                alignments = [1]
+            for i in alignments:
                 op = copy.deepcopy(op)
                 op.C.alignment = i
                 ret.append(op)
@@ -583,17 +589,32 @@ def extract_config(
     conv_kind = cutlass_lib.library.ConvKind.Fprop
 
     conv_ops = OrderedDict()
-    for _, values in extract_ops:
-        for _, value in values.items():
-            op = value[0]
-            if op.conv_kind == conv_kind:
-                ret = f_proc_op(op)
-                if len(ret) > 0:
-                    for op_inst in ret:
-                        key = kernel_name(op_inst, layout=op_layout)
-                        conv_ops[key] = op_inst
+    for _, value in extract_ops:
+        op = value[0]
+        if op.conv_kind == conv_kind:
+            ret = f_proc_op(op)
+            if len(ret) > 0:
+                for op_inst in ret:
+                    key = kernel_name(op_inst, layout=op_layout)
+                    conv_ops[key] = op_inst
     return conv_ops
 
+
+def conv_dw_instance(op_def):
+    op_def = op_def.replace("DefaultConv2dFprop", "DefaultDepthwiseFprop")
+    op_def = op_def.replace("OpClassTensorOp", "OpClassSimt")
+    idx = op_def.find("kAnalytic")
+    op_def = op_def[: idx + 9] + "\n>::Kernel;\n"
+    return op_def
+
+def conv_transpose_instance(op_def):
+    tmp = op_def.replace("DefaultConv2dFprop", "DefaultConv2dDgrad")
+    tmp = re.sub(
+        r"cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<\d>",
+        "cutlass::conv::threadblock::StridedDgradIdentityThreadblockSwizzle<1>",
+        tmp,
+    )
+    return tmp
 
 def gen_profiler(
     func_attrs,
@@ -630,8 +651,14 @@ def gen_profiler(
     benchmark_instances = []
     profiler_benchmarks = {}
 
+    f_instance_convertor = None
+    if is_depthwise:
+        f_instance_convertor = conv_dw_instance
+    if is_transpose:
+        f_instance_convertor = conv_transpose_instance
+
     for instance_idx, (op_name, op) in enumerate(op_instance.items()):
-        config = f_emit_instance(op)
+        config = f_emit_instance(op, f_instance_convertor)
         config_name = extract_config_name(config)
         instance_name = f"{instance_name_base}_{instance_idx}"
         function_name = f"{op_type}_{op_name}"

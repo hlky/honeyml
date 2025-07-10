@@ -54,9 +54,9 @@ class FuseConvCase(unittest.TestCase):
             is_input=True,
         )
         if transpose:
-            conv2d = ops.transposed_conv2d(stride=stride, pad=0)(X, W)
+            conv2d = ops.transposed_conv2d(stride=stride, pad=0, bias=False)(X, W)
         else:
-            conv2d = ops.conv2d(stride=stride, pad=0)(X, W)
+            conv2d = ops.conv2d(stride=stride, pad=0, bias=False)(X, W)
 
         return conv2d
 
@@ -183,10 +183,10 @@ class FuseConvBiasCase(unittest.TestCase):
         )
         B = Tensor(shape=[CO], dtype="float16", name="input_2", is_input=True)
         if decomposed:
-            conv2d = ops.conv2d(stride=1, pad=1, dilate=1)(X, W)
+            conv2d = ops.conv2d(stride=1, pad=1, dilate=1, bias=False)(X, W)
             conv2d_bias = ops.elementwise(FuncEnum.ADD)(conv2d, B)
         else:
-            conv2d_bias = ops.conv2d_bias(stride=1, pad=1, dilate=1)(X, W, B)
+            conv2d_bias = ops.conv2d(stride=1, pad=1, dilate=1, bias=True)(X, W, B)
 
         return conv2d_bias
 
@@ -485,7 +485,7 @@ class FuseConvBiasFewChannelCase(unittest.TestCase):
             shape=[CO, KK, KK, CI], dtype="float16", name="input_1", is_input=True
         )
         B = Tensor(shape=[CO], dtype="float16", name="input_2", is_input=True)
-        OP = ops.conv2d_bias_few_channels(stride=stride, pad=pad, dilate=1)
+        OP = ops.conv2d(stride=stride, pad=pad, dilate=1, bias=True, few_channels=True)
         Y = OP(X, W, B)
         Y = ops.elementwise(FuncEnum.RELU)(Y)
         Y._attrs["name"] = "output_0"
@@ -542,15 +542,15 @@ class FuseTransposedConvCase(unittest.TestCase):
         B = Tensor(shape=[CO], dtype="float16", name="input_2", is_input=True)
         if decomposed:
             transposed_conv2d = ops.transposed_conv2d(
-                stride=stride, pad=pad, dilate=dilate
+                stride=stride, pad=pad, dilate=dilate, bias=False
             )(X, W)
             if depth == 0:
                 return transposed_conv2d
 
             transposed_conv2d_bias = ops.elementwise(FuncEnum.ADD)(transposed_conv2d, B)
         else:
-            transposed_conv2d_bias = ops.transposed_conv2d_bias(
-                stride=stride, pad=pad, dilate=dilate
+            transposed_conv2d_bias = ops.transposed_conv2d(
+                stride=stride, pad=pad, dilate=dilate, bias=True,
             )(X, W, B)
             if depth == 0:
                 raise RuntimeError("depth == 0 needs to be decomposed.")

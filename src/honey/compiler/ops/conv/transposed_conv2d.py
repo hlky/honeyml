@@ -99,7 +99,7 @@ class transposed_conv2d(conv2d):
         https://www.matthewzeiler.com/mattzeiler/deconvolutionalnetworks.pdf
     """
 
-    def __init__(self, stride, pad, dilate=1, group=1) -> None:
+    def __init__(self, stride, pad, dilate=1, group=1, bias=True, activation=None) -> None:
         """Transposed_conv2d constructor.
 
         Parameters
@@ -113,9 +113,7 @@ class transposed_conv2d(conv2d):
         group : int, optional
             Number of input channels to process to compute one output channel, by default 1
         """
-        super().__init__(stride, pad, dilate=dilate, group=group)
-        self._attrs["op"] = "transposed_conv2d"
-        self._attrs["epilogue"] = "LinearCombination"
+        super().__init__(stride, pad, dilate=dilate, group=group, bias=bias, activation=activation, op_name="transposed_conv2d")
         self.shape_eval_template = SHAPE_FUNC_TEMPLATE
 
     def _infer_shape(self, x: List[int], w: List[int]) -> List[int]:

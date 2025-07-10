@@ -827,15 +827,14 @@ def extract_config(
     gemm_ops = OrderedDict()
     extract_ops = Target.current()._operators[op_kind].items()
 
-    for _, values in extract_ops:
-        for _, value in values.items():
-            op = value[0]
-            if op.gemm_kind in gemm_kinds:
-                ret = f_proc_op(op)
-                if len(ret) > 0:
-                    for op_inst in ret:
-                        key = f_kernel_name(op_inst)
-                        gemm_ops[key] = op_inst
+    for _, value in extract_ops:
+        op = value[0]
+        if op.gemm_kind in gemm_kinds:
+            ret = f_proc_op(op)
+            if len(ret) > 0:
+                for op_inst in ret:
+                    key = f_kernel_name(op_inst)
+                    gemm_ops[key] = op_inst
     return gemm_ops
 
 

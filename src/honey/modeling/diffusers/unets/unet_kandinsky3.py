@@ -77,7 +77,7 @@ class Kandinsky3UNet(nn.Module):
             time_embedding_dim, cross_attention_dim, attention_head_dim, dtype=dtype
         )
 
-        self.conv_in = nn.Conv2dBias(
+        self.conv_in = nn.Conv2d(
             in_channels, init_channels, kernel_size=3, padding=1, dtype=dtype
         )
 
@@ -151,7 +151,7 @@ class Kandinsky3UNet(nn.Module):
 
         self.conv_norm_out = nn.GroupNorm(groups, init_channels)
         self.conv_act_out = ops.silu
-        self.conv_out = nn.Conv2dBias(
+        self.conv_out = nn.Conv2d(
             init_channels, out_channels, kernel_size=3, padding=1, dtype=dtype
         )
 
@@ -504,7 +504,7 @@ class Kandinsky3Block(nn.Module):
             self.up_sample = nn.Identity()
 
         padding = int(kernel_size > 1)
-        self.projection = nn.Conv2dBias(
+        self.projection = nn.Conv2d(
             in_channels,
             out_channels,
             kernel_size=kernel_size,
@@ -513,7 +513,7 @@ class Kandinsky3Block(nn.Module):
         )
 
         if up_resolution is not None and not up_resolution:
-            self.down_sample = nn.Conv2dBias(
+            self.down_sample = nn.Conv2d(
                 out_channels, out_channels, kernel_size=2, stride=2, dtype=dtype
             )
         else:
@@ -571,12 +571,12 @@ class Kandinsky3ResNetBlock(nn.Module):
             else nn.Identity()
         )
         self.shortcut_projection = (
-            nn.Conv2dBias(in_channels, out_channels, kernel_size=1, dtype=dtype)
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, dtype=dtype)
             if in_channels != out_channels
             else nn.Identity()
         )
         self.shortcut_down_sample = (
-            nn.Conv2dBias(
+            nn.Conv2d(
                 out_channels, out_channels, kernel_size=2, stride=2, dtype=dtype
             )
             if False in up_resolutions
@@ -655,9 +655,9 @@ class Kandinsky3AttentionBlock(nn.Module):
             norm_groups, num_channels, time_embed_dim, dtype=dtype
         )
         self.feed_forward = nn.Sequential(
-            nn.Conv2d(num_channels, hidden_channels, kernel_size=1, dtype=dtype),
+            nn.Conv2d(num_channels, hidden_channels, kernel_size=1, dtype=dtype, bias=False),
             SiLU(),
-            nn.Conv2d(hidden_channels, num_channels, kernel_size=1, dtype=dtype),
+            nn.Conv2d(hidden_channels, num_channels, kernel_size=1, dtype=dtype, bias=False),
         )
 
     def forward(

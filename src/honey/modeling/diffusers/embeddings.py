@@ -329,22 +329,14 @@ class PatchEmbed(nn.Module):
         self.layer_norm = layer_norm
         self.pos_embed_max_size = pos_embed_max_size
 
-        if bias:
-            self.proj = nn.Conv2dBias(
-                in_channels,
-                embed_dim,
-                kernel_size=patch_size,
-                stride=patch_size,
-                dtype=dtype,
-            )
-        else:
-            self.proj = nn.Conv2d(
-                in_channels,
-                embed_dim,
-                kernel_size=patch_size,
-                stride=patch_size,
-                dtype=dtype,
-            )
+        self.proj = nn.Conv2d(
+            in_channels,
+            embed_dim,
+            kernel_size=patch_size,
+            stride=patch_size,
+            dtype=dtype,
+            bias=bias,
+        )
         if layer_norm:
             self.norm = nn.LayerNorm(
                 embed_dim, elementwise_affine=False, eps=1e-6, dtype=dtype
@@ -869,21 +861,21 @@ class ImageHintTimeEmbedding(nn.Module):
         self.image_proj = nn.Linear(image_embed_dim, time_embed_dim)
         self.image_norm = nn.LayerNorm(time_embed_dim)
         self.input_hint_block = nn.Sequential(
-            nn.Conv2dBias(3, 16, 3, padding=1, dtype=dtype),
+            nn.Conv2d(3, 16, 3, padding=1, dtype=dtype),
             SiLU(),
-            nn.Conv2dBias(16, 16, 3, padding=1, dtype=dtype),
+            nn.Conv2d(16, 16, 3, padding=1, dtype=dtype),
             SiLU(),
-            nn.Conv2dBias(16, 32, 3, padding=1, stride=2, dtype=dtype),
+            nn.Conv2d(16, 32, 3, padding=1, stride=2, dtype=dtype),
             SiLU(),
-            nn.Conv2dBias(32, 32, 3, padding=1, dtype=dtype),
+            nn.Conv2d(32, 32, 3, padding=1, dtype=dtype),
             SiLU(),
-            nn.Conv2dBias(32, 96, 3, padding=1, stride=2, dtype=dtype),
+            nn.Conv2d(32, 96, 3, padding=1, stride=2, dtype=dtype),
             SiLU(),
-            nn.Conv2dBias(96, 96, 3, padding=1, dtype=dtype),
+            nn.Conv2d(96, 96, 3, padding=1, dtype=dtype),
             SiLU(),
-            nn.Conv2dBias(96, 256, 3, padding=1, stride=2, dtype=dtype),
+            nn.Conv2d(96, 256, 3, padding=1, stride=2, dtype=dtype),
             SiLU(),
-            nn.Conv2dBias(256, 4, 3, padding=1, dtype=dtype),
+            nn.Conv2d(256, 4, 3, padding=1, dtype=dtype),
         )
 
     def forward(self, image_embeds: Tensor, hint: Tensor):

@@ -94,7 +94,7 @@ class MotionAdapter(nn.Module):
 
         if conv_in_channels:
             # input
-            self.conv_in = nn.Conv2dBias(
+            self.conv_in = nn.Conv2d(
                 conv_in_channels,
                 block_out_channels[0],
                 kernel_size=3,
@@ -264,7 +264,7 @@ class UNetMotionModel(nn.Module):
         conv_in_kernel = 3
         conv_out_kernel = 3
         conv_in_padding = (conv_in_kernel - 1) // 2
-        self.conv_in = nn.Conv2dBias(
+        self.conv_in = nn.Conv2d(
             in_channels,
             block_out_channels[0],
             kernel_size=conv_in_kernel,
@@ -453,7 +453,7 @@ class UNetMotionModel(nn.Module):
             self.conv_act = None
 
         conv_out_padding = (conv_out_kernel - 1) // 2
-        self.conv_out = nn.Conv2dBias(
+        self.conv_out = nn.Conv2d(
             block_out_channels[0],
             out_channels,
             kernel_size=conv_out_kernel,

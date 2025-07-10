@@ -242,7 +242,7 @@ class UNet2DConditionModel(nn.Module):
             in_channels = self.in_channels + (4 - (self.in_channels % 4))
         else:
             in_channels = self.in_channels
-        self.conv_in = nn.Conv2dBias(
+        self.conv_in = nn.Conv2d(
             in_channels,
             block_out_channels[0],
             kernel_size=conv_in_kernel,
@@ -484,7 +484,7 @@ class UNet2DConditionModel(nn.Module):
             self.conv_act = None
 
         conv_out_padding = (conv_out_kernel - 1) // 2
-        self.conv_out = nn.Conv2dBias(
+        self.conv_out = nn.Conv2d(
             block_out_channels[0],
             out_channels,
             kernel_size=conv_out_kernel,

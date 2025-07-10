@@ -50,7 +50,7 @@ class SDCascadeTimestepBlock(nn.Module):
 class SDCascadeResBlock(nn.Module):
     def __init__(self, c, c_skip=0, kernel_size=3, dropout=0.0, dtype: str = "float16"):
         super().__init__()
-        self.depthwise = nn.Conv2dBias(
+        self.depthwise = nn.Conv2d(
             c,
             c,
             kernel_size=kernel_size,
@@ -132,7 +132,7 @@ class UpDownBlock2d(nn.Module):
             if enabled
             else nn.Identity()
         )
-        mapping = nn.Conv2dBias(in_channels, out_channels, kernel_size=1, dtype=dtype)
+        mapping = nn.Conv2d(in_channels, out_channels, kernel_size=1, dtype=dtype)
         self.blocks = nn.ModuleList(
             [interpolation, mapping] if mode == "up" else [mapping, interpolation]
         )
@@ -277,14 +277,14 @@ class StableCascadeUNet(nn.Module):
         # CONDITIONING
         if effnet_in_channels is not None:
             self.effnet_mapper = nn.Sequential(
-                nn.Conv2dBias(
+                nn.Conv2d(
                     effnet_in_channels,
                     block_out_channels[0] * 4,
                     kernel_size=1,
                     dtype=dtype,
                 ),
                 GELU(),
-                nn.Conv2dBias(
+                nn.Conv2d(
                     block_out_channels[0] * 4,
                     block_out_channels[0],
                     kernel_size=1,
@@ -299,14 +299,14 @@ class StableCascadeUNet(nn.Module):
             )
         if pixel_mapper_in_channels is not None:
             self.pixels_mapper = nn.Sequential(
-                nn.Conv2dBias(
+                nn.Conv2d(
                     pixel_mapper_in_channels,
                     block_out_channels[0] * 4,
                     kernel_size=1,
                     dtype=dtype,
                 ),
                 GELU(),
-                nn.Conv2dBias(
+                nn.Conv2d(
                     block_out_channels[0] * 4,
                     block_out_channels[0],
                     kernel_size=1,
@@ -337,7 +337,7 @@ class StableCascadeUNet(nn.Module):
 
         self.embedding = nn.Sequential(
             nn.PixelUnshuffle(patch_size),
-            nn.Conv2dBias(
+            nn.Conv2d(
                 in_channels * (patch_size**2),
                 block_out_channels[0],
                 kernel_size=1,
@@ -408,7 +408,7 @@ class StableCascadeUNet(nn.Module):
                                 dtype=dtype,
                             )
                             if switch_level is not None
-                            else nn.Conv2dBias(
+                            else nn.Conv2d(
                                 block_out_channels[i - 1],
                                 block_out_channels[i],
                                 kernel_size=2,
@@ -439,7 +439,7 @@ class StableCascadeUNet(nn.Module):
                 block_repeat_mappers = nn.ModuleList()
                 for _ in range(down_blocks_repeat_mappers[i] - 1):
                     block_repeat_mappers.append(
-                        nn.Conv2dBias(
+                        nn.Conv2d(
                             block_out_channels[i],
                             block_out_channels[i],
                             kernel_size=1,
@@ -508,7 +508,7 @@ class StableCascadeUNet(nn.Module):
                 block_repeat_mappers = nn.ModuleList()
                 for _ in range(up_blocks_repeat_mappers[::-1][i] - 1):
                     block_repeat_mappers.append(
-                        nn.Conv2dBias(
+                        nn.Conv2d(
                             block_out_channels[i],
                             block_out_channels[i],
                             kernel_size=1,
@@ -522,7 +522,7 @@ class StableCascadeUNet(nn.Module):
             SDCascadeLayerNorm(
                 block_out_channels[0], elementwise_affine=False, eps=1e-6, dtype=dtype
             ),
-            nn.Conv2dBias(
+            nn.Conv2d(
                 block_out_channels[0],
                 out_channels * (patch_size**2),
                 kernel_size=1,

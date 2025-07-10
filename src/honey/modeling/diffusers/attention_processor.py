@@ -1432,7 +1432,7 @@ class SpatialNorm(nn.Module):
             affine=True,
             dtype=dtype,
         )
-        self.conv_y = nn.Conv2dBias(
+        self.conv_y = nn.Conv2d(
             zq_channels,
             f_channels,
             kernel_size=1,
@@ -1440,7 +1440,7 @@ class SpatialNorm(nn.Module):
             padding=0,
             dtype=dtype,
         )
-        self.conv_b = nn.Conv2dBias(
+        self.conv_b = nn.Conv2d(
             zq_channels,
             f_channels,
             kernel_size=1,

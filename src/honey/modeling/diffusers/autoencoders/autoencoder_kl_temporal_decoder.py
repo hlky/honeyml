@@ -25,7 +25,7 @@ class TemporalDecoder(nn.Module):
         self.dtype = dtype
         self.layers_per_block = layers_per_block
 
-        self.conv_in = nn.Conv2dBias(
+        self.conv_in = nn.Conv2d(
             in_channels,
             block_out_channels[-1],
             kernel_size=3,
@@ -65,7 +65,7 @@ class TemporalDecoder(nn.Module):
         )
 
         self.conv_act = ops.silu
-        self.conv_out = nn.Conv2dBias(
+        self.conv_out = nn.Conv2d(
             in_channels=block_out_channels[0],
             out_channels=out_channels,
             kernel_size=3,
@@ -188,7 +188,7 @@ class AutoencoderKLTemporalDecoder(nn.Module):
             dtype=dtype,
         )
 
-        self.quant_conv = nn.Conv2dBias(
+        self.quant_conv = nn.Conv2d(
             2 * latent_channels, 2 * latent_channels, 1, dtype=dtype
         )
 

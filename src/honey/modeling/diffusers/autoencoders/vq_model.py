@@ -94,7 +94,7 @@ class VQModel(nn.Module):
 
         vq_embed_dim = vq_embed_dim if vq_embed_dim is not None else latent_channels
 
-        self.quant_conv = nn.Conv2d(latent_channels, vq_embed_dim, 1)
+        self.quant_conv = nn.Conv2d(latent_channels, vq_embed_dim, 1, bias=False)
         self.quantize = VectorQuantizer(
             num_vq_embeddings,
             vq_embed_dim,
@@ -102,7 +102,7 @@ class VQModel(nn.Module):
             remap=None,
             sane_index_shape=False,
         )
-        self.post_quant_conv = nn.Conv2d(vq_embed_dim, latent_channels, 1)
+        self.post_quant_conv = nn.Conv2d(vq_embed_dim, latent_channels, 1, bias=False)
 
         # pass init params to Decoder
         self.decoder = Decoder(
