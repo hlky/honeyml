@@ -1,4 +1,4 @@
-from typing import Annotated, Dict, Optional, Tuple, Union
+from typing import Annotated, Dict, List, Literal, Optional, Tuple, Union
 
 from ....compiler import ops
 from ....frontend import nn, Tensor
@@ -209,6 +209,7 @@ class AutoencoderKL(nn.Module):
                 Shape(name="channels", config_name="latent_channels"),
             ),
         ],
+        sample_mode: Union[Literal["sample", "argmax", "moments"], List[Literal["sample", "argmax", "moments"]]] = "sample",
         return_dict: bool = True
     ) -> Union[AutoencoderKLOutput, Tuple[DiagonalGaussianDistribution]]:
         """
@@ -241,13 +242,27 @@ class AutoencoderKL(nn.Module):
             moments = h
 
         posterior = DiagonalGaussianDistribution(moments)
-        
-        z = posterior.sample(sample=sample)
+
+        if not isinstance(sample_mode, list):
+            sample_mode = [sample_mode]
+
+        outputs: List[Tensor] = []
+
+        for sample_type in sample_mode:
+            if sample_type == "moments":
+                outputs.append(moments)
+            elif sample_type == "argmax":
+                outputs.append(posterior.mode())
+            elif sample_type == "sample":
+                outputs.append(posterior.sample(sample=sample))
 
         if not return_dict:
-            return (z,)
+            return tuple(outputs)
 
-        return z
+        if len(outputs) == 1:
+            outputs: Tensor = outputs[0]
+
+        return outputs
 
     def _decode(
         self, z: Annotated[
