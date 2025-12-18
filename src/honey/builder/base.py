@@ -41,6 +41,7 @@ class Build:
         device: Union[str, torch.device],
         build_kwargs: Dict[str, Any] = {},
         model_kwargs: Dict[str, Any] = {},
+        forward_kwargs: Dict[str, Any] = {},
         benchmark_after_compile: bool = True,
         store_constants_in_module: bool = True,
     ):
@@ -50,6 +51,7 @@ class Build:
         self.device = device
         self.build_kwargs = build_kwargs
         self.model_kwargs = model_kwargs
+        self.forward_kwargs = forward_kwargs
         self.benchmark_after_compile = benchmark_after_compile
         self.store_constants_in_module = store_constants_in_module
 
@@ -104,7 +106,7 @@ class Build:
                 
 
     def create_output_tensors(self):
-        model_output = getattr(self.honey_module, self.model_forward)(**self.input_tensors)
+        model_output = getattr(self.honey_module, self.model_forward)(**self.input_tensors, **self.forward_kwargs)
         if self.model_output is not None:
             output_tensors: Union[Tensor, List[Tensor]] = getattr(model_output, self.model_output)
         else:

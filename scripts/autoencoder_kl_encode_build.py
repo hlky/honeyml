@@ -1,3 +1,4 @@
+from typing import List
 import click
 
 from honey.builder.autoencoder_kl import AutoencoderKLEncodeBuilder
@@ -43,6 +44,11 @@ python scripts/autoencoder_kl_encode_build.py --hf-hub runwayml/stable-diffusion
     type=str,
     default="float16",
 )
+@click.option(
+    "--sample-mode",
+    multiple=True,
+    default=["sample"],
+)
 def build(
     hf_hub: str,
     label: str,
@@ -50,6 +56,7 @@ def build(
     min_res: int,
     max_res: int,
     subfolder: str,
+    sample_mode: List[str],
     dtype: str = "float16",
     device: str = "cuda",
 ):
@@ -64,6 +71,9 @@ def build(
         },
         model_kwargs={
             "subfolder": subfolder,
+        },
+        forward_kwargs={
+            "sample_mode": sample_mode,
         },
     )
     builder()
