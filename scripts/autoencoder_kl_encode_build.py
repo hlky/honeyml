@@ -76,6 +76,8 @@ def build(
             "sample_mode": sample_mode,
         },
     )
+    if len(sample_mode) > 1:
+        builder.model_output_names = sample_mode
     builder()
 
 
