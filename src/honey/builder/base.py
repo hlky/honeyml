@@ -44,6 +44,7 @@ class Build:
         forward_kwargs: Dict[str, Any] = {},
         benchmark_after_compile: bool = True,
         store_constants_in_module: bool = True,
+        check_outputs: bool = True,
     ):
         self.hf_hub = hf_hub
         self.label = label
@@ -54,6 +55,7 @@ class Build:
         self.forward_kwargs = forward_kwargs
         self.benchmark_after_compile = benchmark_after_compile
         self.store_constants_in_module = store_constants_in_module
+        self.check_outputs = check_outputs
 
     def _model_name(self):
         return {}
@@ -103,7 +105,7 @@ class Build:
                 # TODO
                 print(f"{name=}: {get_shape(tensor)}")
                 tensor._attrs["shape"][0] = batch
-                
+
 
     def create_output_tensors(self):
         model_output = getattr(self.honey_module, self.model_forward)(**self.input_tensors, **self.forward_kwargs)
@@ -143,7 +145,7 @@ class Build:
             if not self.store_constants_in_module:
                 print("`benchmark_after_compile` requires `store_constants_in_module`.")
             else:
-                benchmark_module(module=module, count=50, repeat=3)
+                benchmark_module(module=module, count=50, repeat=3, check_outputs=self.check_outputs)
         return module
 
     def __call__(self):
