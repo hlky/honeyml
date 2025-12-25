@@ -424,7 +424,10 @@ def gen_function_single_thread(
         ), "Operator has more than 1 output! Operator: {}".format(func_metadata)
 
         output = func_metadata.outputs[0]
-        func_def = "{}({})".format(func_metadata.func_name, ",".join(params))
+        if func_metadata.func_name in ("+", "-", "*", "/"):
+            func_def = f"{params[0]} {func_metadata.func_name} {params[1]}"
+        else:
+            func_def = "{}({})".format(func_metadata.func_name, ",".join(params))
         func_def = (
             "{}({})".format(output_converter, func_def)
             if output_converter is not None

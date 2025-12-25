@@ -34,6 +34,8 @@ def get_alignments(dtype: str) -> List[int]:
         return [8, 4, 2, 1]
     elif dtype in ("float", "float32"):
         return [4, 2, 1]
+    elif dtype in ("int64"):
+        return [2, 1]
     else:
         raise NotImplementedError(f"unsupported {dtype=} for alignments")
 
