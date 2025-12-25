@@ -20,6 +20,26 @@ import torch
 from ..compiler.dtype import _ENUM_TO_TORCH_DTYPE
 from ..compiler.model import Model
 
+def prepare_inputs_outputs(
+    module: Model,
+    device: str = "cuda",
+):
+    inputs = {}
+    outputs = {}
+    for name, idx in module.get_input_name_to_index_map().items():
+        shape = module.get_input_maximum_shape(idx)
+        dtype = _ENUM_TO_TORCH_DTYPE[module.get_input_dtype(idx)]
+        if dtype.is_floating_point:
+            tensor = torch.randn(*shape, dtype=dtype).to(device)
+        else:
+            tensor = torch.randint(0, 64, shape, dtype=dtype).to(device)
+        inputs[name] = tensor
+    for name, idx in module.get_output_name_to_index_map().items():
+        shape = module.get_output_maximum_shape(idx)
+        dtype = _ENUM_TO_TORCH_DTYPE[module.get_output_dtype(idx)]
+        tensor = torch.empty(*shape, dtype=dtype).to(device)
+        outputs[name] = tensor
+    return inputs, outputs
 
 def benchmark_module(
     module: Model,
@@ -27,19 +47,14 @@ def benchmark_module(
     count: int = 25,
     repeat: int = 2,
     graph_mode: bool = False,
+    check_outputs: bool = False,
 ):
-    inputs = {}
-    outputs = {}
-    for name, idx in module.get_input_name_to_index_map().items():
-        shape = module.get_input_maximum_shape(idx)
-        dtype = _ENUM_TO_TORCH_DTYPE[module.get_input_dtype(idx)]
-        tensor = torch.randn(*shape, dtype=dtype).to(device)
-        inputs[name] = tensor
-    for name, idx in module.get_output_name_to_index_map().items():
-        shape = module.get_output_maximum_shape(idx)
-        dtype = _ENUM_TO_TORCH_DTYPE[module.get_output_dtype(idx)]
-        tensor = torch.empty(*shape, dtype=dtype).to(device)
-        outputs[name] = tensor
+    if check_outputs:
+        inputs, outputs = prepare_inputs_outputs(module, device)
+        outputs = module.run_with_tensors(inputs, outputs)
+        for name, tensor in outputs.items():
+            print(f"{name=} {tensor=}")
+    inputs, outputs = prepare_inputs_outputs(module, device)
     mean, std, _ = module.benchmark_with_tensors(
         inputs, outputs, count=count, repeat=repeat, graph_mode=graph_mode
     )
