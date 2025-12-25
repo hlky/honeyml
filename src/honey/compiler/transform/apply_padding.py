@@ -168,6 +168,8 @@ def apply_padding(sorted_graph: List[Tensor], workdir: str = None) -> List[Tenso
                     continue
                 alignment_dim = tensor._attrs["shape"][-1]
                 if not isinstance(alignment_dim, IntImm):
+                    print("WARNING Gemm does not support dynamic alignment dimensions ")
+                    continue
                     raise NotImplementedError(
                         "Gemm does not support dynamic alignment dimensions "
                         "(i.e. alignment==1)! Gemm: {}".format(op)
