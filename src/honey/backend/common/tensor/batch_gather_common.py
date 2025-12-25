@@ -176,11 +176,9 @@ def gen_function_call(func_attrs: Dict[str, Any], indent="  ", is_cuda=False) ->
     for i in range(1, axis):
         batch_num *= yshape[i]._attrs["values"][0]
 
-    indices_num = yshape[axis]._attrs["values"][0]
+    indices_num = yshape[axis]._attrs["name"]
 
-    instance_size = 1
-    for i in range(axis + 1, len(yshape)):
-        instance_size *= yshape[i]._attrs["values"][0]
+    instance_size = xshape[1]._attrs["name"]
 
     gather_dim_size = xshape[axis]._attrs["values"][0]
 

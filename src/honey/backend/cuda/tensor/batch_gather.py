@@ -26,8 +26,14 @@ from honey.backend.common.tensor import batch_gather_common
 
 header_files = """
 #include <cuda_fp16.h>
+#include <cuda_bf16.h>
 #include "cutlass/cutlass.h"
 #include "cutlass/fast_math.h"
+
+
+using bfloat16 = __nv_bfloat16;
+using bfloat16_2 = __nv_bfloat162;
+
 """
 
 
