@@ -49,11 +49,7 @@ class Embedding(Module):
         assert indices._rank() == 1, "indices should be a 1d-array"
         dtype = indices.dtype()
         embedding = ops.batch_gather()(
-            (
-                self.weight.tensor()
-                if dtype == self.dtype
-                else ops.cast()(self.weight.tensor(), dtype)
-            ),
+            self.weight.tensor(),
             indices,
         )
         return embedding
