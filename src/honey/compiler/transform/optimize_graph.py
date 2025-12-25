@@ -107,7 +107,8 @@ def optimize_graph(
         fuse_expand_bmm,
         transform_odd_alignment,
         fuse_conv_elementwise,
-        fuse_single_source_parallel_gemms,
+        # TODO: investigate - Disabled as causes blob to blow up
+        # fuse_single_source_parallel_gemms,
         fuse_mm_elementwise,
         fuse_mm_reshape_permute,
         # make sure we run move_view_op_before_concat before transform_memory_ops
