@@ -15,6 +15,7 @@
 """
 Codegen functions for group_gemm_rcr.
 """
+
 import jinja2
 
 from honey.backend import registry

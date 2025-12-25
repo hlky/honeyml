@@ -282,9 +282,9 @@ class PixArtAlphaCombinedTimestepSizeEmbeddings(nn.Module):
         timesteps_emb = self.timestep_embedder(timesteps_proj)  # (N, D)
 
         if self.use_additional_conditions:
-            assert (
-                resolution is not None and aspect_ratio is not None
-            ), "Additional conditions are required."
+            assert resolution is not None and aspect_ratio is not None, (
+                "Additional conditions are required."
+            )
             resolution_emb = self.additional_condition_proj(ops.flatten()(resolution))
             resolution_emb = ops.reshape()(
                 self.resolution_embedder(resolution_emb), [batch_size, -1]

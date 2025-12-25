@@ -15,6 +15,7 @@
 """
 Pool module init.
 """
+
 from honey.compiler.ops.pool.avg_pool1d import avg_pool1d
 from honey.compiler.ops.pool.avg_pool2d import avg_pool2d
 from honey.compiler.ops.pool.max_pool2d import max_pool2d

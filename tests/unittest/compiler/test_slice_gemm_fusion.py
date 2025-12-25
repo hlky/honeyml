@@ -367,12 +367,12 @@ class SliceGemmFusionTestCase(unittest.TestCase):
         )
         tensor_A._attrs["name"] = "slice_output"
         a_shape = [d.value() for d in tensor_A._attrs["shape"]]
-        assert (
-            a_shape[0] == M
-        ), f"invalid test shape: expected a_shape[0] to be {M}, but got {a_shape[0]}"
-        assert (
-            a_shape[1] == M
-        ), f"invalid test shape: expected a_shape[1] to be {M}, but got {a_shape[1]}"
+        assert a_shape[0] == M, (
+            f"invalid test shape: expected a_shape[0] to be {M}, but got {a_shape[0]}"
+        )
+        assert a_shape[1] == M, (
+            f"invalid test shape: expected a_shape[1] to be {M}, but got {a_shape[1]}"
+        )
         # tensor_A is used for A and B in gemm computation
 
         Y = ops.gemm_rcr_bias()(tensor_A, tensor_A, Bias)

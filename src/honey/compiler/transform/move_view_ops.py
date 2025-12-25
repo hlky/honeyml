@@ -16,6 +16,7 @@
 This pass move any view op between two concatenate ops to the front of the
 first concatenate op if possible.
 """
+
 import copy
 from typing import Callable, List, Optional, Tuple
 
@@ -106,7 +107,7 @@ def _make_input_view_shape(
     orig_dim_name = original_view_shape[cat_dim]._attrs["name"]
     new_input_view_shape[cat_dim] = IntImm(
         cat_stride // orig_view_stride_at_cat_dim,
-        name=f'{orig_dim_name}_{cat_input._attrs["name"]}_{input_idx}',
+        name=f"{orig_dim_name}_{cat_input._attrs['name']}_{input_idx}",
     )
     return new_input_view_shape
 

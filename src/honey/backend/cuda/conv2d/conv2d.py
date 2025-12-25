@@ -15,6 +15,7 @@
 """
 Codegen for conv2d.
 """
+
 from typing import Optional
 from honey.backend import registry
 from honey.backend.cuda.conv2d import common
@@ -121,17 +122,17 @@ def conv2d_config(
     activation = func_attrs["activation"]
     if is_bias_add and activation is not None:
         if activation == "identity":
-            activation_op_name="Identity"
-            binary_op_name="Plus"
-            unary_op_name="Identity"
+            activation_op_name = "Identity"
+            binary_op_name = "Plus"
+            unary_op_name = "Identity"
         elif activation == "relu":
-            activation_op_name="Identity"
-            binary_op_name="Plus"
-            unary_op_name="ReLu"
+            activation_op_name = "Identity"
+            binary_op_name = "Plus"
+            unary_op_name = "ReLu"
         elif activation == "hardswish":
-            activation_op_name="Identity"
-            binary_op_name="Add"
-            unary_op_name="HardSwish"
+            activation_op_name = "Identity"
+            binary_op_name = "Add"
+            unary_op_name = "HardSwish"
         else:
             raise NotImplementedError(f"is_bias_add with {activation=}.")
     f_apply_special_config = get_apply_special_config(

@@ -15,6 +15,7 @@
 """
 Common function templates for CUDA codegen.
 """
+
 import jinja2
 
 from honey.backend import registry

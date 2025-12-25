@@ -15,6 +15,7 @@
 """
 CUDA view_ops module init
 """
+
 from honey.backend.cuda.view_ops import make_jagged, view_ops
 
 __all__ = [

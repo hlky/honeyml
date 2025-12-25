@@ -98,7 +98,9 @@ class DUALBMMTestCase(unittest.TestCase):
                 [y],
                 count=100,
             )
-            _LOGGER.info(f"[{M}, {N}, {K}] Honey BMMxBMM time: {time_per_iter_ms:.5f}ms")
+            _LOGGER.info(
+                f"[{M}, {N}, {K}] Honey BMMxBMM time: {time_per_iter_ms:.5f}ms"
+            )
             # Benchmark PT
             from honey.testing.benchmark_pt import benchmark_torch_function
 

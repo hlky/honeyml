@@ -401,7 +401,7 @@ class ExpandTestCase(unittest.TestCase):
                 {"X": x_pt}, {"Y": y_honey}, count=num_iters
             )
         print(
-            f"Write GB/sec:{1000*y_pt.numel()*y_pt.element_size()/time_mean_ms/(1024*1024*1024)}"
+            f"Write GB/sec:{1000 * y_pt.numel() * y_pt.element_size() / time_mean_ms / (1024 * 1024 * 1024)}"
         )
         self.assertTrue(torch.equal(y_honey, y_pt))
         # measure time against torch.contiguous()
@@ -456,7 +456,7 @@ class ExpandTestCase(unittest.TestCase):
         )  # Assuming every byte written has been read as well
 
         # honey_speedup_percent = round(100.0 * pt_time / time_mean_ms - 100.0)
-        honey_speedup_factor = f"{pt_time/time_mean_ms:.2f}"
+        honey_speedup_factor = f"{pt_time / time_mean_ms:.2f}"
         honey_expand_variant = "general"
         if optimize_fixed_dims:
             honey_expand_variant = "optimized"

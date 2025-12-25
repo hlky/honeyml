@@ -62,7 +62,6 @@ class GPUBackendSpec(BackendSpec):
             "float": "float",
             "int64": "int64_t",
             "int32": "int32_t",
-            "bool": "bool",
         }
     )
 
@@ -77,11 +76,9 @@ class GPUBackendSpec(BackendSpec):
             "int64_t": 8,
             "int32_t": 4,
             "float": 4,
-            "bool": 1,
             "uint4": 16,
             "uint2": 8,
             "uint1": 4,
-            "bfloat16": 2,
             "float8_e4m3": 1,
             "float8_e5m2": 1,
         }
@@ -187,7 +184,7 @@ class GPUBackendSpec(BackendSpec):
                 "half": "__habs",
                 "bfloat16": "__habs",
                 "float": "fabsf",
-                "int64_t": "llabs"
+                "int64_t": "llabs",
             },
             FuncEnum.LOGE: {
                 "half2": "h2log",

@@ -121,7 +121,9 @@ def layernorm_gen_function(func_attrs: Dict[str, Any]) -> str:
     target = Target.current()
 
     return FUNC_TEMPLATE.render(
-        layernorm_use_welford_algorithm=target._kwargs.get("layernorm_use_welford_algorithm", False),
+        layernorm_use_welford_algorithm=target._kwargs.get(
+            "layernorm_use_welford_algorithm", False
+        ),
         func_signature=FUNC_SIGNATURE.render(func_name=func_attrs["name"]),
         elem_input_type=elem_input_type,
         fuse_sigmoid_mul="false",
@@ -145,7 +147,9 @@ def layernorm_sigmoid_mul_gen_function(func_attrs: Dict[str, Any]) -> str:
     target = Target.current()
 
     return FUNC_TEMPLATE.render(
-        layernorm_use_welford_algorithm=target._kwargs.get("layernorm_use_welford_algorithm", False),
+        layernorm_use_welford_algorithm=target._kwargs.get(
+            "layernorm_use_welford_algorithm", False
+        ),
         func_signature=FUNC_SIGNATURE.render(func_name=func_attrs["name"]),
         elem_input_type=elem_input_type,
         fuse_sigmoid_mul="true",
@@ -172,9 +176,9 @@ def layernorm_sigmoid_mul_gen_function_decl(func_attrs: Dict[str, Any]):
 def layernorm_sigmoid_mul_gen_function_call(func_attrs, indent="  "):
     output_name = ""
     assert len(func_attrs["outputs"]) == 1
-    assert 1 <= len(
-        func_attrs["inputs"]
-    ), "expected at least 1 inputs but got {}".format(len(func_attrs["inputs"]))
+    assert 1 <= len(func_attrs["inputs"]), (
+        "expected at least 1 inputs but got {}".format(len(func_attrs["inputs"]))
+    )
 
     output_name = func_attrs["outputs"][0]._attrs["name"]
     (input_name, gamma_name, beta_name) = layernorm_common.get_input_names(func_attrs)

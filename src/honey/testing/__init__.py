@@ -15,6 +15,7 @@
 """
 testing module
 """
+
 from honey.testing import benchmark_honey, benchmark_pt
 from honey.testing.detect_target import detect_target
 from honey.testing.profile import profile_callable

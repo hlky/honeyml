@@ -273,7 +273,12 @@ class Decoder(nn.Module):
             )
         self.conv_act = ops.silu
         self.conv_out = nn.Conv2d(
-            block_out_channels[0], out_channels, 3, padding=1, dtype=dtype, bias=False,
+            block_out_channels[0],
+            out_channels,
+            3,
+            padding=1,
+            dtype=dtype,
+            bias=False,
         )
 
         self.gradient_checkpointing = False

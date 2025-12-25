@@ -104,9 +104,9 @@ class FusePermuteBmmCase(unittest.TestCase):
             src_ops = tensor.src_ops()
             if len(src_ops) == 0:
                 continue
-            assert (
-                len(src_ops) == 1
-            ), "constructed graph should only have single-source op tensors"
+            assert len(src_ops) == 1, (
+                "constructed graph should only have single-source op tensors"
+            )
             src_op = list(tensor.src_ops())[0]
             if src_op._attrs["op"].startswith("bmm"):
                 found_tensor = True
@@ -261,9 +261,9 @@ class FusePermuteBmmCase(unittest.TestCase):
             src_ops = tensor.src_ops()
             if len(src_ops) == 0:
                 continue
-            assert (
-                len(src_ops) == 1
-            ), "constructed graph should only have single-source op tensors"
+            assert len(src_ops) == 1, (
+                "constructed graph should only have single-source op tensors"
+            )
             src_op = list(tensor.src_ops())[0]
             assert src_op._attrs["op"] != original_bmm
 

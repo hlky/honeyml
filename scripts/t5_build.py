@@ -63,7 +63,7 @@ def build(
         },
         model_kwargs={
             "variant": variant,
-        }
+        },
     )
     builder()
 

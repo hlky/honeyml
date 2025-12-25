@@ -16,6 +16,7 @@
 This transformation splits a slice_scatter or slice_reshape_scatter with a large
 number of inputs into multiple slice_scatter or slice_reshape_scatter ops.
 """
+
 import copy
 import logging
 
@@ -48,7 +49,7 @@ def _slice_scatter_kernel_single_input_output_param_size(op: Operator):
     size_of_output_meta = SLICE_SCATTER_OUTPUT_META_SIZE * rank
     # There are one more params, which takes 8 bytes.
     total_params_size = SLICE_SCATTER_INPUT_META_SIZE + size_of_output_meta + 8
-    _LOGGER.debug(f'slice_scatter op {op._attrs["name"]}: {total_params_size=}')
+    _LOGGER.debug(f"slice_scatter op {op._attrs['name']}: {total_params_size=}")
     return total_params_size
 
 

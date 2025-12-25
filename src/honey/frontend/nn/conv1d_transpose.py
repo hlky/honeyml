@@ -36,7 +36,11 @@ class ConvTranspose1d(Module):
         else:
             self.bias = None
         self.op = transposed_conv2d(
-            stride=(stride, 1), pad=(padding, 0), dilate=(dilation, 1), group=groups, bias=bias,
+            stride=(stride, 1),
+            pad=(padding, 0),
+            dilate=(dilation, 1),
+            group=groups,
+            bias=bias,
         )
 
     def forward(self, x: Tensor) -> Tensor:

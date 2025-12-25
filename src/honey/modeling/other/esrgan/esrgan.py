@@ -40,7 +40,9 @@ class ESRGAN(nn.Module):
         elif scale == 1:
             num_in_ch = num_in_ch * 16
         if num_in_ch < 8:
-            self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1, dtype=dtype, few_channels=True)
+            self.conv_first = nn.Conv2d(
+                num_in_ch, num_feat, 3, 1, 1, dtype=dtype, few_channels=True
+            )
         else:
             self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1, dtype=dtype)
         self.body = nn.Sequential(
@@ -63,7 +65,9 @@ class ESRGAN(nn.Module):
         out = op(tensor)
         return out
 
-    def forward(self, x: Annotated[
+    def forward(
+        self,
+        x: Annotated[
             Tensor,
             (
                 Shape(name="batch_size"),
@@ -71,7 +75,8 @@ class ESRGAN(nn.Module):
                 Shape(name="width"),
                 Shape(name="channels", config_name="num_in_ch"),
             ),
-        ]):
+        ],
+    ):
         if self.scale == 2:
             feat = ops.pixel_unshuffle(r=2)(x)
         elif self.scale == 1:

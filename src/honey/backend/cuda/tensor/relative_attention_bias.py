@@ -1,7 +1,6 @@
 from typing import Any, Dict
 import jinja2
 
-from typing import Any, Dict
 from honey.backend import registry
 from honey.backend.backend_spec import CUDASpec
 

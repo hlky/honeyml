@@ -89,7 +89,8 @@ class Build:
         if isinstance(self.honey_cls, tuple):
             self.honey_cls, config_cls = self.honey_cls
             self.honey_module = cast(
-                nn.Module, self.honey_cls(config_cls(**self.config), dtype=self.honey_dtype)
+                nn.Module,
+                self.honey_cls(config_cls(**self.config), dtype=self.honey_dtype),
             )
         else:
             self.honey_module = cast(
@@ -114,11 +115,14 @@ class Build:
                 print(f"{name=}: {get_shape(tensor)}")
                 tensor._attrs["shape"][0] = batch
 
-
     def create_output_tensors(self):
-        model_output = getattr(self.honey_module, self.model_forward)(**self.input_tensors, **self.forward_kwargs)
+        model_output = getattr(self.honey_module, self.model_forward)(
+            **self.input_tensors, **self.forward_kwargs
+        )
         if self.model_output is not None:
-            output_tensors: Union[Tensor, List[Tensor]] = getattr(model_output, self.model_output)
+            output_tensors: Union[Tensor, List[Tensor]] = getattr(
+                model_output, self.model_output
+            )
         else:
             output_tensors = model_output
         if isinstance(output_tensors, Tensor):
@@ -153,7 +157,9 @@ class Build:
             if not self.store_constants_in_module:
                 print("`benchmark_after_compile` requires `store_constants_in_module`.")
             else:
-                benchmark_module(module=module, count=50, repeat=3, check_outputs=self.check_outputs)
+                benchmark_module(
+                    module=module, count=50, repeat=3, check_outputs=self.check_outputs
+                )
         return module
 
     def __call__(self):
@@ -164,6 +170,7 @@ class Build:
         self.create_output_tensors()
         self.create_constants()
         return self.compile()
+
 
 def _model_name_with_resolution(self):
     if "resolution" not in self.build_kwargs:

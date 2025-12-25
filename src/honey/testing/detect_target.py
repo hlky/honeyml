@@ -15,6 +15,7 @@
 """
 Automatic detect target for testing
 """
+
 import logging
 import os
 from subprocess import PIPE, Popen
@@ -67,7 +68,9 @@ def _detect_cuda():
     elif comp_cap >= 70:
         return "70"
     else:
-        _LOGGER.warning(f"Unsupported platform, got {comp_cap=}, expected >= 7.0. Overriding to `8.0` to allow debugging. Compilation will likely fail.")
+        _LOGGER.warning(
+            f"Unsupported platform, got {comp_cap=}, expected >= 7.0. Overriding to `8.0` to allow debugging. Compilation will likely fail."
+        )
         return "80"
 
 

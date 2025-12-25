@@ -15,6 +15,7 @@
 """
 Frontend for attention module
 """
+
 from honey.compiler.public import elementwise, FuncEnum, permute
 from honey.frontend.nn.module import Module
 from honey.frontend.nn.parameter import Parameter

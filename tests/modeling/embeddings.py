@@ -125,7 +125,6 @@ class EmbeddingsTestCase(unittest.TestCase):
         dtype: str = "float16",
         tolerance: float = 1e-5,
     ):
-
         x = get_random_torch_tensor(shape, dtype=dtype)
         op = (
             embeddings_torch.PixArtAlphaCombinedTimestepSizeEmbeddings(

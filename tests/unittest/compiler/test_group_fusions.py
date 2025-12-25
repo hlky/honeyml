@@ -178,9 +178,9 @@ class GroupOpTestCase(unittest.TestCase):
             return
         else:
             assert has_op(sorted_ops, group_op)
-            assert (
-                count_ops(sorted_ops, group_op) == num_group_ops
-            ), f"expecting {num_group_ops} {group_op} ops, found {count_ops(sorted_ops, group_op)}"
+            assert count_ops(sorted_ops, group_op) == num_group_ops, (
+                f"expecting {num_group_ops} {group_op} ops, found {count_ops(sorted_ops, group_op)}"
+            )
 
         B = len(input_shapes)
 

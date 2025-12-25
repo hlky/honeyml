@@ -15,6 +15,7 @@
 """
 GEMM Specialization: (A.permute(0, 2, 1)[col] @ B[col] + Bias).permute(0, 2, 1)
 """
+
 from honey.compiler.base import Tensor
 from honey.compiler.ops.common.view_ops import reshape
 from honey.compiler.ops.gemm_universal.perm021fc_ccr_bias import perm021fc_ccr_bias

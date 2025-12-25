@@ -67,7 +67,9 @@ def build_honey_module(
         (
             None
             if gamma_is_none
-            else Tensor(shape=shape, dtype=honey_dtype, name=f"gamma_{i}", is_input=True)
+            else Tensor(
+                shape=shape, dtype=honey_dtype, name=f"gamma_{i}", is_input=True
+            )
         )
         for i, shape in enumerate(layernorm_weight_shapes)
     ]

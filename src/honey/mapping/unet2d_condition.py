@@ -3,10 +3,9 @@ from typing import Callable, Dict, Iterable, Union
 
 import torch
 
+
 def conv2d_permute(key: str, tensor: torch.Tensor):
-    if (
-        tensor.ndim == 4
-    ):
+    if tensor.ndim == 4:
         print(f"Permuting {key=}")
         return torch.permute(tensor, [0, 2, 3, 1]).contiguous()
     else:
@@ -14,10 +13,7 @@ def conv2d_permute(key: str, tensor: torch.Tensor):
 
 
 def conv2d_pad(key: str, tensor: torch.Tensor, pad_to_multiple_of: int = 4):
-    if (
-        tensor.ndim == 4
-        and tensor.shape[-1] % 4 != 0
-    ):
+    if tensor.ndim == 4 and tensor.shape[-1] % 4 != 0:
         channels = tensor.shape[-1]
         pad_by = pad_to_multiple_of - (channels - pad_to_multiple_of)
         pad = (0, pad_by, 0, 0, 0, 0, 0, 0)

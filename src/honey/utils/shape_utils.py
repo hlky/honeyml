@@ -257,6 +257,7 @@ def is_empty_rank1_tensor(shape) -> bool:
 
     return len(shape) == 1 and isinstance(shape[0], IntImm) and shape[0].value() == 0
 
+
 def get_shape(x):
     shape = [
         (

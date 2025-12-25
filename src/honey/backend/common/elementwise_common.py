@@ -378,15 +378,15 @@ def gen_function_single_thread(
                 output_converter = type_converter.get(func_op_t).get(
                     fused_func_metadata.op_t
                 )
-                assert (
-                    input_converter is not None
-                ), "Unsupported convertion from {} to {}".format(
-                    fused_func_metadata.op_t, func_op_t
+                assert input_converter is not None, (
+                    "Unsupported convertion from {} to {}".format(
+                        fused_func_metadata.op_t, func_op_t
+                    )
                 )
-                assert (
-                    output_converter is not None
-                ), "Unsupported convertion from {} to {}".format(
-                    func_op_t, fused_func_metadata.op_t
+                assert output_converter is not None, (
+                    "Unsupported convertion from {} to {}".format(
+                        func_op_t, fused_func_metadata.op_t
+                    )
                 )
 
         for arg in func_metadata.args:
@@ -419,9 +419,9 @@ def gen_function_single_thread(
                         arg, func_metadata
                     )
                 )
-        assert (
-            len(func_metadata.outputs) == 1
-        ), "Operator has more than 1 output! Operator: {}".format(func_metadata)
+        assert len(func_metadata.outputs) == 1, (
+            "Operator has more than 1 output! Operator: {}".format(func_metadata)
+        )
 
         output = func_metadata.outputs[0]
         if func_metadata.func_name in ("+", "-", "*", "/"):
@@ -883,10 +883,10 @@ def _gen_input_broadcast_calculator_str(
             list(set(input_dim._attrs["values"]))
             != list(set(output_dim._attrs["values"]))
         ):
-            assert input_dim == IntImm(
-                1
-            ), "Unexpected shapes! Input: {}, output: {}.\nInput dim: {}, Output dim: {}".format(
-                input_shape, output_shape, input_dim, output_dim
+            assert input_dim == IntImm(1), (
+                "Unexpected shapes! Input: {}, output: {}.\nInput dim: {}, Output dim: {}".format(
+                    input_shape, output_shape, input_dim, output_dim
+                )
             )
             input_strides.append(input_shape[i:])
             output_strides.append(output_shape[i:])

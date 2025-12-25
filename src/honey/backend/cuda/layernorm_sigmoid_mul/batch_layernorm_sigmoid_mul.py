@@ -115,9 +115,9 @@ def batch_layernorm_sigmoid_mul_gen_function_decl(func_attrs: Dict[str, Any]):
 def batch_layernorm_sigmoid_mul_gen_function_call(func_attrs, indent="  "):
     output_name = ""
     assert len(func_attrs["outputs"]) == 1
-    assert (
-        1 <= len(func_attrs["inputs"]) <= 4
-    ), "expected 1 ~ 4 inputs but got {}".format(len(func_attrs["inputs"]))
+    assert 1 <= len(func_attrs["inputs"]) <= 4, (
+        "expected 1 ~ 4 inputs but got {}".format(len(func_attrs["inputs"]))
+    )
 
     output_name = func_attrs["outputs"][0]._attrs["name"]
     (input_name, gamma_name, beta_name) = layernorm_common.get_input_names(func_attrs)

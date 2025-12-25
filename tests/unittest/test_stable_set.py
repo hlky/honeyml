@@ -15,6 +15,7 @@
 """
 Unittests for StableSet.
 """
+
 import unittest
 
 from honey.compiler.stable_set import StableSet

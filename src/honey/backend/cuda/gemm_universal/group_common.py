@@ -15,6 +15,7 @@
 """
 Common functions and templates for group-gemm-family kernels
 """
+
 import re
 from hashlib import sha1
 from typing import Any, Dict, List
@@ -757,9 +758,9 @@ def update_alignments_in_group_gemm_instance(
     idx_offset = 4
 
     epilogue_curr_align_line = instance_lines[epilogue_align_idx + idx_offset]
-    assert epilogue_curr_align == epilogue_curr_align_line.strip(
-        " ,"
-    ), f"expected {epilogue_curr_align=} equal to {epilogue_curr_align_line=}"
+    assert epilogue_curr_align == epilogue_curr_align_line.strip(" ,"), (
+        f"expected {epilogue_curr_align=} equal to {epilogue_curr_align_line=}"
+    )
     instance_lines[epilogue_align_idx + idx_offset] = epilogue_curr_align_line.replace(
         epilogue_curr_align, str(epilogue_alignment)
     )
@@ -1098,7 +1099,7 @@ def gen_function_call(func_attrs, ndims, has_bias=False, indent="  "):
         operand_dims.append("&" + cshape[1]._attrs["name"])
         group_operands.append(operands)
         group_operand_dims.append(operand_dims)
-    device_args = f'unique_workspace_ + {func_attrs["unique_workspace_offset"]}'
+    device_args = f"unique_workspace_ + {func_attrs['unique_workspace_offset']}"
     return FUNC_CALL_TEMPLATE.render(
         func_name=func_attrs["name"],
         problem_count=func_attrs["groups"],

@@ -15,6 +15,7 @@
 """
 pool2d-family modules.
 """
+
 from honey.compiler.ops import avg_pool2d, max_pool2d
 from honey.frontend.nn.module import Module
 

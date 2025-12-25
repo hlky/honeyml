@@ -127,7 +127,7 @@ def _log_error_context(
                     # preceding ellipsis
                     lines_to_show.append("...\n")
                 line = file_lines[i]
-                lines_to_show.append(f"{i+1:<{padding}} {line}")
+                lines_to_show.append(f"{i + 1:<{padding}} {line}")
                 if i in error_lines:
                     # mark the line as an error line: underscore
                     spaces = line[: len(line) - len(line.lstrip())]

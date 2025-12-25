@@ -41,7 +41,6 @@ class Kandinsky3EncoderProj(nn.Module):
 
 
 class Kandinsky3UNet(nn.Module):
-
     def __init__(
         self,
         in_channels: int = 4,
@@ -576,9 +575,7 @@ class Kandinsky3ResNetBlock(nn.Module):
             else nn.Identity()
         )
         self.shortcut_down_sample = (
-            nn.Conv2d(
-                out_channels, out_channels, kernel_size=2, stride=2, dtype=dtype
-            )
+            nn.Conv2d(out_channels, out_channels, kernel_size=2, stride=2, dtype=dtype)
             if False in up_resolutions
             else nn.Identity()
         )
@@ -655,9 +652,13 @@ class Kandinsky3AttentionBlock(nn.Module):
             norm_groups, num_channels, time_embed_dim, dtype=dtype
         )
         self.feed_forward = nn.Sequential(
-            nn.Conv2d(num_channels, hidden_channels, kernel_size=1, dtype=dtype, bias=False),
+            nn.Conv2d(
+                num_channels, hidden_channels, kernel_size=1, dtype=dtype, bias=False
+            ),
             SiLU(),
-            nn.Conv2d(hidden_channels, num_channels, kernel_size=1, dtype=dtype, bias=False),
+            nn.Conv2d(
+                hidden_channels, num_channels, kernel_size=1, dtype=dtype, bias=False
+            ),
         )
 
     def forward(

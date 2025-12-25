@@ -721,9 +721,9 @@ def update_alignments_in_gemm_instance(
 
     def _replace_align(align_idx, curr_align, alignment):
         curr_align_line = instance_lines[align_idx + idx_offset]
-        assert curr_align == curr_align_line.strip(
-            " ,"
-        ), f"expected {curr_align=} equal to {curr_align_line=}"
+        assert curr_align == curr_align_line.strip(" ,"), (
+            f"expected {curr_align=} equal to {curr_align_line=}"
+        )
         instance_lines[align_idx + idx_offset] = curr_align_line.replace(
             curr_align, str(alignment)
         )
@@ -771,7 +771,9 @@ def kernel_name(op):
     prefix = ""
     if op.prefix != "":
         kernel_schedule = cutlass_lib.library.KernelScheduleSuffixes[op.kernel_schedule]
-        epilogue_schedule = cutlass_lib.library.EpilogueScheduleSuffixes[op.epilogue_schedule]
+        epilogue_schedule = cutlass_lib.library.EpilogueScheduleSuffixes[
+            op.epilogue_schedule
+        ]
         prefix = f"{op.prefix}{kernel_schedule}{epilogue_schedule}"
     name = KERNEL_KEY_TEMPLATE.render(
         prefix=prefix,

@@ -42,7 +42,9 @@ class GELUTestCase(unittest.TestCase):
         OP_honey = GELU(approximate=approximate)
         Y_honey = OP_honey(X_honey)
 
-        Ys_honey = Ys_honey = [var._attrs["values"][0] for var in Y_honey._attrs["shape"]]
+        Ys_honey = Ys_honey = [
+            var._attrs["values"][0] for var in Y_honey._attrs["shape"]
+        ]
         self.assertEqual(list(Y_pt.shape), Ys_honey)
 
         Y_honey._attrs["name"] = "output_0"

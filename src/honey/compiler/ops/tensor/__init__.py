@@ -16,6 +16,7 @@
 """
 reduce module init
 """
+
 from honey.compiler.ops.tensor.arange import arange
 from honey.compiler.ops.tensor.argmax import argmax
 from honey.compiler.ops.tensor.batch_gather import batch_gather

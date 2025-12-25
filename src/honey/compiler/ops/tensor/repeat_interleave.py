@@ -35,4 +35,7 @@ class repeat_interleave(Operator):
         return func(self._attrs)
 
     def _get_op_attributes(self):
-        return {"repeats": self._attrs["repeats"], "repeat_dim": self._attrs["repeat_dim"]}
+        return {
+            "repeats": self._attrs["repeats"],
+            "repeat_dim": self._attrs["repeat_dim"],
+        }

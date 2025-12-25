@@ -588,9 +588,7 @@ class AutoencoderTinyBlock(nn.Module):
         super().__init__()
         act_fn = get_activation(act_fn)
         self.conv = nn.Sequential(
-            nn.Conv2d(
-                in_channels, out_channels, kernel_size=3, padding=1, dtype=dtype
-            ),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, dtype=dtype),
             act_fn,
             nn.Conv2d(
                 out_channels, out_channels, kernel_size=3, padding=1, dtype=dtype
@@ -1556,7 +1554,6 @@ class AttnDownEncoderBlock2D(nn.Module):
             self.downsamplers = None
 
     def forward(self, hidden_states: Tensor, *args, **kwargs) -> Tensor:
-
         for resnet, attn in zip(self.resnets, self.attentions):
             hidden_states = resnet(hidden_states, temb=None)
             hidden_states = attn(hidden_states)

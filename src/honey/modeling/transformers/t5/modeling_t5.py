@@ -23,7 +23,9 @@ class T5LayerNorm(nn.Module):
         self.variance_epsilon = eps
 
     def forward(self, hidden_states: Tensor):
-        return ops.t5_layer_norm(hidden_states, self.weight.tensor(), eps=self.variance_epsilon)()
+        return ops.t5_layer_norm(
+            hidden_states, self.weight.tensor(), eps=self.variance_epsilon
+        )()
 
 
 class T5DenseActDense(nn.Module):
@@ -162,9 +164,9 @@ class T5Attention(nn.Module):
         S = seq_length
         D = self.key_value_proj_dim
 
-        q3 = ops.reshape()(query_states, [BH, S, D])   # [BH, S, D]
-        k3 = ops.reshape()(key_states,   [BH, S, D])   # [BH, S, D]
-        v3 = ops.reshape()(value_states, [BH, S, D])   # [BH, S, D]
+        q3 = ops.reshape()(query_states, [BH, S, D])  # [BH, S, D]
+        k3 = ops.reshape()(key_states, [BH, S, D])  # [BH, S, D]
+        v3 = ops.reshape()(value_states, [BH, S, D])  # [BH, S, D]
         scores3 = ops.bmm_rcr()(q3, k3)
         scores = ops.reshape()(scores3, [batch_size, self.n_heads, S, S])
         if position_bias is None:
@@ -177,7 +179,11 @@ class T5Attention(nn.Module):
                     dtype=scores.dtype(),
                 )
             else:
-                position_bias = ops.relative_attention_bias(self.relative_attention_bias.weight.tensor(), real_seq_length, key_length)()
+                position_bias = ops.relative_attention_bias(
+                    self.relative_attention_bias.weight.tensor(),
+                    real_seq_length,
+                    key_length,
+                )()
 
             if mask is not None:
                 causal_mask = mask[:, :, :, : key_states.shape[-2]]
@@ -206,7 +212,11 @@ class T5Attention(nn.Module):
 
 class T5LayerSelfAttention(nn.Module):
     def __init__(
-        self, config, has_relative_attention_bias=False, layer_idx: Optional[int] = None, dtype = "float16"
+        self,
+        config,
+        has_relative_attention_bias=False,
+        layer_idx: Optional[int] = None,
+        dtype="float16",
     ):
         super().__init__()
         self.SelfAttention = T5Attention(
@@ -215,7 +225,9 @@ class T5LayerSelfAttention(nn.Module):
             layer_idx=layer_idx,
             dtype=dtype,
         )
-        self.layer_norm = T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon, dtype=dtype)
+        self.layer_norm = T5LayerNorm(
+            config.d_model, eps=config.layer_norm_epsilon, dtype=dtype
+        )
         self.dropout = nn.Dropout(config.dropout_rate, dtype=dtype)
 
     def forward(
@@ -241,7 +253,11 @@ class T5LayerSelfAttention(nn.Module):
 
 class T5Block(nn.Module):
     def __init__(
-        self, config, has_relative_attention_bias=False, layer_idx: Optional[int] = None, dtype = "float16"
+        self,
+        config,
+        has_relative_attention_bias=False,
+        layer_idx: Optional[int] = None,
+        dtype="float16",
     ):
         super().__init__()
         self.layer = nn.ModuleList()
@@ -289,19 +305,26 @@ class T5Block(nn.Module):
 
 
 class T5Stack(nn.Module):
-    def __init__(self, config: T5Config, embed_tokens=None, dtype = "float16"):
+    def __init__(self, config: T5Config, embed_tokens=None, dtype="float16"):
         super().__init__()
 
         self.embed_tokens = embed_tokens
 
         self.block = nn.ModuleList(
             [
-                T5Block(config, has_relative_attention_bias=bool(i == 0), layer_idx=i, dtype=dtype)
+                T5Block(
+                    config,
+                    has_relative_attention_bias=bool(i == 0),
+                    layer_idx=i,
+                    dtype=dtype,
+                )
                 for i in range(config.num_layers)
             ]
         )
         self.final_layer_norm = T5LayerNorm(
-            config.d_model, eps=config.layer_norm_epsilon, dtype=dtype,
+            config.d_model,
+            eps=config.layer_norm_epsilon,
+            dtype=dtype,
         )
         self.dropout = nn.Dropout(config.dropout_rate)
 
@@ -318,7 +341,9 @@ class T5Stack(nn.Module):
         batch_size = ops.size()(input_ids, 0)
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(ops.flatten()(input_ids))
-            inputs_embeds = ops.reshape()(inputs_embeds, [batch_size, *inputs_embeds._attrs["shape"]])
+            inputs_embeds = ops.reshape()(
+                inputs_embeds, [batch_size, *inputs_embeds._attrs["shape"]]
+            )
 
         encoder_extended_attention_mask = None
 
@@ -381,7 +406,7 @@ class T5EncoderModel(nn.Module):
     _tied_weights_keys = ["encoder.embed_tokens.weight"]
     _keys_to_ignore_on_load_unexpected = [r"decoder"]
 
-    def __init__(self, config: T5Config, dtype = "float16"):
+    def __init__(self, config: T5Config, dtype="float16"):
         super().__init__()
         self.shared = nn.Embedding([config.vocab_size, config.d_model], dtype=dtype)
 
@@ -392,7 +417,9 @@ class T5EncoderModel(nn.Module):
 
     def forward(
         self,
-        input_ids: Annotated[Tensor, (Shape(name="batch_size"), Shape("sequence_length"))],
+        input_ids: Annotated[
+            Tensor, (Shape(name="batch_size"), Shape("sequence_length"))
+        ],
         attention_mask: Optional[Tensor] = None,
         inputs_embeds: Optional[Tensor] = None,
         output_attentions: Optional[bool] = None,
@@ -422,9 +449,7 @@ class T5EncoderModel(nn.Module):
         >>> outputs = model(input_ids=input_ids)
         >>> last_hidden_states = outputs.last_hidden_state
         ```"""
-        return_dict = (
-            return_dict if return_dict is not None else False
-        )
+        return_dict = return_dict if return_dict is not None else False
 
         encoder_outputs = self.encoder(
             input_ids=input_ids,

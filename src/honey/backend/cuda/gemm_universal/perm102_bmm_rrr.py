@@ -16,6 +16,7 @@
 Codegen functions for perm102_bmm_rrr, which computes
 C[m, b, n](row) = bmm(A[m, b, k](row), B[b, k, n](row))
 """
+
 from honey.backend import registry
 from honey.backend.backend_spec import CUDASpec
 from honey.backend.cuda.gemm_universal import bmm_common, common

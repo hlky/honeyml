@@ -3,6 +3,7 @@ from typing import Callable, Dict, Iterable, Union
 
 import torch
 
+
 def map_autoencoder_kl(
     self,
     pt_module: Union[torch.nn.Module, Dict[str, torch.Tensor]],

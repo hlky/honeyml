@@ -15,6 +15,7 @@
 """
 common module for ConvTranspose2d subgraph
 """
+
 from honey.compiler import ops
 from honey.compiler.base import Tensor
 from honey.frontend.nn.module import Module
@@ -70,7 +71,14 @@ class ConvTranspose2d(Module):
             self.bias = Parameter(shape=[out_channels], dtype=dtype)
         else:
             self.bias = None
-        self.op = ops.transposed_conv2d(stride=stride, pad=padding, dilate=dilation, group=groups, bias=bias, activation=activation)
+        self.op = ops.transposed_conv2d(
+            stride=stride,
+            pad=padding,
+            dilate=dilation,
+            group=groups,
+            bias=bias,
+            activation=activation,
+        )
 
     def forward(self, x: Tensor):
         return self.op(

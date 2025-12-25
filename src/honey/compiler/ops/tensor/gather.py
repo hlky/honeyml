@@ -15,6 +15,7 @@
 """
 Operator definition for gather.
 """
+
 from honey import backend
 from honey.backend import registry
 from honey.compiler.base import Operator, Tensor

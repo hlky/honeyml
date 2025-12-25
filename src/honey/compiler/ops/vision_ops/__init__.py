@@ -15,5 +15,6 @@
 """
 Vision ops module init.
 """
+
 from honey.compiler.ops.vision_ops.nms import *  # noqa
 from honey.compiler.ops.vision_ops.roi_ops import *  # noqa

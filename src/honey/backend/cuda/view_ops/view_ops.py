@@ -15,6 +15,7 @@
 """
 Codegen functions for view ops.
 """
+
 import jinja2
 
 from honey.backend import registry

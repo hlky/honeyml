@@ -319,7 +319,9 @@ class OneByOneConvTestCase(unittest.TestCase):
         elif activation == "hardswish":
             # We have no FuncEnum.HARDSWISH, must use fused version
             if with_bias:
-                conv2d = ops.conv2d(stride=1, pad=0, bias=True, activation="hardswish")(X, W, bias)
+                conv2d = ops.conv2d(stride=1, pad=0, bias=True, activation="hardswish")(
+                    X, W, bias
+                )
             else:
                 raise NotImplementedError("Cannot use hardswish on conv2d without bias")
 

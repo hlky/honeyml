@@ -15,6 +15,7 @@
 """
 Horizontal fusion pass to group ops together.
 """
+
 import collections
 import logging
 import os
@@ -232,9 +233,9 @@ def _has_cycle(grouped_op: Operator, group: List[Operator]):
     Assuming that grouped_op is in the group, determine if grouped_op
     can reach any other op in the group. Return True if it can.
     """
-    assert (
-        grouped_op in group
-    ), f'grouped_op {grouped_op._attrs["name"]} is not from the group'
+    assert grouped_op in group, (
+        f"grouped_op {grouped_op._attrs['name']} is not from the group"
+    )
     for op in group:
         if op is grouped_op:
             continue
@@ -306,9 +307,9 @@ def _dfs(
     visited[tensor].update(descendants)
 
     src_ops = list(tensor.src_ops())
-    assert (
-        len(src_ops) <= 1
-    ), f"A tensor can't have more than 1 src_op in this stage, len(src_ops): {len(src_ops)}"
+    assert len(src_ops) <= 1, (
+        f"A tensor can't have more than 1 src_op in this stage, len(src_ops): {len(src_ops)}"
+    )
 
     src_op = src_ops[0] if len(src_ops) == 1 else None
     if src_op and src_op._attrs["op"] == op_type:

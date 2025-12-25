@@ -15,6 +15,7 @@
 """
 ROCM codegen functions for Conv2dBias: conv2d(w, x) + b
 """
+
 from honey.backend import registry
 from honey.backend.rocm.conv2d import common
 

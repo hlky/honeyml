@@ -15,6 +15,7 @@
 """
 softmax module init
 """
+
 from honey.compiler.ops.softmax.softmax import softmax
 
 

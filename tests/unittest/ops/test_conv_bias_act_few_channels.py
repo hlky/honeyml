@@ -68,7 +68,14 @@ class ConvBiasActFewChannelsTestCase(unittest.TestCase):
             name="input_2",
             is_input=True,
         )
-        OP = ops.conv2d(stride=stride, pad=pad, dilate=1, bias=True, activation="relu", few_channels=True)
+        OP = ops.conv2d(
+            stride=stride,
+            pad=pad,
+            dilate=1,
+            bias=True,
+            activation="relu",
+            few_channels=True,
+        )
         if copy_op:
             OP = ops.conv2d(**OP._get_op_attributes())
         Y = OP(X, W, B)
@@ -143,7 +150,14 @@ class ConvBiasActFewChannelsTestCase(unittest.TestCase):
             name="input_2",
             is_input=True,
         )
-        OP = ops.conv2d(stride=stride, pad=pad, dilate=1, bias=True, activation="hardswish", few_channels=True)
+        OP = ops.conv2d(
+            stride=stride,
+            pad=pad,
+            dilate=1,
+            bias=True,
+            activation="hardswish",
+            few_channels=True,
+        )
         if copy_op:
             OP = ops.conv2d(**OP._get_op_attributes())
         Y = OP(X, W, B)

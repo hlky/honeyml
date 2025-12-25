@@ -15,6 +15,7 @@
 """
 backend concatenate function common templates.
 """
+
 from copy import deepcopy
 from typing import List
 
@@ -815,7 +816,7 @@ def gen_function_call(
     input_accessors = func_attrs["input_accessors"]
     assert len(inputs) == len(input_accessors), (
         "expected inputs and input_accessors to have the same length, but got: "
-        f'{len(inputs)}, {len(input_accessors)}, op: {func_attrs["name"]}'
+        f"{len(inputs)}, {len(input_accessors)}, op: {func_attrs['name']}"
     )
     original_inputs = func_attrs["original_inputs"]
     concatenate.check_rank(original_inputs, func_attrs["concat_dim"])
@@ -851,7 +852,7 @@ def gen_function_call(
     )
     non_empty_input_accessor = input_accessors[non_empty_idx]
     for idx, (i, input_accessor) in enumerate(zip(inputs, input_accessors)):
-        input_shape_name = f'{i._attrs["name"]}_shape_{idx}'
+        input_shape_name = f"{i._attrs['name']}_shape_{idx}"
         orig_input_shape = input_accessor.original_shapes
         if is_empty_rank1_tensor(orig_input_shape):
             orig_dim = orig_input_shape[0]
@@ -910,7 +911,7 @@ def gen_function_call(
         orig_input,
     ) in zip(input_masks, original_inputs):
         if mask is False:
-            orig_input_shape_name = f'orig_{orig_input._attrs["name"]}_shape'
+            orig_input_shape_name = f"orig_{orig_input._attrs['name']}_shape"
             if orig_input_shape_name not in all_input_shape_names:
                 dims = ", ".join(
                     [str(dim._attrs["values"][0]) for dim in orig_input._attrs["shape"]]
@@ -935,7 +936,7 @@ def gen_function_call(
             all_input_shape_names.append("")
     # update all_input_shapes with real input shapes
     for idx, (input_tensor, input_index) in enumerate(zip(inputs, input_indices)):
-        input_shape_name = f'{input_tensor._attrs["name"]}_shape_{idx}'
+        input_shape_name = f"{input_tensor._attrs['name']}_shape_{idx}"
         sub_name = input_shape_name_subs.get(input_shape_name, None)
         if sub_name is not None:
             input_shape_name = sub_name

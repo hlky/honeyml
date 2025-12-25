@@ -20,6 +20,7 @@ import honey.modeling.other.esrgan
 import honey.modeling.other.esrgan.esrgan
 import honey.modeling.other.esrgan.esrgan_pt
 
+
 def mark_output(tensor: Tensor, name: str):
     tensor._attrs["is_output"] = True
     tensor._attrs["name"] = name
@@ -114,7 +115,10 @@ _CLASS_MAPPING = {
         "pt": honey.modeling.other.esrgan.esrgan_pt.RRDBNet,
     },
     "T5EncoderModel": {
-        "honey": (honey.modeling.transformers.t5.T5EncoderModel, honey.modeling.transformers.t5.configuration_t5.T5Config,),
+        "honey": (
+            honey.modeling.transformers.t5.T5EncoderModel,
+            honey.modeling.transformers.t5.configuration_t5.T5Config,
+        ),
         "pt": transformers.models.t5.modeling_t5.T5EncoderModel,
     },
 }
@@ -135,7 +139,9 @@ def load_config(
         url = f"https://huggingface.co/{hf_hub}/resolve/main/{filename}?download=true"
         r = requests.get(url, headers=build_hf_headers())
         if not r.ok:
-            raise RuntimeError(f"{hf_hub}/{filename}: {r.status_code} - {r.content.decode()}")
+            raise RuntimeError(
+                f"{hf_hub}/{filename}: {r.status_code} - {r.content.decode()}"
+            )
         try:
             j = r.json()
         except Exception as e:

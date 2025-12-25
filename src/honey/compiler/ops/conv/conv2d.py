@@ -15,6 +15,7 @@
 """
 Base class for conv2d.
 """
+
 import itertools
 import logging
 import os
@@ -107,39 +108,40 @@ EXEC_COND_TEMPLATE = jinja2.Template(
 
 
 EPILOGUE = {
-  None: "LinearCombination",
-  "clamp": "LinearCombinationClamp",
-  "relu": "LinearCombinationRelu",
-  "sigmoid": "LinearCombinationSigmoid",
-  "tanh": "LinearCombinationTanh",
-  "add": "LinearCombinationResidualBlock",
-  "hardswish": "LinearCombinationHardSwish",
-  "gelu": "LinearCombinationGELU",
-  "fast_gelu": "LinearCombinationFastGELU",
-  "silu": "LinearCombinationSilu",
-  "elup1": "LinearCombinationELUp1",
-  "leftsiluandmul": "LeftSiLUAndMul",
-  "leftfastgeluandmul": "LeftFastGeluAndMul",
-  "div": "Div",
+    None: "LinearCombination",
+    "clamp": "LinearCombinationClamp",
+    "relu": "LinearCombinationRelu",
+    "sigmoid": "LinearCombinationSigmoid",
+    "tanh": "LinearCombinationTanh",
+    "add": "LinearCombinationResidualBlock",
+    "hardswish": "LinearCombinationHardSwish",
+    "gelu": "LinearCombinationGELU",
+    "fast_gelu": "LinearCombinationFastGELU",
+    "silu": "LinearCombinationSilu",
+    "elup1": "LinearCombinationELUp1",
+    "leftsiluandmul": "LeftSiLUAndMul",
+    "leftfastgeluandmul": "LeftFastGeluAndMul",
+    "div": "Div",
 }
 
 
 SPECIALIZATION = [
-None,
-"clamp",
-"relu",
-"sigmoid",
-"tanh",
-"add",
-"hardswish",
-"gelu",
-"fast_gelu",
-"silu",
-"elup1",
-"leftsiluandmul",
-"leftfastgeluandmul",
-"div",
+    None,
+    "clamp",
+    "relu",
+    "sigmoid",
+    "tanh",
+    "add",
+    "hardswish",
+    "gelu",
+    "fast_gelu",
+    "silu",
+    "elup1",
+    "leftsiluandmul",
+    "leftfastgeluandmul",
+    "div",
 ]
+
 
 class conv2d(Operator):
     r"""
@@ -197,7 +199,20 @@ class conv2d(Operator):
         https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
     """
 
-    def __init__(self, stride, pad, dilate=1, group=1, bias=True, activation=None, add=False, few_channels=False, auto_padding=True, depthwise=False, op_name="conv2d") -> None:
+    def __init__(
+        self,
+        stride,
+        pad,
+        dilate=1,
+        group=1,
+        bias=True,
+        activation=None,
+        add=False,
+        few_channels=False,
+        auto_padding=True,
+        depthwise=False,
+        op_name="conv2d",
+    ) -> None:
         """Conv2d constructor.
 
         Parameters
@@ -390,7 +405,13 @@ class conv2d(Operator):
             dtype=self._attrs["inputs"][0]._attrs["dtype"],
         )
 
-    def __call__(self, x: Tensor, w: Tensor, b: Optional[Tensor] = None, r: Optional[Tensor] = None) -> List[Tensor]:
+    def __call__(
+        self,
+        x: Tensor,
+        w: Tensor,
+        b: Optional[Tensor] = None,
+        r: Optional[Tensor] = None,
+    ) -> List[Tensor]:
         """Call conv2d with tensors x, w
 
         Parameters
@@ -431,7 +452,19 @@ class conv2d(Operator):
         return output
 
     def _get_op_attributes(self) -> Dict[str, Any]:
-        target_attrs = ["dilate", "group", "pad", "stride", "bias", "activation", "add", "few_channels", "auto_padding", "depthwise", "op_name"]
+        target_attrs = [
+            "dilate",
+            "group",
+            "pad",
+            "stride",
+            "bias",
+            "activation",
+            "add",
+            "few_channels",
+            "auto_padding",
+            "depthwise",
+            "op_name",
+        ]
         attr = {}
 
         for target_attr in target_attrs:
@@ -496,7 +529,7 @@ class conv2d(Operator):
                 cache_value = target.query_profile_cache("conv", query.__dict__)
                 if cache_value is not None and not target.force_profile():
                     _LOGGER.info(
-                        f'Load profiling result for {self._attrs["name"]} '
+                        f"Load profiling result for {self._attrs['name']} "
                         f"from cache: {cache_value}",
                     )
                     best_algo, workspace = cache_value
@@ -529,7 +562,8 @@ class conv2d(Operator):
         if op.startswith("transposed_conv2d"):
             op = "transposed_conv2d"
         func_key = "{target}.{op}.config".format(
-            target=target.name(), op=op,
+            target=target.name(),
+            op=op,
         )
         func = registry.get(func_key)
         func(self._attrs, dtype=self._attrs["inputs"][0]._attrs["dtype"])
@@ -628,7 +662,7 @@ class conv2d(Operator):
         result = runner.pull()
         if len(result) == 0:
             raise RuntimeError(
-                "Profile workload: " f"{exec_key}" " failed. " f"Results: {result}."
+                f"Profile workload: {exec_key} failed. Results: {result}."
             )
         out = min(result, key=itemgetter(1))
         best_algo = out[1].op_config
@@ -701,7 +735,8 @@ class conv2d(Operator):
             if op.startswith("transposed_conv2d"):
                 op = "transposed_conv2d"
             func_key = "{target}.{op}.config".format(
-                target=target.name(), op=op,
+                target=target.name(),
+                op=op,
             )
             func = registry.get(func_key)
             func(self._attrs, dtype=self._attrs["inputs"][0]._attrs["dtype"])
@@ -875,7 +910,8 @@ class conv2d(Operator):
         if op.startswith("transposed_conv2d"):
             op = "transposed_conv2d"
         func_key = "{target}.{op}.gen_function".format(
-            target=target.name(), op=op,
+            target=target.name(),
+            op=op,
         )
         func = registry.get(func_key)
         return func(
@@ -886,7 +922,9 @@ class conv2d(Operator):
         )
 
     @staticmethod
-    def is_valid_inputs(x: Tensor, w: Tensor, b: Optional[Tensor] = None, r: Optional[Tensor] = None) -> Tuple[bool, str]:
+    def is_valid_inputs(
+        x: Tensor, w: Tensor, b: Optional[Tensor] = None, r: Optional[Tensor] = None
+    ) -> Tuple[bool, str]:
         x_shape = x._attrs["shape"]
         if len(x_shape) != 4:
             return False, f"x should be 4D: {x_shape=}"

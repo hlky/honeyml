@@ -15,6 +15,7 @@
 """
 GroupNorm module
 """
+
 from honey.compiler import ops
 from honey.frontend.nn.module import Module
 from honey.frontend.nn.parameter import Parameter

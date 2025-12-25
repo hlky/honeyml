@@ -15,6 +15,7 @@
 """
 Define masked_select op
 """
+
 import logging
 from typing import List
 
@@ -84,7 +85,7 @@ class masked_select(Operator):
             numel * (input_workspace_size + mask_workspace_size) + numel // 128 + 1024
         )
         _LOGGER.debug(
-            f'Allocating {self._attrs["workspace"]} bytes for temporary buffer of masked_select op'
+            f"Allocating {self._attrs['workspace']} bytes for temporary buffer of masked_select op"
         )
 
         # Output size can range from 0 (when all mask elements are False) to the total number of

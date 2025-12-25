@@ -29,6 +29,7 @@ Also, even if the passes in this file avoided sanitize_sorted_graph,
 many other unrelated passes use sanitize_sorted_graph. We don't need to
 call the passes in this file more than once.
 """
+
 from typing import List
 
 from honey.compiler.base import IntImm, IntVar, JaggedIntVar, Operator, Tensor
@@ -235,9 +236,9 @@ def _remove_no_op_expands(sorted_graph: List[Tensor]) -> List[Tensor]:
         assert len(inputs) >= 1, "expand must have at least 1 input"
         expand_input = inputs[0]
 
-        assert len(op._attrs["dim_types"]) == len(
-            expand_output._attrs["shape"]
-        ), "expand must have dim_type for every output dimension"
+        assert len(op._attrs["dim_types"]) == len(expand_output._attrs["shape"]), (
+            "expand must have dim_type for every output dimension"
+        )
 
         # If we just keep every dimension as-is, it is a no-op
         if any(dt != ExpandDimensionType.KEEP_DIM for dt in op._attrs["dim_types"]):

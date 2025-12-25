@@ -16,6 +16,7 @@
 Codegen functions for perm021fc_ccr, which computes
 [b, m, n] = bmm([b, k, m], [1, n, k]).
 """
+
 from honey.backend import registry
 from honey.backend.cuda.gemm_universal import bmm_common, common
 

@@ -29,4 +29,3 @@ class ESRGANBuilder(Build):
     model_output = None
 
     _model_name = _model_name_with_resolution
-

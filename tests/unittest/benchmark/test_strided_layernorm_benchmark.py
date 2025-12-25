@@ -18,7 +18,6 @@ import json
 import logging
 import unittest
 import uuid
-import unittest
 
 import torch
 from honey.compiler import compile_model, ops
@@ -141,6 +140,7 @@ def eval_pt(
     else:
         output = X4
     return {"input": X0, "gamma": X2, "beta": X3, "output": output}
+
 
 class TestStridedLayerNormBenchmark(unittest.TestCase):
     def __init__(self, *args, **kwargs):

@@ -5,7 +5,7 @@ from diffusers.models.modeling_utils import ModelMixin
 
 
 def pixel_unshuffle(x, scale):
-    """ Pixel unshuffle.
+    """Pixel unshuffle.
 
     Args:
         x (Tensor): Input feature with shape (b, c, hh, hw).
@@ -93,7 +93,6 @@ class RRDB(nn.Module):
         return out * 0.2 + x
 
 
-
 class RRDBNet(ModelMixin, ConfigMixin):
     """Networks consisting of Residual in Residual Dense Block, which is used
     in ESRGAN.
@@ -115,7 +114,9 @@ class RRDBNet(ModelMixin, ConfigMixin):
     """
 
     @register_to_config
-    def __init__(self, num_in_ch, num_out_ch, scale=4, num_feat=64, num_block=23, num_grow_ch=32):
+    def __init__(
+        self, num_in_ch, num_out_ch, scale=4, num_feat=64, num_block=23, num_grow_ch=32
+    ):
         super(RRDBNet, self).__init__()
         self.scale = scale
         if scale == 2:
@@ -123,7 +124,9 @@ class RRDBNet(ModelMixin, ConfigMixin):
         elif scale == 1:
             num_in_ch = num_in_ch * 16
         self.conv_first = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1)
-        self.body = make_layer(RRDB, num_block, num_feat=num_feat, num_grow_ch=num_grow_ch)
+        self.body = make_layer(
+            RRDB, num_block, num_feat=num_feat, num_grow_ch=num_grow_ch
+        )
         self.conv_body = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
         # upsample
         self.conv_up1 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
@@ -144,7 +147,15 @@ class RRDBNet(ModelMixin, ConfigMixin):
         body_feat = self.conv_body(self.body(feat))
         feat = feat + body_feat
         # upsample
-        feat = self.lrelu(self.conv_up1(nn.functional.interpolate(feat, scale_factor=2, mode='nearest')))
-        feat = self.lrelu(self.conv_up2(nn.functional.interpolate(feat, scale_factor=2, mode='nearest')))
+        feat = self.lrelu(
+            self.conv_up1(
+                nn.functional.interpolate(feat, scale_factor=2, mode="nearest")
+            )
+        )
+        feat = self.lrelu(
+            self.conv_up2(
+                nn.functional.interpolate(feat, scale_factor=2, mode="nearest")
+            )
+        )
         out = self.conv_last(self.lrelu(self.conv_hr(feat)))
         return out

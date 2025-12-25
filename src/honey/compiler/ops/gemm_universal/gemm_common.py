@@ -15,6 +15,7 @@
 """
 Common functions/classes for GEMM ops
 """
+
 import itertools
 import logging
 import math
@@ -460,7 +461,7 @@ class gemm(Operator):
                 cache_value = target.query_profile_cache("gemm", query.__dict__)
                 if cache_value is not None and not target.force_profile():
                     _LOGGER.info(
-                        f'Load profiling result for {self._attrs["name"]} '
+                        f"Load profiling result for {self._attrs['name']} "
                         f"from cache: {cache_value}",
                     )
                     best_algo, workspace, split_k = cache_value
@@ -498,9 +499,9 @@ class gemm(Operator):
         # init compile-time filter
         workloads = list(self._attrs["exec_path"].keys())
         ab_alignments = sorted({self._get_ab_alignment(wkl) for wkl in workloads})
-        assert 1 == len(
-            ab_alignments
-        ), f"ab_alignments should be the same among all workloads, got {ab_alignments=}"
+        assert 1 == len(ab_alignments), (
+            f"ab_alignments should be the same among all workloads, got {ab_alignments=}"
+        )
         func_key = "{target}.{op}.filter".format(
             target=target.name(), op=self._attrs["op"]
         )
@@ -657,7 +658,7 @@ class gemm(Operator):
         cache_value = target.query_profile_cache("gemm", query.__dict__)
         if cache_value is not None and not target.force_profile():
             _LOGGER.debug(
-                f'Load profiling result for {self._attrs["name"]} '
+                f"Load profiling result for {self._attrs['name']} "
                 f"from cache: {cache_value}",
             )
             self._attrs["exec_path"][exec_key].algo = cache_value[0]

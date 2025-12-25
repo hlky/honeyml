@@ -15,6 +15,7 @@
 """
 Target object for Honey.
 """
+
 import logging
 import os
 import pathlib

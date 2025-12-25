@@ -15,6 +15,7 @@
 """
 Common codegen functions for group_gemm_bias-family kernels.
 """
+
 import jinja2
 
 from honey.backend.cuda.gemm_universal import group_common

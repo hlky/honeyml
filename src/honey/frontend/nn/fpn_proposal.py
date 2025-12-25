@@ -15,6 +15,7 @@
 """
 FPNProposal module.
 """
+
 import numpy as np
 
 from honey.compiler import ops

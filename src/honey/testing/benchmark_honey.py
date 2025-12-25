@@ -20,6 +20,7 @@ import torch
 from ..compiler.dtype import _ENUM_TO_TORCH_DTYPE
 from ..compiler.model import Model
 
+
 def prepare_inputs_outputs(
     module: Model,
     device: str = "cuda",
@@ -40,6 +41,7 @@ def prepare_inputs_outputs(
         tensor = torch.empty(*shape, dtype=dtype).to(device)
         outputs[name] = tensor
     return inputs, outputs
+
 
 def benchmark_module(
     module: Model,
@@ -62,12 +64,7 @@ def benchmark_module(
     return mean, std
 
 
-
-def profile_module(
-    module: Model,
-    device: str = "cuda",
-    filename: str = "profile.txt"
-):
+def profile_module(module: Model, device: str = "cuda", filename: str = "profile.txt"):
     inputs = {}
     outputs = {}
     for name, idx in module.get_input_name_to_index_map().items():
@@ -80,9 +77,7 @@ def profile_module(
         dtype = _ENUM_TO_TORCH_DTYPE[module.get_output_dtype(idx)]
         tensor = torch.empty(*shape, dtype=dtype).to(device)
         outputs[name] = tensor
-    module.profile_with_tensors(
-        inputs, outputs, num_iters=100, filename=filename
-    )
+    module.profile_with_tensors(inputs, outputs, num_iters=100, filename=filename)
 
 
 def make_input_output_pools(

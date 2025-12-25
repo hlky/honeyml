@@ -56,7 +56,6 @@ class MotionModules(nn.Module):
 
 
 class MotionAdapter(nn.Module):
-
     def __init__(
         self,
         block_out_channels: Tuple[int, ...] = (320, 640, 1280, 1280),

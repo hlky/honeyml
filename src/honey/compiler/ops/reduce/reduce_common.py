@@ -15,6 +15,7 @@
 """
 Base operator definition for reduce-family ops.
 """
+
 import itertools
 import logging
 
@@ -185,9 +186,9 @@ class reduce_base(Operator):
                 break
         num_dims = 4
         rank = len(shape)
-        assert (
-            rank <= num_dims
-        ), f"expected rank <= num_dims, but got {rank=}, {num_dims=}"
+        assert rank <= num_dims, (
+            f"expected rank <= num_dims, but got {rank=}, {num_dims=}"
+        )
         # adjust reduction axis
         reduction_axis = num_dims - rank + reduction_axis
         all_shape_dims = [
@@ -285,7 +286,7 @@ class reduce_base(Operator):
             ws_size = self._compute_workspace_size(
                 x._attrs["shape"], self._attrs["reduction_axes"][0], x.dtype()
             )
-            _LOGGER.info(f'allocating {ws_size} for tensor {x._attrs["name"]}')
+            _LOGGER.info(f"allocating {ws_size} for tensor {x._attrs['name']}")
             self._attrs["workspace"] = ws_size
         return output
 

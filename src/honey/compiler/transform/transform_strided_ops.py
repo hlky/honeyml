@@ -15,6 +15,7 @@
 """
 Perform transformations on ops which support strided inputs / outputs.
 """
+
 import functools
 
 from typing import List
@@ -189,9 +190,9 @@ def _reduce_cat_checker(op: Operator) -> bool:
         x = op._attrs["inputs"][0]
         input_rank = x._rank()
         for axis in op._attrs["reduction_axes"]:
-            assert (
-                axis >= 0 and axis < input_rank
-            ), f"axis ({axis}) is not in range of [0, {input_rank})"
+            assert axis >= 0 and axis < input_rank, (
+                f"axis ({axis}) is not in range of [0, {input_rank})"
+            )
         if axis != input_rank - 1:
             return False
     return True

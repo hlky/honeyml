@@ -15,6 +15,7 @@
 """
 CUDA target specialization
 """
+
 import logging
 import os
 import re
@@ -112,9 +113,9 @@ class CUDA(Target):
         level = environ.get_cuda_nvcc_debug_level()
         if level.isdigit():
             level = int(level)
-            assert (
-                level >= 0 and level < 3
-            ), "Debug level out of range. Must be 0 (no debug info), 1 (lineinfo) or 2 (with debug info, disable opt)"
+            assert level >= 0 and level < 3, (
+                "Debug level out of range. Must be 0 (no debug info), 1 (lineinfo) or 2 (with debug info, disable opt)"
+            )
             return CUDA_DEBUG_LEVEL_STRINGS[level]
         return [level]
 
@@ -136,15 +137,17 @@ class CUDA(Target):
         if self._kwargs.get("optimize_for_compilation_time", True):
             options.append("-DOPTIMIZE_FOR_COMPILATION_TIME")
         if environ.enable_ptxas_info():
-            options.extend(
-                [
-                    "--keep",  # Keep the intermediate files for debugging (including ptx, sass, cubin etc.)
-                    "--ptxas-options=--warn-on-local-memory-usage",  # warn us if local memory is used in CUDA Kernels
-                    "--ptxas-options=--warn-on-spills",  # warn us if register spilling happens in CUDA Kernels
-                    "--resource-usage",  # Report on CUDA resource usage (shared mem, registers etc.)
-                    "--source-in-ptx",
-                ]
-            ),  # Annotate the ptx file with source information
+            (
+                options.extend(
+                    [
+                        "--keep",  # Keep the intermediate files for debugging (including ptx, sass, cubin etc.)
+                        "--ptxas-options=--warn-on-local-memory-usage",  # warn us if local memory is used in CUDA Kernels
+                        "--ptxas-options=--warn-on-spills",  # warn us if register spilling happens in CUDA Kernels
+                        "--resource-usage",  # Report on CUDA resource usage (shared mem, registers etc.)
+                        "--source-in-ptx",
+                    ]
+                ),
+            )  # Annotate the ptx file with source information
         options.extend(self._get_nvcc_debug_options())
         if self._ndebug == 1:
             options.append("-DNDEBUG")
@@ -238,7 +241,6 @@ class CUDA(Target):
             return tuple(args)
 
         return min(algo_names, key=comp_func)
-
 
 
 @registry.reg("cuda.create_target")

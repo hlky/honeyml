@@ -12,7 +12,6 @@ def torch_dtype_from_str(dtype: str):
     return torch.__dict__.get(dtype, None)
 
 
-
 device_name = (
     torch.cuda.get_device_name()
     .lower()
@@ -56,7 +55,7 @@ class PadConvTestPT(torch.nn.Module):
             stride=1,
             padding=1,
         )
-    
+
     def __call__(
         self,
         x: torch.Tensor,
@@ -76,7 +75,7 @@ class PadConvTest(nn.Module):
             stride=1,
             padding=1,
         )
-    
+
     def __call__(
         self,
         x: Tensor,
@@ -85,11 +84,14 @@ class PadConvTest(nn.Module):
         x = self.conv(x)
         return x
 
+
 honey_module = PadConvTest()
 pt_module = PadConvTestPT()
 
 constants = dict(pt_module.state_dict())
-constants["conv.weight"] = constants["conv.weight"].permute(0, 2, 3, 1).contiguous().cuda().to(torch.float16)
+constants["conv.weight"] = (
+    constants["conv.weight"].permute(0, 2, 3, 1).contiguous().cuda().to(torch.float16)
+)
 
 Y = honey_module(x)
 Y = mark_output(Y, "Y")

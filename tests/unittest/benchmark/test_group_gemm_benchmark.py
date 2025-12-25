@@ -180,9 +180,9 @@ def _prepare_gemm_honey_module(m, nk_groups, test_idx=0, has_bias=True):
 
 
 def _prepare_bmm_honey_module(b, m, n, k, has_bias=False):
-    assert (
-        not has_bias
-    ), "bmm_rcr_bias is not implemented! has_bias has to be false for now"
+    assert not has_bias, (
+        "bmm_rcr_bias is not implemented! has_bias has to be false for now"
+    )
     input_tensors = _prepare_batch_input_tensors(b, m, n, k, has_bias=has_bias)
     Y = ops.bmm_rcr()(*input_tensors)
     Y._attrs["name"] = "y"
@@ -304,7 +304,9 @@ class GroupGemmBenchTestCase(unittest.TestCase):
 
         if benchmark_non_group:
             nk_groups = nk_groups_1 + nk_groups_2
-            gemm_outputs, gemm_module = _prepare_gemm_honey_module(m, nk_groups, test_idx)
+            gemm_outputs, gemm_module = _prepare_gemm_honey_module(
+                m, nk_groups, test_idx
+            )
             _benchmark(
                 COUNT,
                 inputs_repeats,

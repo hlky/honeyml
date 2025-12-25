@@ -15,6 +15,7 @@
 """
 Perform transformations on slice and strided ops.
 """
+
 import math
 
 from typing import List
@@ -52,8 +53,8 @@ def _sanity_check_concatenate(concat_op: Operator, slice_op: Operator) -> bool:
         if input_tensor is slice_output_tensor:
             assert input_mask, (
                 f"Expected input_mask to be True at {idx=} for "
-                f'input_tensor {input_tensor._attrs["name"]} and '
-                f'slice_op {slice_op._attrs["name"]}'
+                f"input_tensor {input_tensor._attrs['name']} and "
+                f"slice_op {slice_op._attrs['name']}"
             )
     return True
 
@@ -104,9 +105,9 @@ def _valid_alignment(
 
     dtype = slice_output_tensor.dtype()
     stride = shape_utils.get_static_stride(slice_input_shape, slice_dim)
-    assert (
-        stride is not None
-    ), f"expected non-None stride for {slice_input_shape=} at {slice_dim=}"
+    assert stride is not None, (
+        f"expected non-None stride for {slice_input_shape=} at {slice_dim=}"
+    )
     start_offset = start_indices[slice_dim] * stride
     if op_type.startswith("gemm_rcr"):
         # for n-d * 2-d cases, we are only able to support a special case

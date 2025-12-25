@@ -15,6 +15,7 @@
 """
 Frontend for attention module
 """
+
 from honey.compiler import ops
 from honey.frontend.nn.linear import Linear
 from honey.frontend.nn.module import Module

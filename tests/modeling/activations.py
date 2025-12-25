@@ -7,7 +7,12 @@ from honey.compiler import compile_model, ops
 from honey.frontend import Tensor
 from honey.testing import detect_target
 from honey.testing.test_utils import get_random_torch_tensor
-from honey.modeling.diffusers.activations import ApproximateGELU, GEGLU, GELU, get_activation
+from honey.modeling.diffusers.activations import (
+    ApproximateGELU,
+    GEGLU,
+    GELU,
+    get_activation,
+)
 from honey.builder.config import mark_output
 
 from diffusers.models.activations import (

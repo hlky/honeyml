@@ -15,6 +15,7 @@
 """
 Grouped GEMM Specialization for A[RowMajor], B[ColMajor], C[RowMajor]
 """
+
 import logging
 import re
 from collections import OrderedDict
@@ -269,9 +270,9 @@ class group_gemm_rcr(common.gemm):
         # init compile-time filter
         workloads = list(self._attrs["exec_path"].keys())
         ab_alignments = sorted({self._get_ab_alignment(wkl) for wkl in workloads})
-        assert 1 == len(
-            ab_alignments
-        ), f"ab_alignments should be the same among all workloads, got {ab_alignments=}"
+        assert 1 == len(ab_alignments), (
+            f"ab_alignments should be the same among all workloads, got {ab_alignments=}"
+        )
         func_key = "{target}.{op}.filter".format(
             target=target.name(), op=self._attrs["op"]
         )

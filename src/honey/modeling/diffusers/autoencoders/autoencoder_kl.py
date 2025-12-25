@@ -191,7 +191,8 @@ class AutoencoderKL(nn.Module):
             fn_recursive_attn_processor(name, module, processor)
 
     def encode(
-        self, x: Annotated[
+        self,
+        x: Annotated[
             Tensor,
             (
                 Shape(name="batch_size"),
@@ -209,8 +210,11 @@ class AutoencoderKL(nn.Module):
                 Shape(name="channels", config_name="latent_channels"),
             ),
         ],
-        sample_mode: Union[Literal["sample", "argmax", "moments"], List[Literal["sample", "argmax", "moments"]]] = "sample",
-        return_dict: bool = True
+        sample_mode: Union[
+            Literal["sample", "argmax", "moments"],
+            List[Literal["sample", "argmax", "moments"]],
+        ] = "sample",
+        return_dict: bool = True,
     ) -> Union[AutoencoderKLOutput, Tuple[DiagonalGaussianDistribution]]:
         """
         Encode a batch of images into latents.
@@ -265,7 +269,8 @@ class AutoencoderKL(nn.Module):
         return outputs
 
     def _decode(
-        self, z: Annotated[
+        self,
+        z: Annotated[
             Tensor,
             (
                 Shape(name="batch_size"),
@@ -273,7 +278,8 @@ class AutoencoderKL(nn.Module):
                 Shape(name="width", dim_operations=(DimDiv(8),)),
                 Shape(name="channels", config_name="latent_channels"),
             ),
-        ], return_dict: bool = True
+        ],
+        return_dict: bool = True,
     ) -> Union[DecoderOutput, Tensor]:
         if self.use_tiling and (
             ops.size()(z, dim=1) > self.tile_sample_min_size
@@ -292,7 +298,8 @@ class AutoencoderKL(nn.Module):
         return DecoderOutput(sample=dec)
 
     def decode(
-        self, z: Annotated[
+        self,
+        z: Annotated[
             Tensor,
             (
                 Shape(name="batch_size"),
@@ -300,7 +307,9 @@ class AutoencoderKL(nn.Module):
                 Shape(name="width", dim_operations=(DimDiv(8),)),
                 Shape(name="channels", config_name="latent_channels"),
             ),
-        ], return_dict: bool = True, generator=None
+        ],
+        return_dict: bool = True,
+        generator=None,
     ) -> Union[DecoderOutput, Tensor]:
         """
         Decode a batch of images.

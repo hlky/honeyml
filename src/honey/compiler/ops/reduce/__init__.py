@@ -15,6 +15,7 @@
 """
 Reduce module init.
 """
+
 from honey.compiler.ops.reduce.reduce_max import reduce_max
 from honey.compiler.ops.reduce.reduce_mean import reduce_mean
 from honey.compiler.ops.reduce.reduce_min import reduce_min
