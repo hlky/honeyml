@@ -426,9 +426,9 @@ class gemm(Operator):
         relevant attributes with the cached result and return False.
         """
         # We are forced to use the cache, so we skip building profilers.
-        if environ.force_profiler_cache():
-            return False
         target = backend.target.Target.current()
+        if environ.force_profiler_cache() or target.use_dummy_profiling_results():
+            return False
 
         build_profiler = True
         # Now, let's query if all of our workloads have cache entries. If that
