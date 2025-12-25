@@ -51,6 +51,20 @@ FUNC_TEMPLATE = jinja2.Template(
     """
 )
 
+FUNC_IMPL_DYNAMIC_K = jinja2.Template(
+    """
+  const size_t M = outer_size;
+  const size_t K = *in_reduction;
+  softmaxBlockNocache<{{dtype}}><<<M, 1024, 0, stream>>>(
+      ({{dtype}}*)input,
+      ({{dtype}}*)output,
+      M,
+      K);
+  SOFTMAX_LAUNCH_CHECK();
+    """
+)
+
+
 FUNC_IMPL_INNER_SIZE_EQ_1 = jinja2.Template(
     """
   const size_t M = outer_size;
@@ -148,6 +162,7 @@ void {{func_name}}(void* input,
                int64_t* in_{{idx}},
 {% endfor %}
                int multiprocessor_count,
+               int64_t* in_reduction,
                cudaStream_t stream)
     """,
     trim_blocks=True,
@@ -168,6 +183,7 @@ FUNC_CALL_TEMPLATE = jinja2.Template(
 {{indent}}   &{{name}},
 {% endfor %}
 {{indent}}   device_properties_.multiProcessorCount,
+{{indent}}   &{{reduction_dim}},
 {{indent}}   stream
 {{indent}});
     """,
@@ -222,33 +238,36 @@ def _softmax_general_block_size(dim_size: int, inner_size: int) -> tuple[int, in
 def softmax_gen_function(func_attrs: Dict[str, Any]) -> str:
     reduction_dim = func_attrs["dim"]
     shape = func_attrs["inputs"][0]._attrs["shape"]
-
-    assert all(
-        isinstance(dim, IntImm) for dim in shape[reduction_dim:]
-    ), "softmax requires reduction dim & inner dims to be static"
-
-    dim_size = shape[reduction_dim].value()
+    reduction_dim_is_static = isinstance(shape[reduction_dim], IntImm)
+    inner_dims_static = all(isinstance(dim, IntImm) for dim in shape[reduction_dim + 1:])
 
     backend_spec = CUDASpec()
     elem_input_type = backend_spec.dtype_to_backend_type(
         func_attrs["inputs"][0]._attrs["dtype"]
     )
 
-    inner_size = math.prod(dim.value() for dim in shape[reduction_dim + 1 :])
-    if inner_size == 1:
-        func_impl = FUNC_IMPL_INNER_SIZE_EQ_1.render(
-            dtype=elem_input_type,
-            m=find_tile_size(dim_size),
-            K=dim_size,
-        )
+    if reduction_dim_is_static and inner_dims_static:
+      dim_size = shape[reduction_dim].value()
+
+      inner_size = math.prod(dim.value() for dim in shape[reduction_dim + 1 :])
+      if inner_size == 1:
+          func_impl = FUNC_IMPL_INNER_SIZE_EQ_1.render(
+              dtype=elem_input_type,
+              m=find_tile_size(dim_size),
+              K=dim_size,
+          )
+      else:
+          dim_threads, inner_threads = _softmax_general_block_size(dim_size, inner_size)
+          func_impl = FUNC_IMPL_GENERAL.render(
+              dtype=elem_input_type,
+              dim_size=dim_size,
+              inner_size=inner_size,
+              dim_threads=dim_threads,
+              inner_threads=inner_threads,
+          )
     else:
-        dim_threads, inner_threads = _softmax_general_block_size(dim_size, inner_size)
-        func_impl = FUNC_IMPL_GENERAL.render(
+        func_impl = FUNC_IMPL_DYNAMIC_K.render(
             dtype=elem_input_type,
-            dim_size=dim_size,
-            inner_size=inner_size,
-            dim_threads=dim_threads,
-            inner_threads=inner_threads,
         )
 
     return FUNC_TEMPLATE.render(
@@ -284,5 +303,6 @@ def softmax_gen_function_call(func_attrs, indent="  "):
         input=input_name,
         output=output_name,
         outer_dim_names=outer_dim_names,
+        reduction_dim=shape[reduction_dim]._attrs["name"],
         indent=indent,
     )
