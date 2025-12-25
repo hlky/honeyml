@@ -50,4 +50,5 @@ from honey.compiler.ops.tensor.split import split
 from honey.compiler.ops.tensor.stack import stack
 from honey.compiler.ops.tensor.topk import topk
 from honey.compiler.ops.tensor.transpose import transpose
+from honey.compiler.ops.tensor.t5_layer_norm import t5_layer_norm
 from honey.compiler.ops.tensor.where import where

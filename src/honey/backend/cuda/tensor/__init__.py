@@ -46,6 +46,7 @@ from honey.backend.cuda.tensor import (
     slice_scatter,
     split,
     topk,
+    t5_layer_norm,
     where,
 )
 
@@ -80,5 +81,6 @@ __all__ = [
     "slice_scatter",
     "split",
     "topk",
+    "t5_layer_norm",
     "where",
 ]
