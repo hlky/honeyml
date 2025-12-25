@@ -27,6 +27,7 @@ from honey.compiler.ops.tensor.dynamic_slice import dynamic_slice
 from honey.compiler.ops.tensor.expand import expand
 from honey.compiler.ops.tensor.full import full
 from honey.compiler.ops.tensor.gather import gather
+from honey.compiler.ops.tensor.gelu_new import gelu_new
 from honey.compiler.ops.tensor.identity import identity
 from honey.compiler.ops.tensor.index_select import index_select
 from honey.compiler.ops.tensor.jagged_to_padded_dense import jagged_to_padded_dense
