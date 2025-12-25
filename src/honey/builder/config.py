@@ -5,10 +5,12 @@ from typing import Optional
 import diffusers.models.autoencoders
 import diffusers.models.transformers
 import diffusers.models.unets
+import transformers.models
 import requests
 
 from honey.frontend import Tensor
 import honey.modeling.diffusers
+import honey.modeling.transformers
 
 from diffusers.models.model_loading_utils import _CLASS_REMAPPING_DICT
 from huggingface_hub.utils import build_hf_headers
@@ -110,7 +112,11 @@ _CLASS_MAPPING = {
     "ESRGAN": {
         "honey": honey.modeling.other.esrgan.esrgan.ESRGAN,
         "pt": honey.modeling.other.esrgan.esrgan_pt.RRDBNet,
-    }
+    },
+    "T5EncoderModel": {
+        "honey": (honey.modeling.transformers.t5.T5EncoderModel, honey.modeling.transformers.t5.configuration_t5.T5Config,),
+        "pt": transformers.models.t5.modeling_t5.T5EncoderModel,
+    },
 }
 
 
@@ -118,6 +124,7 @@ def load_config(
     hf_hub: Optional[str] = None,
     subfolder: Optional[str] = None,
     config_file: Optional[str] = None,
+    **kwargs,
 ):
     if config_file is not None:
         j = json.load(open(config_file, "r"))
@@ -134,8 +141,12 @@ def load_config(
         except Exception as e:
             print(e)
     config = j
-    _class_name = config.pop("_class_name", "")
+    if "architectures" in config:
+        _class_name = config.pop("architectures")[0]
+    else:
+        _class_name = config.pop("_class_name", "")
     _diffusers_version = config.pop("_diffusers_version", None)
+    _transformers_version = config.pop("transformers_version", None)
     _name_or_path = config.pop("_name_or_path", None)
     remapped_class = _CLASS_REMAPPING_DICT.get(_class_name, {}).get(
         config.get("norm_type", None), None

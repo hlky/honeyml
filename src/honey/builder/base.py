@@ -84,9 +84,17 @@ class Build:
         self.config, self.honey_cls, self.pt_cls = load_config(
             self.hf_hub, **self.model_kwargs
         )
-        self.honey_module = cast(
-            nn.Module, self.honey_cls(**self.config, dtype=self.honey_dtype)
-        )
+        if self.config is None or self.honey_cls is None or self.pt_cls is None:
+            raise ValueError("Got `None` for config, honey_cls or pt_cls")
+        if isinstance(self.honey_cls, tuple):
+            self.honey_cls, config_cls = self.honey_cls
+            self.honey_module = cast(
+                nn.Module, self.honey_cls(config_cls(**self.config), dtype=self.honey_dtype)
+            )
+        else:
+            self.honey_module = cast(
+                nn.Module, self.honey_cls(**self.config, dtype=self.honey_dtype)
+            )
         self.honey_module.name_parameter_tensor()
 
     def create_input_tensors(self):
