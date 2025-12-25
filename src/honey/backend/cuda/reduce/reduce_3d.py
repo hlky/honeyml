@@ -181,6 +181,7 @@ KERNEL_SRC_TEMPLATE = jinja2.Template(
 #include <vector>
 #include <limits>
 #include <numeric>
+#include <cstdint>
 #include "short_file.h"
 #include "cutlass/cutlass.h"
 
