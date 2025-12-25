@@ -42,6 +42,7 @@ from honey.compiler.ops.tensor.permute210 import permute210
 from honey.compiler.ops.tensor.pixel_shuffle import pixel_shuffle
 from honey.compiler.ops.tensor.pixel_unshuffle import pixel_unshuffle
 from honey.compiler.ops.tensor.relational import eq, ge, gt, le, lt, ne
+from honey.compiler.ops.tensor.relative_attention_bias import relative_attention_bias
 from honey.compiler.ops.tensor.repeat_interleave import repeat_interleave
 from honey.compiler.ops.tensor.size import size
 from honey.compiler.ops.tensor.slice_reshape_scatter import slice_reshape_scatter
