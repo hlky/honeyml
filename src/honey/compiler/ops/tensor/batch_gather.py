@@ -15,6 +15,7 @@
 """
 Batch_gather.
 """
+
 import itertools
 from collections import OrderedDict
 from typing import List
@@ -77,7 +78,9 @@ class batch_gather(Operator):
             "int",
             "int32",
             "int64",
-        ], f"batch_gather(): Expected dtype int/int32/int64 for index, got dtype {dtype}"
+        ], (
+            f"batch_gather(): Expected dtype int/int32/int64 for index, got dtype {dtype}"
+        )
         self._attrs["inputs"] = [x, indices]
         self._set_depth()
         self._extract_exec_path(x)

@@ -36,7 +36,13 @@ class pad(Operator):
         elif rank == 4:
             output_shape = [x[0], x[1] + pad[2] + pad[3], x[2] + pad[0] + pad[1], x[3]]
         elif rank == 5:
-            output_shape = [x[0], x[1] + pad[4] + pad[5], x[2] + pad[2] + pad[3], x[3] + pad[0] + pad[1], x[4]]
+            output_shape = [
+                x[0],
+                x[1] + pad[4] + pad[5],
+                x[2] + pad[2] + pad[3],
+                x[3] + pad[0] + pad[1],
+                x[4],
+            ]
         else:
             raise NotImplementedError(f"unsupported rank {rank}")
         return output_shape

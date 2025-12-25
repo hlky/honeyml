@@ -28,6 +28,7 @@ The main responsibilities of the make_jagged backend are:
   of the constraints can be checked on the device, in which
   case an std::runtime_error is thrown on violation.
 """
+
 from typing import Set
 
 import jinja2
@@ -238,12 +239,12 @@ def _get_jagged_dynamic_bound_dims(jagged_int_var: JaggedIntVar) -> Set[IntVar]:
         [
             dim.min_value()
             for dim in jagged_int_var.jagged_dims()
-            if type(dim.min_value()) == IntVar
+            if isinstance(dim.min_value(), IntVar)
         ]
         + [
             dim.max_value()
             for dim in jagged_int_var.jagged_dims()
-            if type(dim.max_value()) == IntVar
+            if isinstance(dim.max_value(), IntVar)
         ]
     )
 

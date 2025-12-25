@@ -16,6 +16,7 @@
 """
 CUDA backend codegen functions.
 """
+
 from honey.backend.cuda import (
     builder_cmake,
     cuda_common,

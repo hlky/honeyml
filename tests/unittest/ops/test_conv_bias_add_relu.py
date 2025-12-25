@@ -64,7 +64,9 @@ class ConvBiasAddReluTestCase(unittest.TestCase):
             name="input_3",
             is_input=True,
         )
-        OP = ops.conv2d(stride=1, pad=1, dilate=1, bias=True, add=True, activation="relu")
+        OP = ops.conv2d(
+            stride=1, pad=1, dilate=1, bias=True, add=True, activation="relu"
+        )
         if copy_op:
             OP = ops.conv2d(**OP._get_op_attributes())
         Y = OP(X, W, B, R)

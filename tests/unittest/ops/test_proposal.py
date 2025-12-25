@@ -14,7 +14,6 @@
 #
 import numpy as np
 
-np.random.seed(0)
 import unittest
 
 import numpy.random as npr
@@ -24,6 +23,8 @@ from honey.compiler import compile_model
 from honey.frontend import nn, Tensor
 from honey.testing import detect_target
 from honey.utils.torch_utils import string_to_torch_dtype
+
+np.random.seed(0)
 
 DEBUG = False
 
@@ -506,7 +507,9 @@ class ProposalTestCase(unittest.TestCase):
         y_honey = torch.empty(y_honey_shape, dtype=torch_dtype, device="cuda")
         module.run_with_tensors(inputs_pt, [out0, y_honey])
         y_honey = y_honey.reshape(2, -1, 4)
-        self.assertTrue(torch.allclose(y_honey[0, :], y_honey[1, :], atol=1e-2, rtol=1e-2))
+        self.assertTrue(
+            torch.allclose(y_honey[0, :], y_honey[1, :], atol=1e-2, rtol=1e-2)
+        )
 
     def test_proposal_fp16(self):
         self._test_single_op(

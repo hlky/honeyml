@@ -15,6 +15,7 @@
 """
 Fuse conv + elementwise ops.
 """
+
 from typing import List
 
 from honey.compiler.base import Tensor

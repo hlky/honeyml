@@ -15,6 +15,7 @@
 """
 Identity module.
 """
+
 from honey.frontend.nn.module import Module
 
 # pylint: disable=C0103

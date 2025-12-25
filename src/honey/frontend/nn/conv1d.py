@@ -15,6 +15,7 @@
 """
 Conv1d Module.
 """
+
 from honey.compiler.ops import conv2d, squeeze, unsqueeze
 from honey.frontend import Tensor
 from honey.frontend.nn.module import Module
@@ -64,7 +65,11 @@ class Conv1d(Module):
         # but we need to reshape the input, weight and output tensors,
         # as well as use the correct stride, padding and dilation for the conv2d op.
         self.op = conv2d(
-            stride=(stride, 1), pad=(padding, 0), dilate=(dilation, 1), group=groups, bias=bias,
+            stride=(stride, 1),
+            pad=(padding, 0),
+            dilate=(dilation, 1),
+            group=groups,
+            bias=bias,
         )
 
     def forward(self, x: Tensor) -> Tensor:

@@ -16,4 +16,5 @@
 """
 ROCM Common module init
 """
+
 from honey.backend.rocm.common.dummy_op import *

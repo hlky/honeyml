@@ -142,13 +142,13 @@ def softmax_gen_profiler(
     shapes = func_attrs["inputs"][0]._attrs["shape"]
     rank = len(shapes)
 
-    assert (
-        dim == rank - 1
-    ), f"rocm softmax only supports dim == rank - 1, dim={dim}, rank={rank}"
+    assert dim == rank - 1, (
+        f"rocm softmax only supports dim == rank - 1, dim={dim}, rank={rank}"
+    )
 
-    assert isinstance(
-        shapes[dim], IntImm
-    ), "softmax requires reduction dim to be static"
+    assert isinstance(shapes[dim], IntImm), (
+        "softmax requires reduction dim to be static"
+    )
 
     return norm_common.gen_profiler(
         func_attrs,
@@ -181,13 +181,13 @@ def softmax_gen_function(func_attrs: Dict[str, Any]) -> str:
     shapes = func_attrs["inputs"][0]._attrs["shape"]
     rank = len(shapes)
 
-    assert (
-        dim == rank - 1
-    ), f"rocm softmax only supports dim == rank - 1, dim={dim}, rank={rank}"
+    assert dim == rank - 1, (
+        f"rocm softmax only supports dim == rank - 1, dim={dim}, rank={rank}"
+    )
 
-    assert isinstance(
-        shapes[dim], IntImm
-    ), "softmax requires reduction dim to be static"
+    assert isinstance(shapes[dim], IntImm), (
+        "softmax requires reduction dim to be static"
+    )
     return norm_common.gen_function(
         func_attrs, EXEC_TEMPLATE, EXTRA_HEADERS, get_func_signature
     )
@@ -229,8 +229,8 @@ def softmax_gen_function_call(func_attrs, indent="  "):
     assert len(func_attrs["outputs"]) == 1
     assert len(func_attrs["inputs"]) == 1
     shapes = func_attrs["inputs"][0]._attrs["shape"]
-    assert (
-        len(shapes) >= 2
-    ), f"Softmax only supports input with rank >= 2, current rank: {len(shapes)}"
+    assert len(shapes) >= 2, (
+        f"Softmax only supports input with rank >= 2, current rank: {len(shapes)}"
+    )
 
     return norm_common.gen_function_call(func_attrs, indent)

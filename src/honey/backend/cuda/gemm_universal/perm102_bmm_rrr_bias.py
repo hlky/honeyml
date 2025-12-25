@@ -16,6 +16,7 @@
 Codegen functions for perm102_bmm_rrr_bias, which computes
 C[m, b, n](row) = bmm(A[m, b, k](row), B[b, k, n](row)) + bias[n]
 """
+
 from honey.backend import registry
 from honey.backend.backend_spec import CUDASpec
 from honey.backend.cuda.gemm_universal import (

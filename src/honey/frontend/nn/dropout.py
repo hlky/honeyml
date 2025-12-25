@@ -13,6 +13,7 @@
 #  limitations under the License.
 #
 """Dropout/DropPath placeholder"""
+
 from honey.frontend.nn.module import Module
 
 # pylint: disable=C0103

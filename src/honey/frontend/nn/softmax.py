@@ -15,6 +15,7 @@
 """
 softmax Module.
 """
+
 from typing import Optional
 
 from honey.compiler import ops

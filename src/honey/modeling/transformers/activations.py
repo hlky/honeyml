@@ -23,7 +23,6 @@ def mish(x: Tensor) -> Tensor:
     return x * ops.tanh(ops.elementwise(ops.FuncEnum.SOFTPLUS)(x, X_beta, X_threshold))
 
 
-
 ACTIVATION_FUNCTIONS = {
     "swish": ops.silu,
     "silu": ops.silu,

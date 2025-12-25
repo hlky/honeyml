@@ -15,6 +15,7 @@
 """
 CUDA gather function
 """
+
 import jinja2
 
 from honey.backend import registry

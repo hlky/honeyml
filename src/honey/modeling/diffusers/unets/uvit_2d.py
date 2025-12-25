@@ -278,7 +278,9 @@ class UVit2DConvEmbed(nn.Module):
         super().__init__()
         self.embeddings = nn.Embedding([vocab_size, in_channels], dtype=dtype)
         self.layer_norm = RMSNorm(in_channels, eps, elementwise_affine, dtype=dtype)
-        self.conv = nn.Conv2d(in_channels, block_out_channels, kernel_size=1, dtype=dtype, bias=bias)
+        self.conv = nn.Conv2d(
+            in_channels, block_out_channels, kernel_size=1, dtype=dtype, bias=bias
+        )
 
     def forward(self, input_ids):
         embeddings = self.embeddings(input_ids)
@@ -476,9 +478,13 @@ class ConvMlmLayer(nn.Module):
         dtype: str = "float16",
     ):
         super().__init__()
-        self.conv1 = nn.Conv2d(block_out_channels, in_channels, kernel_size=1, dtype=dtype, bias=use_bias)
+        self.conv1 = nn.Conv2d(
+            block_out_channels, in_channels, kernel_size=1, dtype=dtype, bias=use_bias
+        )
         self.layer_norm = RMSNorm(in_channels, layer_norm_eps, ln_elementwise_affine)
-        self.conv2 = nn.Conv2d(in_channels, codebook_size, kernel_size=1, dtype=dtype, bias=use_bias)
+        self.conv2 = nn.Conv2d(
+            in_channels, codebook_size, kernel_size=1, dtype=dtype, bias=use_bias
+        )
 
     def forward(self, hidden_states):
         hidden_states = self.conv1(hidden_states)

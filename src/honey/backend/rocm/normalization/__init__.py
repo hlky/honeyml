@@ -15,4 +15,5 @@
 """
 Common modules for backends
 """
+
 from honey.backend.rocm.normalization import norm_common, softmax  # noqa

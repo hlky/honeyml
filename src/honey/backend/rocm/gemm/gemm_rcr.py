@@ -18,6 +18,7 @@ c[m, n] = a[m, k] * b[n, k]
 This is used for `torch.nn.functional.linear(bias=false)`
 When used for `linear`, need to set A->Data, B->Weight
 """
+
 from honey.backend import registry
 from honey.backend.rocm.gemm import common
 from honey.backend.rocm.gemm.layout import RCR

@@ -550,7 +550,10 @@ class FuseTransposedConvCase(unittest.TestCase):
             transposed_conv2d_bias = ops.elementwise(FuncEnum.ADD)(transposed_conv2d, B)
         else:
             transposed_conv2d_bias = ops.transposed_conv2d(
-                stride=stride, pad=pad, dilate=dilate, bias=True,
+                stride=stride,
+                pad=pad,
+                dilate=dilate,
+                bias=True,
             )(X, W, B)
             if depth == 0:
                 raise RuntimeError("depth == 0 needs to be decomposed.")

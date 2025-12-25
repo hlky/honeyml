@@ -15,6 +15,7 @@
 """
 Groupnorm codegen for ROCM.
 """
+
 from collections import OrderedDict
 from hashlib import sha1
 from typing import Any, Dict
@@ -263,9 +264,9 @@ def groupnorm_gen_profiler(
     shapes = func_attrs["inputs"][0]._attrs["shape"]
 
     for dim_idx in (1, 2, 3):
-        assert isinstance(
-            shapes[dim_idx], IntImm
-        ), f"groupnorm requires reduction dim {dim_idx=} to be static"
+        assert isinstance(shapes[dim_idx], IntImm), (
+            f"groupnorm requires reduction dim {dim_idx=} to be static"
+        )
 
     return norm_common.gen_profiler(
         func_attrs,
@@ -370,9 +371,9 @@ def groupnorm_gen_function(func_attrs: Dict[str, Any], use_swish: bool = False) 
     shapes = func_attrs["inputs"][0]._attrs["shape"]
 
     for dim_idx in (1, 2, 3):
-        assert isinstance(
-            shapes[dim_idx], IntImm
-        ), f"groupnorm requires reduction dim {dim_idx=} to be static"
+        assert isinstance(shapes[dim_idx], IntImm), (
+            f"groupnorm requires reduction dim {dim_idx=} to be static"
+        )
 
     return gen_function(
         func_attrs,
@@ -418,9 +419,9 @@ def groupnorm_gen_func_call(func_attrs, indent="  "):
     )
 
     shapes = func_attrs["inputs"][0]._attrs["shape"]
-    assert (
-        len(shapes) == 4
-    ), f"GroupNorm only supports input with rank == 4, current rank: {len(shapes)}"
+    assert len(shapes) == 4, (
+        f"GroupNorm only supports input with rank == 4, current rank: {len(shapes)}"
+    )
 
     N = shapes[0]._attrs["name"]
     H = shapes[1]._attrs["name"]

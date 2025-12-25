@@ -17,6 +17,7 @@
 Original Project: https://github.com/pydot/pydot
 Accessed: Jul 25, 2022
 """
+
 import copy
 import errno
 import io
@@ -1046,9 +1047,7 @@ class Graph(Common):
             if graph_type not in ["graph", "digraph"]:
                 raise pydot.Error(
                     (
-                        'Invalid type "{t}". '
-                        "Accepted graph types are: "
-                        "graph, digraph"
+                        'Invalid type "{t}". Accepted graph types are: graph, digraph'
                     ).format(t=graph_type)
                 )
 
@@ -1936,12 +1935,12 @@ class Dot(Graph):
             )
             print(message)
 
-        assert (
-            process.returncode == 0
-        ), '"{prog}" with args {arguments} returned code: {code}'.format(
-            prog=prog,
-            arguments=arguments,
-            code=process.returncode,
+        assert process.returncode == 0, (
+            '"{prog}" with args {arguments} returned code: {code}'.format(
+                prog=prog,
+                arguments=arguments,
+                code=process.returncode,
+            )
         )
 
         return stdout_data

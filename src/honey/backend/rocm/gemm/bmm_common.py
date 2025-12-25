@@ -15,6 +15,7 @@
 """
 Common template for bmm
 """
+
 import jinja2
 
 from honey.backend.rocm.gemm import common

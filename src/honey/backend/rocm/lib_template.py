@@ -15,6 +15,7 @@
 """
 Common codegen functions for ROCM.
 """
+
 import jinja2
 
 from honey.backend import registry

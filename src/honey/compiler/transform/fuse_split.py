@@ -15,6 +15,7 @@
 """
 Perform transformations on ops which support strided inputs / outputs.
 """
+
 import logging
 from typing import List
 
@@ -205,7 +206,7 @@ def _check_alignment(op: Operator, offset: int, total_elems_from_split_dim: int)
             _check_dim_alignment(c_shape, dim_idx=2, dtype=dtype)
         )
 
-    raise RuntimeError(f'Unexpected op type: {op._attrs["op"]}')
+    raise RuntimeError(f"Unexpected op type: {op._attrs['op']}")
 
 
 def _fuse_split_and_strided_op(sorted_graph: List[Tensor]) -> List[Tensor]:

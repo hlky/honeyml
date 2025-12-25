@@ -15,6 +15,7 @@
 """
 common template for conv2d
 """
+
 import re
 
 from collections import OrderedDict
@@ -607,6 +608,7 @@ def conv_dw_instance(op_def):
     op_def = op_def[: idx + 9] + "\n>::Kernel;\n"
     return op_def
 
+
 def conv_transpose_instance(op_def):
     tmp = op_def.replace("DefaultConv2dFprop", "DefaultConv2dDgrad")
     tmp = re.sub(
@@ -615,6 +617,7 @@ def conv_transpose_instance(op_def):
         tmp,
     )
     return tmp
+
 
 def gen_profiler(
     func_attrs,

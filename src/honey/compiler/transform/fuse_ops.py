@@ -15,6 +15,7 @@
 """
 Perform operator fusions.
 """
+
 import collections
 import itertools
 import logging
@@ -222,20 +223,20 @@ def _get_inputs_outputs(
     tmp_inputs = list(dict.fromkeys(tmp_inputs))
     tmp_outputs = list(dict.fromkeys(tmp_outputs))
 
-    assert set(external_inputs) == set(tmp_inputs) - set(
-        tmp_outputs
-    ), "external_inputs: {} is not equal to tmp_inputs: {} - tmp_outputs: {}.".format(
-        external_inputs, tmp_inputs, tmp_outputs
+    assert set(external_inputs) == set(tmp_inputs) - set(tmp_outputs), (
+        "external_inputs: {} is not equal to tmp_inputs: {} - tmp_outputs: {}.".format(
+            external_inputs, tmp_inputs, tmp_outputs
+        )
     )
-    assert (
-        len(set(tmp_outputs) - set(tmp_inputs) - set(external_outputs)) == 0
-    ), "tmp_outputs: {} - tmp_inputs: {} - external_outputs: {} is not empty.".format(
-        tmp_outputs, tmp_inputs, external_outputs
+    assert len(set(tmp_outputs) - set(tmp_inputs) - set(external_outputs)) == 0, (
+        "tmp_outputs: {} - tmp_inputs: {} - external_outputs: {} is not empty.".format(
+            tmp_outputs, tmp_inputs, external_outputs
+        )
     )
-    assert (
-        len(set(external_outputs) - set(tmp_outputs)) == 0
-    ), "external_outputs: {} - tmp_outputs: {} is not empty.".format(
-        external_outputs, tmp_outputs
+    assert len(set(external_outputs) - set(tmp_outputs)) == 0, (
+        "external_outputs: {} - tmp_outputs: {} is not empty.".format(
+            external_outputs, tmp_outputs
+        )
     )
 
     return [tmp_inputs, tmp_outputs, external_inputs, external_outputs]
@@ -270,9 +271,9 @@ def _collect_info(
                     op_list.append(op)
                     to_remove.add(op)
             op_set = op_set - to_remove
-        assert (
-            not op_set
-        ), "Unable to find topological order of op list for fused_elementwise!"
+        assert not op_set, (
+            "Unable to find topological order of op list for fused_elementwise!"
+        )
         # Get all inputs/outputs of elementwise ops and their external input/output,
         # which will serve as input/output of fused_elementwise op.
         tmp_inputs, tmp_outputs, external_inputs, _ = _get_inputs_outputs(

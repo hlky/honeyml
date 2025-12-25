@@ -15,6 +15,7 @@
 """
 reduce_min op
 """
+
 from honey.compiler.ops.reduce.reduce_common import reduce_base
 
 # pylint: disable=C0103

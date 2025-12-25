@@ -15,6 +15,7 @@
 """
 Graph visualization tool for Honey
 """
+
 import json
 import os
 
@@ -75,8 +76,8 @@ def _gen_tensor_modal(tensor) -> str:
     content["dtype"] = str(tensor._attrs["dtype"])
     table_src = TABLE_TEMPLATE.render(table_data=content)
     modal_src = MODAL_TEMPLATE.render(
-        modal_id=f'{tensor._attrs["name"]}_modal',
-        modal_label=f'{tensor._attrs["name"]}_label',
+        modal_id=f"{tensor._attrs['name']}_modal",
+        modal_label=f"{tensor._attrs['name']}_label",
         modal_title=tensor._attrs["name"],
         modal_content=table_src,
     )
@@ -87,8 +88,8 @@ def _gen_op_modal(op) -> str:
     content = op_attr_factory.op_to_content(op)
     table_src = TABLE_TEMPLATE.render(table_data=content)
     modal_src = MODAL_TEMPLATE.render(
-        modal_id=f'{op._attrs["name"]}_modal',
-        modal_label=f'{op._attrs["name"]}_label',
+        modal_id=f"{op._attrs['name']}_modal",
+        modal_label=f"{op._attrs['name']}_label",
         modal_title=op._attrs["name"],
         modal_content=table_src,
     )

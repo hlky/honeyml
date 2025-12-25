@@ -15,6 +15,7 @@
 """
 Efficient nms.
 """
+
 import itertools
 import logging
 import os
@@ -237,7 +238,7 @@ class efficient_nms(Operator):
 
         if len(result) == 0:
             raise RuntimeError(
-                "Profile workload: " f"{exec_key}" " failed. " f"Results: {result}."
+                f"Profile workload: {exec_key} failed. Results: {result}."
             )
 
         out = min(result, key=itemgetter(1))

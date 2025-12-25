@@ -123,7 +123,9 @@ def load_config(
         url = f"https://huggingface.co/{hf_hub}/resolve/main/{filename}?download=true"
         r = requests.get(url)
         if not r.ok:
-            raise RuntimeError(f"{hf_hub}/{filename}: {r.status_code} - {r.content.decode()}")
+            raise RuntimeError(
+                f"{hf_hub}/{filename}: {r.status_code} - {r.content.decode()}"
+            )
         try:
             j = r.json()
         except Exception as e:

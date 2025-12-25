@@ -15,6 +15,7 @@
 """
 This file implements a pass that merges consecutive slice ops if possible.
 """
+
 from typing import List, Optional
 
 from honey.compiler.base import IntImm, IntVar, Operator, Tensor

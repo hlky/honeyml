@@ -14,7 +14,6 @@ import honey.modeling.diffusers.normalization as normalization
 from honey.builder.config import mark_output
 
 
-
 class NormalizationTestCase(unittest.TestCase):
     def _test_rms_norm(
         self,

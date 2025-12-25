@@ -240,7 +240,9 @@ class FirDownsample2D(nn.Module):
                 torch.tensor(kernel, device=hidden_states.device),
                 pad=((pad_value + 1) // 2, pad_value // 2),
             )
-            output = ops.conv2d(stride=stride_value, pad=0, bias=False)(upfirdn_input, weight)
+            output = ops.conv2d(stride=stride_value, pad=0, bias=False)(
+                upfirdn_input, weight
+            )
         else:
             pad_value = kernel.shape[0] - factor
             output = upfirdn2d_native(
@@ -292,7 +294,7 @@ class KDownsample2D(nn.Module):
         self.kernel = kernel_1d
 
     def forward(self, inputs: Tensor) -> Tensor:
-        raise NotImplementedError(f"weight assignment")
+        raise NotImplementedError("weight assignment")
         inputs = ops.pad((self.pad,) * 4, mode=self.pad_mode)(inputs)
         inputs_dim1 = ops.size()(inputs, dim=1)
         kernel_dim0, kernel_dim1 = ops.size()(self.kernel)

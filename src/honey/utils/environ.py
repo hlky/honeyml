@@ -15,6 +15,7 @@
 """
 A common place for holding Honey-related env control variables
 """
+
 import logging
 import os
 import sys
@@ -84,9 +85,9 @@ def force_profiler_cache() -> bool:
     """
     force_cache = os.environ.get("Honey_FORCE_PROFILER_CACHE", None) == "1"
     if force_cache:
-        assert (
-            os.environ.get("FORCE_PROFILE", None) != "1"
-        ), "cannot specify both Honey_FORCE_PROFILER_CACHE and FORCE_PROFILE"
+        assert os.environ.get("FORCE_PROFILE", None) != "1", (
+            "cannot specify both Honey_FORCE_PROFILER_CACHE and FORCE_PROFILE"
+        )
     return force_cache
 
 
@@ -297,4 +298,3 @@ def get_cutlass_debug_trace_level():
     """
     level = os.getenv("CUTLASS_DEBUG_TRACE_LEVEL", "0")
     return level
-

@@ -15,6 +15,7 @@
 """
 Utils for unit tests.
 """
+
 import contextlib
 import itertools
 import os
@@ -310,11 +311,11 @@ def init_random_weights(m):
     if hasattr(m, "weight"):
         torch.nn.init.uniform_(m.weight)
     elif (
-        type(m) == torch.nn.Sequential
-        or type(m) == torch.nn.ModuleList
-        or type(m) == torch.nn.SiLU
-        or type(m) == torch.nn.Dropout
-        or type(m) == torch.nn.Identity
+        isinstance(m, torch.nn.Sequential)
+        or isinstance(m, torch.nn.ModuleList)
+        or isinstance(m, torch.nn.SiLU)
+        or isinstance(m, torch.nn.Dropout)
+        or isinstance(m, torch.nn.Identity)
     ):
         pass
     else:

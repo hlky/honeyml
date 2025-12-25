@@ -16,8 +16,6 @@ from ..normalization import (
     AdaLayerNormZero,
     AdaLayerNormZeroSingle,
 )
-from .transformer_2d import Transformer2DModelOutput
-
 from ..modeling_outputs import Transformer2DModelOutput
 from ....utils.build_utils import Shape, DimAdd, DimDiv, DimMul, DimSub
 
@@ -367,10 +365,16 @@ class FluxTransformer2DModel(nn.Module):
             Tensor,
             (
                 Shape(name="batch_size"),
-                Shape(name="height", dim_operations=(DimDiv(8),),),
-                Shape(name="width", dim_operations=(DimDiv(8),),),
+                Shape(
+                    name="height",
+                    dim_operations=(DimDiv(8),),
+                ),
+                Shape(
+                    name="width",
+                    dim_operations=(DimDiv(8),),
+                ),
                 Shape(name="channels", config_name="in_channels"),
-            )
+            ),
         ],
         encoder_hidden_states: Annotated[
             Tensor,
@@ -378,29 +382,30 @@ class FluxTransformer2DModel(nn.Module):
                 Shape(name="batch_size"),
                 Shape(name="seq_len"),
                 Shape(name="features", config_name="joint_attention_dim"),
-            )
+            ),
         ] = None,
         pooled_projections: Annotated[
             Tensor,
             (
                 Shape(name="batch_size"),
                 Shape(name="embed_dim", config_name="pooled_projection_dim"),
-            )
+            ),
         ] = None,
-        timestep: Annotated[
-            Tensor,
-            (
-                Shape(name="batch_size"),
-            )
-        ] = None,
+        timestep: Annotated[Tensor, (Shape(name="batch_size"),)] = None,
         img_ids: Annotated[
             Tensor,
             (
                 Shape(name="batch_size"),
-                Shape(name="height", dim_operations=(DimDiv(8),),),
-                Shape(name="width", dim_operations=(DimDiv(8),),),
+                Shape(
+                    name="height",
+                    dim_operations=(DimDiv(8),),
+                ),
+                Shape(
+                    name="width",
+                    dim_operations=(DimDiv(8),),
+                ),
                 Shape(name="ids_size", config_name="ids_size"),
-            )
+            ),
         ] = None,
         txt_ids: Annotated[
             Tensor,
@@ -408,13 +413,10 @@ class FluxTransformer2DModel(nn.Module):
                 Shape(name="batch_size"),
                 Shape(name="seq_len"),
                 Shape(name="ids_size", config_name="ids_size"),
-            )
+            ),
         ] = None,
         guidance: Annotated[
-            Tensor,
-            (
-                Shape(name="batch_size", config_name="use_guidance_embeds"),
-            )
+            Tensor, (Shape(name="batch_size", config_name="use_guidance_embeds"),)
         ] = None,
         joint_attention_kwargs: Optional[Dict[str, Any]] = None,
         return_dict: bool = True,

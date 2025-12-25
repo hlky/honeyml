@@ -15,6 +15,7 @@
 """
 Util functions for CUDA codegen.
 """
+
 import logging
 
 from honey.backend import registry

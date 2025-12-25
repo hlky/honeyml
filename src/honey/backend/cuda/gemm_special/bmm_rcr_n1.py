@@ -669,9 +669,9 @@ def gen_function(func_attrs, exec_cond_template, dim_info_dict):
     def _get_original_dim_val(func_attrs, input_idx, dim):
         accessor = func_attrs["input_accessors"][input_idx]
         shape = accessor.original_shapes
-        assert isinstance(
-            shape[dim], IntImm
-        ), f"input {input_idx}'s dim {dim} must be static. Instead it's dynamic"
+        assert isinstance(shape[dim], IntImm), (
+            f"input {input_idx}'s dim {dim} must be static. Instead it's dynamic"
+        )
         k = shape[dim]._attrs["values"][0]
         return k
 

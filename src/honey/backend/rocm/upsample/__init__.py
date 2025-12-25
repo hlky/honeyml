@@ -15,6 +15,7 @@
 """
 ROCM upsampling module init
 """
+
 from honey.backend.rocm.upsample import (
     upsampling1d,
     upsampling1d_add,

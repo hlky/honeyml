@@ -15,6 +15,7 @@
 """
 Python bindings to the Honey runtime.
 """
+
 import ctypes
 import enum
 import logging
@@ -161,9 +162,9 @@ def _reshape_tensor(tensor: TorchTensor, shape: List[int]) -> TorchTensor:
     Reinterpret a blob of contiguous memory as some shape. Used to convert
     outputs in RunWithTensors.
     """
-    assert tensor.ndim == len(
-        shape
-    ), f"Expected output tensor's ndim to match the length of Run()'s return value: {tensor.ndim=} != {len(shape)=}"
+    assert tensor.ndim == len(shape), (
+        f"Expected output tensor's ndim to match the length of Run()'s return value: {tensor.ndim=} != {len(shape)=}"
+    )
     numel = math.prod(shape)
     new_tensor = tensor.flatten()[:numel]
     return new_tensor.reshape(shape)
@@ -410,7 +411,9 @@ class Model:
             output_shapes.append(shape)
 
         return {
-            name: HoneyData(outputs[idx].data_ptr, output_shapes[idx], outputs[idx].dtype)
+            name: HoneyData(
+                outputs[idx].data_ptr, output_shapes[idx], outputs[idx].dtype
+            )
             for name, idx in self._output_name_to_index.items()
         }
 
@@ -765,14 +768,11 @@ class Model:
 
     def _construct_input_name_to_index_map(self) -> Dict[str, int]:
         num_inputs = ctypes.c_size_t()
-        self.DLL.HoneyModelContainerGetNumInputs(
-            self.handle, ctypes.byref(num_inputs)
-        )
-        get_input_name = (
-            lambda idx, name: self.DLL.HoneyModelContainerGetInputName(
-                self.handle, idx, name
-            )
-        )
+        self.DLL.HoneyModelContainerGetNumInputs(self.handle, ctypes.byref(num_inputs))
+
+        def get_input_name(idx, name):
+            return self.DLL.HoneyModelContainerGetInputName(self.handle, idx, name)
+
         return self._get_map_helper(num_inputs.value, get_input_name)
 
     def get_input_name_to_index_map(self) -> Dict[str, int]:
@@ -790,11 +790,10 @@ class Model:
         self.DLL.HoneyModelContainerGetNumOutputs(
             self.handle, ctypes.byref(num_outputs)
         )
-        get_output_name = (
-            lambda idx, name: self.DLL.HoneyModelContainerGetOutputName(
-                self.handle, idx, name
-            )
-        )
+
+        def get_output_name(idx, name):
+            return self.DLL.HoneyModelContainerGetOutputName(self.handle, idx, name)
+
         return self._get_map_helper(num_outputs.value, get_output_name)
 
     def get_output_name_to_index_map(self) -> Dict[str, int]:

@@ -17,7 +17,9 @@ parser.add_argument("--min-batch", type=int, default=1)
 parser.add_argument("--max-batch", type=int, default=1)
 parser.add_argument("--hf_hub", type=str, default="runwayml/stable-diffusion-v1-5")
 parser.add_argument("--label", type=str, default="v1")
-parser.add_argument("--subfolder", type=str, default=None, help="`vae` if `hf_hub` is for a pipeline.")
+parser.add_argument(
+    "--subfolder", type=str, default=None, help="`vae` if `hf_hub` is for a pipeline."
+)
 parser.add_argument("--dtype", type=str, default="float16")
 
 args = parser.parse_args()

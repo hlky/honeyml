@@ -14,7 +14,6 @@ import honey.modeling.diffusers.resnet as resnet
 from honey.builder.config import mark_output
 
 
-
 class ResnetTestCase(unittest.TestCase):
     def _test_resnet_block_cond_norm_2d(
         self,

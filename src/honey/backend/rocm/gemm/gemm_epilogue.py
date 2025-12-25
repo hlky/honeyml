@@ -15,6 +15,7 @@
 """
 Templates for different GeMM epilogues.
 """
+
 from typing import Dict, List, NamedTuple
 
 from honey.compiler.ops.common.epilogue import EpilogueOp

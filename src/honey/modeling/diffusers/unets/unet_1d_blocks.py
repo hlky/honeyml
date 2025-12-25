@@ -342,7 +342,7 @@ class Downsample1d(nn.Module):
         self.kernel = kernel_1d
 
     def forward(self, hidden_states: Tensor) -> Tensor:
-        raise NotImplementedError(f"weight assignment")
+        raise NotImplementedError("weight assignment")
         hidden_states = ops.pad((self.pad,) * 2, mode=self.pad_mode)(hidden_states)
         hidden_states_dim1 = ops.size()(hidden_states, dim=1)
         kernel_dim0 = ops.size()(self.kernel, dim=0)
@@ -398,7 +398,10 @@ class Upsample1d(nn.Module):
         # TODO nicer interface for conv_transpose1d
         return ops.squeeze(2)(
             ops.transposed_conv2d(
-                stride=(2, 1), pad=(self.pad * 2 + 1, 0), dilate=(1, 1), bias=False,
+                stride=(2, 1),
+                pad=(self.pad * 2 + 1, 0),
+                dilate=(1, 1),
+                bias=False,
             )(ops.unsqueeze(2)(hidden_states), ops.unsqueeze(2)(weight))
         )
 

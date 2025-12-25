@@ -15,6 +15,7 @@
 """
 Codegen functions for concatenate_tanh.
 """
+
 import jinja2
 
 from honey.backend import registry

@@ -15,6 +15,7 @@
 """
 Upsampling module init.
 """
+
 from honey.compiler.ops.upsample.upsampling1d import upsampling1d
 from honey.compiler.ops.upsample.upsampling1d_add import upsampling1d_add
 from honey.compiler.ops.upsample.upsampling2d import upsampling2d

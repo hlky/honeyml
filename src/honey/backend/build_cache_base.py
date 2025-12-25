@@ -99,9 +99,9 @@ def should_skip_build_cache():
     skip_percentage = honey_env.honey_build_cache_skip_percentage()
     if skip_percentage is not None:
         skip_percentage = int(skip_percentage)
-        assert (
-            skip_percentage >= 0 and skip_percentage <= 100
-        ), f"Skip percentage has to be in the range [0,100]. Actual value: {skip_percentage}"
+        assert skip_percentage >= 0 and skip_percentage <= 100, (
+            f"Skip percentage has to be in the range [0,100]. Actual value: {skip_percentage}"
+        )
         if skip_percentage == 100:
             return True
         if skip_percentage == 0:

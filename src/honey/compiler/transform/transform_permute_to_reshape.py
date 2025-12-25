@@ -15,6 +15,7 @@
 """
 Transform permute to reshape wherever applicable.
 """
+
 from typing import List
 
 from honey.compiler.base import IntImm, Operator, Tensor
@@ -40,10 +41,10 @@ def _check_permute_to_reshape(op: Operator) -> bool:
 
     inputs = op._attrs["inputs"]
 
-    assert (
-        len(inputs) == 1
-    ), "Permute operation {} should have 1 input, got {} instead".format(
-        op._attrs["op"], len(inputs)
+    assert len(inputs) == 1, (
+        "Permute operation {} should have 1 input, got {} instead".format(
+            op._attrs["op"], len(inputs)
+        )
     )
 
     if "input_accessors" in op._attrs:

@@ -96,8 +96,12 @@ class crossattentionTestCase(unittest.TestCase):
             batch_dim = shape_utils.gen_int_var_min_max(batch_sizes, name="batch_size")
 
         inputs_honey = Tensor([batch_dim, seqlen, dim], name="input0", is_input=True)
-        inputs_honey_k = Tensor([batch_dim, seqlen_kv, dim], name="input1", is_input=True)
-        inputs_honey_v = Tensor([batch_dim, seqlen_kv, dim], name="input2", is_input=True)
+        inputs_honey_k = Tensor(
+            [batch_dim, seqlen_kv, dim], name="input1", is_input=True
+        )
+        inputs_honey_v = Tensor(
+            [batch_dim, seqlen_kv, dim], name="input2", is_input=True
+        )
         Y = honey_mod(inputs_honey, inputs_honey_k, inputs_honey_v)
         Y = Y + inputs_honey
         mark_output(Y)

@@ -166,20 +166,17 @@ class ResnetBlockCondNorm2D(nn.Module):
 
         self.conv_shortcut = None
         if self.use_in_shortcut:
-            self.conv_shortcut = (
-                nn.Conv2d(
-                    in_channels,
-                    conv_2d_out_channels,
-                    kernel_size=1,
-                    stride=1,
-                    padding=0,
-                    dtype=dtype,
-                    bias=conv_shortcut_bias,
-                )
+            self.conv_shortcut = nn.Conv2d(
+                in_channels,
+                conv_2d_out_channels,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                dtype=dtype,
+                bias=conv_shortcut_bias,
             )
 
     def forward(self, input_tensor: Tensor, temb: Tensor, *args, **kwargs) -> Tensor:
-
         hidden_states = input_tensor
 
         hidden_states = self.norm1(hidden_states, temb)
@@ -296,7 +293,9 @@ class ResnetBlock2D(nn.Module):
             num_channels=in_channels,
             eps=eps,
             affine=True,
-            use_swish=True if (non_linearity == "swish" or non_linearity == "silu") else False,
+            use_swish=True
+            if (non_linearity == "swish" or non_linearity == "silu")
+            else False,
             dtype=dtype,
         )
 
@@ -323,7 +322,9 @@ class ResnetBlock2D(nn.Module):
             num_channels=out_channels,
             eps=eps,
             affine=True,
-            use_swish=True if (non_linearity == "swish" or non_linearity == "silu") else False,
+            use_swish=True
+            if (non_linearity == "swish" or non_linearity == "silu")
+            else False,
             dtype=dtype,
         )
 
@@ -372,16 +373,14 @@ class ResnetBlock2D(nn.Module):
 
         self.conv_shortcut = None
         if self.use_in_shortcut:
-            self.conv_shortcut = (
-                nn.Conv2d(
-                    in_channels,
-                    conv_2d_out_channels,
-                    kernel_size=1,
-                    stride=1,
-                    padding=0,
-                    dtype=dtype,
-                    bias=conv_shortcut_bias,
-                )
+            self.conv_shortcut = nn.Conv2d(
+                in_channels,
+                conv_2d_out_channels,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                dtype=dtype,
+                bias=conv_shortcut_bias,
             )
 
     def forward(
@@ -399,10 +398,11 @@ class ResnetBlock2D(nn.Module):
             Tensor,
             (
                 Shape(name="batch_size"),
-                Shape(name="temb_channels", config_name="temb_channels")
-            )    
+                Shape(name="temb_channels", config_name="temb_channels"),
+            ),
         ] = None,
-        *args, **kwargs
+        *args,
+        **kwargs,
     ) -> Tensor:
         hidden_states = input_tensor
 
@@ -448,7 +448,7 @@ class ResnetBlock2D(nn.Module):
         if self.conv_shortcut is not None:
             input_tensor = self.conv_shortcut(input_tensor)
 
-        output_tensor = (input_tensor + hidden_states)
+        output_tensor = input_tensor + hidden_states
         if self.output_scale_factor != 1.0:
             output_tensor = output_tensor / self.output_scale_factor
 

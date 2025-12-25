@@ -15,6 +15,7 @@
 """
 ROCM tensor ops module init
 """
+
 from honey.backend.rocm.tensor import (  # noqa
     arange,
     argmax,

@@ -15,6 +15,7 @@
 """
 CUDA upsampling module init
 """
+
 from honey.backend.cuda.upsample import (
     upsampling1d,
     upsampling1d_add,

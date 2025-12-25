@@ -13,7 +13,6 @@ from honey.builder.config import mark_output
 from diffusers.models.attention_processor import SpatialNorm as SpatialNorm_torch
 
 
-
 class SpatialNormTestCase(unittest.TestCase):
     def _test_spatial_norm(
         self,

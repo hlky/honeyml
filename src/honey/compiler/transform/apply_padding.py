@@ -15,6 +15,7 @@
 """
 Applies paddings to gemms based on alignment requirements.
 """
+
 import logging
 from typing import Callable, Dict, List
 
@@ -108,12 +109,12 @@ def _slice_output_tensor(
     end_indicies = [None] * len(new_shape)
     for i, (new_dim, old_dim) in enumerate(zip(new_shape, original_shape)):
         if new_dim != old_dim:
-            assert isinstance(new_dim, IntImm) and isinstance(
-                old_dim, IntImm
-            ), f"new_shape: {new_shape}, old_shape: {original_shape}"
-            assert (
-                new_dim.value() > old_dim.value()
-            ), f"new_shape: {new_shape}, old_shape: {original_shape}"
+            assert isinstance(new_dim, IntImm) and isinstance(old_dim, IntImm), (
+                f"new_shape: {new_shape}, old_shape: {original_shape}"
+            )
+            assert new_dim.value() > old_dim.value(), (
+                f"new_shape: {new_shape}, old_shape: {original_shape}"
+            )
             end_indicies[i] = old_dim.value()
     sliced_tensor = ops.dynamic_slice()(new_output, start_indicies, end_indicies)
     tensor_list.append(sliced_tensor)

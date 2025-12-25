@@ -188,9 +188,9 @@ class SplitGetItemTestCase(unittest.TestCase):
         dtype="float16",
     ):
         assert len(X_shape) == 2, f"expected X_shape to be 2 but got {X_shape}"
-        assert (
-            len(split_sections) >= 2
-        ), f"expected split_sections to have at least 2 values, but got {split_sections}"
+        assert len(split_sections) >= 2, (
+            f"expected split_sections to have at least 2 values, but got {split_sections}"
+        )
         target = detect_target()
         b_dim = shape_utils.gen_int_var_min_max(batch_size, name="input_batch")
         X = Tensor(

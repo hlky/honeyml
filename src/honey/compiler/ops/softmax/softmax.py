@@ -15,6 +15,7 @@
 """
 Softmax op implementation
 """
+
 import logging
 import os
 import re
@@ -98,9 +99,9 @@ class softmax(Operator):
             List[IntVar]
         """
         shapes = x._attrs["shape"]
-        assert (
-            len(shapes) >= 2
-        ), f"softmax only supports input with rank >= 2, current rank: {len(shapes)}"
+        assert len(shapes) >= 2, (
+            f"softmax only supports input with rank >= 2, current rank: {len(shapes)}"
+        )
         return x._attrs["shape"]
 
     def _invert_exec_key(self, key: str):
@@ -285,7 +286,7 @@ class softmax(Operator):
 
         if len(result) == 0:
             raise RuntimeError(
-                "Profile workload: " f"{exec_key}" " failed. " f"Results: {result}."
+                f"Profile workload: {exec_key} failed. Results: {result}."
             )
 
         out = min(result, key=itemgetter(1))

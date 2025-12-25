@@ -229,14 +229,20 @@ class Attention(nn.Module):
         # to_out cutlass error if these are cast from float8 🤷‍♂️
         if self.added_kv_proj_dim is not None:
             self.add_k_proj = nn.Linear(
-                added_kv_proj_dim, self.inner_dim, dtype=dtype if "float8" not in dtype else "float16",
+                added_kv_proj_dim,
+                self.inner_dim,
+                dtype=dtype if "float8" not in dtype else "float16",
             )
             self.add_v_proj = nn.Linear(
-                added_kv_proj_dim, self.inner_dim, dtype=dtype if "float8" not in dtype else "float16",
+                added_kv_proj_dim,
+                self.inner_dim,
+                dtype=dtype if "float8" not in dtype else "float16",
             )
             if self.context_pre_only is not None:
                 self.add_q_proj = nn.Linear(
-                    added_kv_proj_dim, self.inner_dim, dtype=dtype if "float8" not in dtype else "float16",
+                    added_kv_proj_dim,
+                    self.inner_dim,
+                    dtype=dtype if "float8" not in dtype else "float16",
                 )
 
         if not self.pre_only:
@@ -504,9 +510,9 @@ class Attention(nn.Module):
         Returns:
             `Tensor`: The normalized encoder hidden states.
         """
-        assert (
-            self.norm_cross is not None
-        ), "self.norm_cross must be defined to call self.norm_encoder_hidden_states"
+        assert self.norm_cross is not None, (
+            "self.norm_cross must be defined to call self.norm_encoder_hidden_states"
+        )
 
         if isinstance(self.norm_cross, nn.LayerNorm):
             encoder_hidden_states = self.norm_cross(encoder_hidden_states)
@@ -806,18 +812,21 @@ class FluxAttnProcessor2_0:
         encoder_hidden_states_query_proj = ops.permute()(
             ops.reshape()(
                 encoder_hidden_states_query_proj, [batch_size, -1, attn.heads, head_dim]
-            ), [0, 2, 1, 3]
+            ),
+            [0, 2, 1, 3],
         )
 
         encoder_hidden_states_key_proj = ops.permute()(
             ops.reshape()(
                 encoder_hidden_states_key_proj, [batch_size, -1, attn.heads, head_dim]
-            ), [0, 2, 1, 3]
+            ),
+            [0, 2, 1, 3],
         )
         encoder_hidden_states_value_proj = ops.permute()(
             ops.reshape()(
                 encoder_hidden_states_value_proj, [batch_size, -1, attn.heads, head_dim]
-            ), [0, 2, 1, 3]
+            ),
+            [0, 2, 1, 3],
         )
 
         if attn.norm_added_q is not None:

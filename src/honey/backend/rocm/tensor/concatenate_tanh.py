@@ -15,6 +15,7 @@
 """
 Concatenate tanh op for ROCM backend.
 """
+
 import jinja2
 
 from honey.backend import registry

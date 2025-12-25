@@ -23,7 +23,15 @@ from honey.compiler.ops.conv import (
 
 def get_conv2d_bias_pattern():
     # Attribute in conv2d is not of concern, it will be passed-through directly.
-    return [((conv2d(stride=1, pad=0, bias=False), elementwise(FuncEnum.ADD)), (conv2d, {"bias": True},),)]
+    return [
+        (
+            (conv2d(stride=1, pad=0, bias=False), elementwise(FuncEnum.ADD)),
+            (
+                conv2d,
+                {"bias": True},
+            ),
+        )
+    ]
 
 
 def get_conv2d_bias_elementwise_patterns():

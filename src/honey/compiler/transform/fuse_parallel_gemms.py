@@ -220,9 +220,9 @@ def _merge_parallel_gemm_concat(
         old_inputs = cat_op._attrs["inputs"]
         new_inputs = old_inputs[:begin_idx] + [bmm_reshape] + old_inputs[end_idx + 1 :]
 
-        assert all(
-            cat_op._attrs["input_masks"]
-        ), "The input_pasts of cat_op must be all True"
+        assert all(cat_op._attrs["input_masks"]), (
+            "The input_pasts of cat_op must be all True"
+        )
 
         cat_op._attrs["inputs"] = new_inputs
         cat_op._attrs["input_accessors"] = [TensorAccessor(t) for t in new_inputs]

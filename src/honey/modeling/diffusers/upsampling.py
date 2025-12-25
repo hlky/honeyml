@@ -147,7 +147,6 @@ class Upsample2D(nn.Module):
     def forward(
         self, hidden_states: Tensor, output_size: Optional[int] = None, *args, **kwargs
     ) -> Tensor:
-
         assert hidden_states.shape()[-1] == self.channels
 
         if self.norm is not None:
@@ -358,7 +357,7 @@ class KUpsample2D(nn.Module):
         self.kernel = kernel_1d
 
     def forward(self, inputs: Tensor) -> Tensor:
-        raise NotImplementedError(f"weight assignment")
+        raise NotImplementedError("weight assignment")
         inputs = ops.pad(((self.pad + 1) // 2,) * 4, mode=self.pad_mode)(inputs)
         inputs_dim1 = ops.size()(inputs, dim=1)
         kernel_dim0, kernel_dim1 = ops.size()(self.kernel)
@@ -379,7 +378,9 @@ class KUpsample2D(nn.Module):
         )
         # TODO
         weight[indices, indices] = kernel
-        return ops.transposed_conv2d(stride=2, pad=self.pad * 2 + 1, bias=False)(inputs, weight)
+        return ops.transposed_conv2d(stride=2, pad=self.pad * 2 + 1, bias=False)(
+            inputs, weight
+        )
 
 
 def upfirdn2d_native(

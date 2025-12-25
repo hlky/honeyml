@@ -15,6 +15,7 @@
 """
 View-related modules.
 """
+
 from honey.compiler.ops import flatten, reshape
 from honey.frontend.nn.module import Module
 

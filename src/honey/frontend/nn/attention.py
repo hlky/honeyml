@@ -15,6 +15,7 @@
 """
 Frontend for attention module
 """
+
 from honey.compiler import ops
 from honey.compiler.ops import flash_attention
 from honey.compiler.ops.common.epilogue import FuncEnum
@@ -108,9 +109,9 @@ class MultiheadAttention(Module):
         dtype="float16",
     ):
         super().__init__()
-        assert (
-            dim % num_heads == 0
-        ), f"dim {dim} should be divisible by num_heads {num_heads}"
+        assert dim % num_heads == 0, (
+            f"dim {dim} should be divisible by num_heads {num_heads}"
+        )
         if MultiheadAttention.USE_CUDA is None:
             MultiheadAttention.USE_CUDA = detect_target().name() == "cuda"
 
@@ -326,9 +327,9 @@ class CrossAttention(Module):
         dtype="float16",
     ):
         super().__init__()
-        assert (
-            dim % num_heads == 0
-        ), f"dim {dim} should be divisible by num_heads {num_heads}"
+        assert dim % num_heads == 0, (
+            f"dim {dim} should be divisible by num_heads {num_heads}"
+        )
         self.num_heads = num_heads
         self.causal = causal
         self.has_residual = has_residual

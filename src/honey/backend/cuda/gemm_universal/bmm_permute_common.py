@@ -15,6 +15,7 @@
 """
 Common functions and templates for bmm_permute-family ops
 """
+
 from honey.backend.backend_spec import CUDASpec
 from honey.backend.common import gemm_common
 

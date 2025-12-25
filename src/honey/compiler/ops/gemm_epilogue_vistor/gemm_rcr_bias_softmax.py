@@ -15,6 +15,7 @@
 """
 Operator definition for gemm_rcr_bias_softmax.
 """
+
 from honey.compiler.base import Tensor
 from honey.compiler.ops.gemm_epilogue_vistor.gemm_rcr_softmax import (
     gemm_rcr_softmax,

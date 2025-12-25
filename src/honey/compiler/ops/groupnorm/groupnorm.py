@@ -15,6 +15,7 @@
 """
 Operator definition for groupnorm.
 """
+
 import itertools
 import logging
 import os
@@ -209,9 +210,9 @@ class group_norm(Operator):
                 vals.append(int(item))
             else:
                 key_strs.append(item.strip())
-        assert len(vals) == len(
-            key_strs
-        ), f"expected len(vals) == len(key_strs), but got {len(vals)}, {len(key_strs)}"
+        assert len(vals) == len(key_strs), (
+            f"expected len(vals) == len(key_strs), but got {len(vals)}, {len(key_strs)}"
+        )
         return dict(zip(key_strs, vals))
 
     def _gen_exec_key(self, name_value_mapping):
@@ -300,7 +301,7 @@ class group_norm(Operator):
 
         if len(result) == 0:
             raise RuntimeError(
-                "Profile workload: " f"{exec_key}" " failed. " f"Results: {result}."
+                f"Profile workload: {exec_key} failed. Results: {result}."
             )
 
         out = min(result, key=itemgetter(1))

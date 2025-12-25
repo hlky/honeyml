@@ -48,14 +48,14 @@ def int_elementwise_gen_function_call(func_attrs, indent):
     func_enum = func_attrs["func"]
     inputs = func_attrs["inputs"]
     outputs = func_attrs["outputs"]
-    assert (
-        len(outputs) == 1
-    ), f"Elementwise op for IntVarTensor should only generate 1 output, got {len(outputs)}"
+    assert len(outputs) == 1, (
+        f"Elementwise op for IntVarTensor should only generate 1 output, got {len(outputs)}"
+    )
     input_params_vec = []
     for inp in inputs:
-        assert isinstance(
-            inp, IntVarTensor
-        ), f"only inputs of IntVarTensor are allowed for OP with output of IntVarTensor, got type{inp}"
+        assert isinstance(inp, IntVarTensor), (
+            f"only inputs of IntVarTensor are allowed for OP with output of IntVarTensor, got type{inp}"
+        )
         input_params_vec.append(inp._attrs["int_var"]._attrs["name"])
     backend_spec = CPUBackendSpec()
     op = backend_spec.func_enum_to_func_name.get(func_enum)

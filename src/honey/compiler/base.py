@@ -15,6 +15,7 @@
 """
 Basic data types of Honey.
 """
+
 from __future__ import annotations
 
 import copy
@@ -549,7 +550,7 @@ class JaggedIntVar(IntVar):
             in the list must have their offsets already set to the
             corresponding rank-1 Tensors.
         """
-        if total_length is None or type(total_length) != IntVar:
+        if total_length is None or not isinstance(total_length, IntVar):
             raise TypeError(
                 "total_length must be dynamic (IntVar), "
                 f"but given {type(total_length).__name__}."
@@ -1033,6 +1034,7 @@ class Tensor(Node):
 
     def __getitem__(self, key):
         from honey.compiler import ops
+
         rank = self._rank()
 
         if not isinstance(key, tuple):
@@ -1062,14 +1064,18 @@ class Tensor(Node):
                 end_indices.append(idx + 1)
             elif isinstance(idx, slice):
                 if idx.step not in (None, 1):
-                    raise ValueError("Slicing with a step other than 1 is not supported")
+                    raise ValueError(
+                        "Slicing with a step other than 1 is not supported"
+                    )
                 start_indices.append(idx.start if idx.start is not None else 0)
                 end_indices.append(idx.stop)
             else:
                 raise IndexError(f"Unsupported index type: {type(idx)}")
 
         # TODO: check if copy.deepcopy is required
-        return ops.dynamic_slice()(copy.deepcopy(self), start_indices=start_indices, end_indices=end_indices)
+        return ops.dynamic_slice()(
+            copy.deepcopy(self), start_indices=start_indices, end_indices=end_indices
+        )
 
 
 def _create_host_zero_tensor(

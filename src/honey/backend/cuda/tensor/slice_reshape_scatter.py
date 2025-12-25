@@ -15,6 +15,7 @@
 """
 Slice reshape scatter CUDA implementation.
 """
+
 import jinja2
 
 from honey.backend import registry

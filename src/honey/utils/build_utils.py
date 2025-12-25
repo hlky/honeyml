@@ -158,7 +158,9 @@ def build_tensors_from_annotations(
                         dtype = config["dtype"]
                         if key in config:
                             dtype = config[key]["dtype"]
-                        nested_tensors[key] = Tensor(tuple(dims), name=key, is_input=True, dtype=dtype)
+                        nested_tensors[key] = Tensor(
+                            tuple(dims), name=key, is_input=True, dtype=dtype
+                        )
                 if nested_tensors:
                     tensors[param_name] = nested_tensors
             elif metadata:
@@ -179,6 +181,8 @@ def build_tensors_from_annotations(
                     dtype = config["dtype"]
                     if param_name in config:
                         dtype = config[param_name]["dtype"]
-                    tensors[param_name] = Tensor(tuple(dims), name=param_name, is_input=True, dtype=dtype)
+                    tensors[param_name] = Tensor(
+                        tuple(dims), name=param_name, is_input=True, dtype=dtype
+                    )
 
     return tensors

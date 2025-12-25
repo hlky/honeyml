@@ -16,6 +16,7 @@
 """
 Base class for conv3d.
 """
+
 import itertools
 import logging
 import os
@@ -395,7 +396,7 @@ class conv3d(Operator):
                 cache_value = target.query_profile_cache("conv3d", query.__dict__)
                 if cache_value is not None and not target.force_profile():
                     _LOGGER.info(
-                        f'Load profiling result for {self._attrs["name"]} '
+                        f"Load profiling result for {self._attrs['name']} "
                         f"from cache: {cache_value}",
                     )
                     best_algo, workspace = cache_value
@@ -534,7 +535,7 @@ class conv3d(Operator):
         result = runner.pull()
         if len(result) == 0:
             raise RuntimeError(
-                "Profile workload: " f"{exec_key}" " failed. " f"Results: {result}."
+                f"Profile workload: {exec_key} failed. Results: {result}."
             )
         out = min(result, key=itemgetter(1))
         best_algo = out[1].op_config

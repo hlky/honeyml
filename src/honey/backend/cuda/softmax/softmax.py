@@ -15,6 +15,7 @@
 """
 Softmax codegen for CUDA.
 """
+
 from __future__ import annotations
 
 import math
@@ -239,7 +240,9 @@ def softmax_gen_function(func_attrs: Dict[str, Any]) -> str:
     reduction_dim = func_attrs["dim"]
     shape = func_attrs["inputs"][0]._attrs["shape"]
     reduction_dim_is_static = isinstance(shape[reduction_dim], IntImm)
-    inner_dims_static = all(isinstance(dim, IntImm) for dim in shape[reduction_dim + 1:])
+    inner_dims_static = all(
+        isinstance(dim, IntImm) for dim in shape[reduction_dim + 1 :]
+    )
 
     backend_spec = CUDASpec()
     elem_input_type = backend_spec.dtype_to_backend_type(
@@ -247,24 +250,26 @@ def softmax_gen_function(func_attrs: Dict[str, Any]) -> str:
     )
 
     if reduction_dim_is_static and inner_dims_static:
-      dim_size = shape[reduction_dim].value()
+        dim_size = shape[reduction_dim].value()
 
-      inner_size = math.prod(dim.value() for dim in shape[reduction_dim + 1 :])
-      if inner_size == 1:
-          func_impl = FUNC_IMPL_INNER_SIZE_EQ_1.render(
-              dtype=elem_input_type,
-              m=find_tile_size(dim_size),
-              K=dim_size,
-          )
-      else:
-          dim_threads, inner_threads = _softmax_general_block_size(dim_size, inner_size)
-          func_impl = FUNC_IMPL_GENERAL.render(
-              dtype=elem_input_type,
-              dim_size=dim_size,
-              inner_size=inner_size,
-              dim_threads=dim_threads,
-              inner_threads=inner_threads,
-          )
+        inner_size = math.prod(dim.value() for dim in shape[reduction_dim + 1 :])
+        if inner_size == 1:
+            func_impl = FUNC_IMPL_INNER_SIZE_EQ_1.render(
+                dtype=elem_input_type,
+                m=find_tile_size(dim_size),
+                K=dim_size,
+            )
+        else:
+            dim_threads, inner_threads = _softmax_general_block_size(
+                dim_size, inner_size
+            )
+            func_impl = FUNC_IMPL_GENERAL.render(
+                dtype=elem_input_type,
+                dim_size=dim_size,
+                inner_size=inner_size,
+                dim_threads=dim_threads,
+                inner_threads=inner_threads,
+            )
     else:
         func_impl = FUNC_IMPL_DYNAMIC_K.render(
             dtype=elem_input_type,
@@ -291,9 +296,9 @@ def softmax_gen_function_call(func_attrs, indent="  "):
     output_name = func_attrs["outputs"][0]._attrs["name"]
 
     shape = func_attrs["inputs"][0]._attrs["shape"]
-    assert (
-        len(shape) >= 2
-    ), f"Softmax only supports input with rank >= 2, current rank: {len(shape)}"
+    assert len(shape) >= 2, (
+        f"Softmax only supports input with rank >= 2, current rank: {len(shape)}"
+    )
 
     reduction_dim = func_attrs["dim"]
     outer_dim_names = [dim._attrs["name"] for dim in shape[:reduction_dim]]

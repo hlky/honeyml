@@ -593,7 +593,9 @@ class FusedElementwiseTestCase(unittest.TestCase):
         OUTPUT._attrs["name"] = "output"
 
         target = detect_target()
-        module = compile_model(OUTPUT, target, "./tmp", f"test_op_overload_{honey_dtype}")
+        module = compile_model(
+            OUTPUT, target, "./tmp", f"test_op_overload_{honey_dtype}"
+        )
 
         x1_pt = torch.randn(input_size).cuda().to(dtype=torch_dtype)
         x2_pt = torch.randn(input_size).cuda().to(dtype=torch_dtype)
@@ -629,7 +631,9 @@ class FusedElementwiseTestCase(unittest.TestCase):
         OUTPUT._attrs["name"] = "output"
 
         target = detect_target()
-        module = compile_model(OUTPUT, target, "./tmp", f"test_op_overload_{honey_dtype}")
+        module = compile_model(
+            OUTPUT, target, "./tmp", f"test_op_overload_{honey_dtype}"
+        )
 
         x1_pt = torch.randn(input_size).cuda().to(dtype=torch_dtype)
         output_pt = 10 / torch.tanh(x1_pt + 5)

@@ -89,9 +89,9 @@ class SliceBMMFusionTestCase(unittest.TestCase):
         dtype="float16",
     ):
         # bmm(slice_output, B)
-        assert (
-            len(slice_input_shape) == 3
-        ), f"expected {slice_input_shape=} to have a rank of 3"
+        assert len(slice_input_shape) == 3, (
+            f"expected {slice_input_shape=} to have a rank of 3"
+        )
         Batch = slice_input_shape[0]
         batch_sizes = [1, Batch]
         bmm_op = bmm_op_fn()
@@ -112,9 +112,9 @@ class SliceBMMFusionTestCase(unittest.TestCase):
         A = slice_op(
             X, start_indices=slice_start_indices, end_indices=slice_end_indices
         )
-        assert shape_utils.is_same_shape(
-            a_shape, A.shape()
-        ), f"expected {a_shape=} and {A.shape()=} are the same shape"
+        assert shape_utils.is_same_shape(a_shape, A.shape()), (
+            f"expected {a_shape=} and {A.shape()=} are the same shape"
+        )
         b_shape = bmm_params["b_shape"]
         B = Tensor(
             shape=b_shape,
@@ -148,13 +148,13 @@ class SliceBMMFusionTestCase(unittest.TestCase):
         self.assertEqual(len(sorted_ops), expected_num_ops)
 
         dynamic_dim = [d for d in slice_input_shape[1:] if isinstance(d, list)]
-        assert (
-            len(dynamic_dim) == 0 or len(dynamic_dim) == 1
-        ), f"expected at most one dynamic dim besides batch dim in {slice_input_shape=}"
+        assert len(dynamic_dim) == 0 or len(dynamic_dim) == 1, (
+            f"expected at most one dynamic dim besides batch dim in {slice_input_shape=}"
+        )
         if len(dynamic_dim) == 1:
-            assert len(dynamic_dim[0]) == len(
-                batch_sizes
-            ), f"expected {dynamic_dim[0]} and {batch_sizes=} have the same rank"
+            assert len(dynamic_dim[0]) == len(batch_sizes), (
+                f"expected {dynamic_dim[0]} and {batch_sizes=} have the same rank"
+            )
         for idx, batch in enumerate(batch_sizes):
             input_shape_pt = [batch] + [
                 d[idx] if isinstance(d, list) else d for d in slice_input_shape[1:]
@@ -377,9 +377,9 @@ class SliceBMMFusionTestCase(unittest.TestCase):
         dtype="float16",
     ):
         # bmm(A, slice_output)
-        assert (
-            len(slice_input_shape) == 3
-        ), f"expected {slice_input_shape=} to have a rank of 3"
+        assert len(slice_input_shape) == 3, (
+            f"expected {slice_input_shape=} to have a rank of 3"
+        )
         Batch = slice_input_shape[0]
         batch_sizes = [1, Batch]
         bmm_op = bmm_op_fn()
@@ -407,9 +407,9 @@ class SliceBMMFusionTestCase(unittest.TestCase):
             name="a",
             is_input=True,
         )
-        assert shape_utils.is_same_shape(
-            b_shape, B.shape()
-        ), f"expected {b_shape=} and {B.shape()=} are the same shape"
+        assert shape_utils.is_same_shape(b_shape, B.shape()), (
+            f"expected {b_shape=} and {B.shape()=} are the same shape"
+        )
         input_tensors = [A, B]
         c_shape = bmm_params["c_shape"]
         has_add = "_add" in bmm_op._attrs["op"]
@@ -436,13 +436,13 @@ class SliceBMMFusionTestCase(unittest.TestCase):
         self.assertEqual(len(sorted_ops), expected_num_ops)
 
         dynamic_dim = [d for d in slice_input_shape[1:] if isinstance(d, list)]
-        assert (
-            len(dynamic_dim) == 0 or len(dynamic_dim) == 1
-        ), f"expected at most one dynamic dim besides batch dim in {slice_input_shape=}"
+        assert len(dynamic_dim) == 0 or len(dynamic_dim) == 1, (
+            f"expected at most one dynamic dim besides batch dim in {slice_input_shape=}"
+        )
         if len(dynamic_dim) == 1:
-            assert len(dynamic_dim[0]) == len(
-                batch_sizes
-            ), f"expected {dynamic_dim[0]} and {batch_sizes=} have the same rank"
+            assert len(dynamic_dim[0]) == len(batch_sizes), (
+                f"expected {dynamic_dim[0]} and {batch_sizes=} have the same rank"
+            )
         for idx, batch in enumerate(batch_sizes):
             input_shape_pt = [batch] + [
                 d[idx] if isinstance(d, list) else d for d in slice_input_shape[1:]

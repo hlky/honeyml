@@ -15,6 +15,7 @@
 """
 ROCM max_pool2d funcs
 """
+
 from honey.backend import registry
 from honey.backend.rocm.pool2d import pool2d
 

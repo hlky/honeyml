@@ -15,6 +15,7 @@
 """
 GEMM Specialization: FAST_GELU(GEMM_RCR(A, B)) * GEMM_RCR(A, B1)
 """
+
 from honey.compiler.base import Tensor
 from honey.compiler.ops.gemm_universal.gemm_rcr import gemm_rcr
 from honey.compiler.tensor_accessor import TensorAccessor

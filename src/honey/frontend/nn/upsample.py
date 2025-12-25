@@ -15,6 +15,7 @@
 """
 Unsampling2d module.
 """
+
 from honey.compiler.ops import (
     upsampling1d,
     upsampling1d_add,

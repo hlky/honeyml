@@ -15,6 +15,7 @@
 """
 Upsampling2d op.
 """
+
 from honey.compiler.ops.upsample.upsampling_common import upsampling2d_base
 
 

@@ -15,6 +15,7 @@
 """
 Codegen functions for group_gemm_rcr_bias_sigmoid.
 """
+
 from honey.backend import registry
 from honey.backend.cuda.gemm_universal import (
     common,

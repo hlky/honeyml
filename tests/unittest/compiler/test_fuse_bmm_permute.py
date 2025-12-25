@@ -67,7 +67,6 @@ class FuseBmmPermuteCase(unittest.TestCase):
         orig_layout: str,
         dtype: str = "float16",
     ):
-
         is_row_major_a = orig_layout[0] == "r"
         is_row_major_b = orig_layout[1] == "r"
         is_row_major_c = orig_layout[2] == "r"
@@ -99,9 +98,9 @@ class FuseBmmPermuteCase(unittest.TestCase):
             src_ops = tensor.src_ops()
             if len(src_ops) == 0:
                 continue
-            assert (
-                len(src_ops) == 1
-            ), "Constructed graph should only have single-source op tensors."
+            assert len(src_ops) == 1, (
+                "Constructed graph should only have single-source op tensors."
+            )
             src_op = list(tensor.src_ops())[0]
             assert src_op._attrs["op"] != original_bmm
 

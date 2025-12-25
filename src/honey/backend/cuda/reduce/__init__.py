@@ -15,6 +15,7 @@
 """
 CUDA reduce module init
 """
+
 from honey.backend.cuda.reduce import (
     reduce_3d,
     reduce_common,

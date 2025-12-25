@@ -16,6 +16,7 @@
 """
 Common codegen functions for gemm_bias_activation.
 """
+
 import jinja2
 
 from honey.backend.backend_spec import CUDASpec

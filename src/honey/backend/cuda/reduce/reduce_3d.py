@@ -20,6 +20,7 @@ respectively. So, this common kernel can be used to implement a family of
 reduction ops such as reduce_mean and norm where we need to apply a scalar-op
 to each final element.
 """
+
 import bisect
 
 import jinja2
@@ -922,9 +923,9 @@ def gen_function(
     epilogue_scalar_code = epilogue_scalar_template.render(indent=" " * 12)
 
     output_accessors = func_attrs["output_accessors"]
-    assert (
-        len(output_accessors) == 1
-    ), f"expected the length of output_accessors to be one but got {len(output_accessors)}"
+    assert len(output_accessors) == 1, (
+        f"expected the length of output_accessors to be one but got {len(output_accessors)}"
+    )
     dtype = func_attrs["inputs"][0].dtype()
     output_alignment = tensor_accessor_codegen.find_max_alignment_for_accessors(
         dtype, output_accessors

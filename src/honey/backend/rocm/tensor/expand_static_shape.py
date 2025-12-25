@@ -197,21 +197,21 @@ def create_template_args(
     func_name = func_attrs["name"]
     rocm_spec = ROCMSpec()
     dtype = rocm_spec.dtype_to_backend_dtype[x.dtype()]
-    assert (
-        dtype is not None
-    ), f"ROCM implementation does not support dtype {x.dtype()} (yet)"
+    assert dtype is not None, (
+        f"ROCM implementation does not support dtype {x.dtype()} (yet)"
+    )
     dtype2 = rocm_spec.type_for_size.get(rocm_spec.sizeof_types[dtype] * 2, None)
     dtype4 = rocm_spec.type_for_size.get(rocm_spec.sizeof_types[dtype] * 4, None)
     xshape = x._attrs["shape"]
     yshape = y._attrs["shape"]
     dim_types: List[ExpandDimensionType] = func_attrs["dim_types"]
     index_type = "int64_t"
-    assert all(
-        dim.lower_bound() == dim.upper_bound() for dim in xshape
-    ), "All input shapes need to be fixed"
-    assert all(
-        dim.lower_bound() == dim.upper_bound() for dim in yshape
-    ), "All output shapes need to be fixed"
+    assert all(dim.lower_bound() == dim.upper_bound() for dim in xshape), (
+        "All input shapes need to be fixed"
+    )
+    assert all(dim.lower_bound() == dim.upper_bound() for dim in yshape), (
+        "All output shapes need to be fixed"
+    )
 
     # Calculate number of times we can repeatedly copy the entire result, based on how many add, expand and singleton dimensions
     # we have at the start
@@ -295,9 +295,9 @@ def create_template_args(
         # For keep dim, read stride remains at zero
         input_stride_pos += 1
 
-    assert input_stride_pos == len(
-        xshape
-    ), "Incorrect number of keep and expand dims. Something went wrong."
+    assert input_stride_pos == len(xshape), (
+        "Incorrect number of keep and expand dims. Something went wrong."
+    )
     output_rank = len(yshape)
     dim_types = ",".join([str(int(dt)) for dt in func_attrs["dim_types"]])
 
