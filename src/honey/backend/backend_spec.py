@@ -120,6 +120,7 @@ class GPUBackendSpec(BackendSpec):
             "bfloat16_2",
             "bfloat16",
             "float",
+            "int64_t",
         ]
     )
     func_enum_to_func_name: Dict[FuncEnum, Dict[str, str]] = field(
@@ -131,6 +132,7 @@ class GPUBackendSpec(BackendSpec):
                 "half": "__hadd",
                 "bfloat16": "__hadd",
                 "float": "__fadd_rn",
+                "int64_t": "+",
             },
             FuncEnum.SUB: {
                 "half2": "__hsub2",
@@ -138,6 +140,7 @@ class GPUBackendSpec(BackendSpec):
                 "half": "__hsub",
                 "bfloat16": "__hsub",
                 "float": "__fsub_rn",
+                "int64_t": "-",
             },
             FuncEnum.MUL: {
                 "half2": "__hmul2",
@@ -145,6 +148,7 @@ class GPUBackendSpec(BackendSpec):
                 "half": "__hmul",
                 "bfloat16": "__hmul",
                 "float": "__fmul_rn",
+                "int64_t": "*",
             },
             FuncEnum.DIV: {
                 "half2": "__h2div",
@@ -152,6 +156,7 @@ class GPUBackendSpec(BackendSpec):
                 "half": "__hdiv",
                 "bfloat16": "__hdiv",
                 "float": "__fdiv_rn",
+                "int64_t": "/",
             },
             FuncEnum.COS: {
                 "half2": "h2cos",
@@ -182,6 +187,7 @@ class GPUBackendSpec(BackendSpec):
                 "half": "__habs",
                 "bfloat16": "__habs",
                 "float": "fabsf",
+                "int64_t": "llabs"
             },
             FuncEnum.LOGE: {
                 "half2": "h2log",
@@ -224,6 +230,7 @@ class GPUBackendSpec(BackendSpec):
                 "half": "hmin_nan",
                 "bfloat16": "hmin_nan",
                 "float": "fminf_nan",
+                "int64_t": "min",
             },
             FuncEnum.SIGN: {
                 "half2": "h2sign_custom",
@@ -368,6 +375,8 @@ class GPUBackendSpec(BackendSpec):
             return "float8_e4m3"
         elif dtype == "float8_e5m2":
             return "float8_e5m2"
+        elif dtype == "int64":
+            return "int64_t"
         raise NotImplementedError("Unsupported dtype {}!".format(dtype))
 
     def get_elementwise_read_backend_type(
