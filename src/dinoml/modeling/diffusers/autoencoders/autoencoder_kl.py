@@ -273,9 +273,9 @@ class AutoencoderKL(nn.Module):
         z: Annotated[
             Tensor,
             (
-                Shape(name="batch_size"),
-                Shape(name="height", dim_operations=(DimDiv(8),)),
-                Shape(name="width", dim_operations=(DimDiv(8),)),
+                Shape(name="batch_size", step=1),
+                Shape(name="height", dim_operations=(DimDiv(8),), step=8),
+                Shape(name="width", dim_operations=(DimDiv(8),), step=8),
                 Shape(name="channels", config_name="latent_channels"),
             ),
         ],
