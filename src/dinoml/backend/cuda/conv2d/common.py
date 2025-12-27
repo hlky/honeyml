@@ -372,6 +372,7 @@ PROFILER_MAIN_TEMPLATE = jinja2.Template(
     """
 #include <iostream>
 #include <string>
+#include <cstdint>
 
 #include "cutlass/cutlass.h"
 

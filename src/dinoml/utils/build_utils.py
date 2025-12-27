@@ -90,6 +90,7 @@ class Shape:
     name: str
     dim_operations: Tuple[DimOperation, ...] = ()
     config_name: Optional[str] = None
+    step: Optional[int] = None
 
     def evaluate(
         self,
@@ -112,9 +113,9 @@ class Shape:
         else:
             evaluated = self._apply_ops(base, config)
         if isinstance(evaluated, tuple):
-            return IntVar(evaluated)
+            return IntVar(evaluated, bucket_step=self.step)
         else:
-            return IntImm(evaluated)
+            return IntVar([evaluated], bucket_step=self.step)
 
     def _apply_ops(self, base: int, config: Dict[str, int]) -> int:
         for op in self.dim_operations:

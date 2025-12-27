@@ -337,8 +337,8 @@ class conv2d(Operator):
 
         output_shape = [
             x._attrs["shape"][0],
-            shape_utils.gen_int_var(unique([d[1] for d in y_shapes])),
-            shape_utils.gen_int_var(unique([d[2] for d in y_shapes])),
+            shape_utils.gen_int_var(unique([d[1] for d in y_shapes]), num_buckets=len(x._attrs["shape"][1]._attrs["buckets"]) if x._attrs["shape"][1]._attrs.get("buckets", None) is not None else None),
+            shape_utils.gen_int_var(unique([d[2] for d in y_shapes]), num_buckets=len(x._attrs["shape"][2]._attrs["buckets"]) if x._attrs["shape"][2]._attrs.get("buckets", None) is not None else None),
             shape_utils.gen_int_var(unique([d[3] for d in y_shapes])),
         ]
 
@@ -479,7 +479,12 @@ class conv2d(Operator):
         entry for this conv instance, we update this conv op's
         relevant attributes with the cached result and return False.
         """
+        target = backend.target.Target.current()
+        dummy_profiling = target.use_dummy_profiling_results()
+        print(f"{dummy_profiling=}")
         force_cache = environ.force_profiler_cache()
+        if dummy_profiling:
+            return False
         if self._has_dynamic_input_dims():
             if force_cache:
                 raise RuntimeError(
@@ -493,7 +498,6 @@ class conv2d(Operator):
         if force_cache:
             return False
 
-        target = backend.target.Target.current()
         workloads = list(self._attrs["exec_path"].keys())
 
         build_profiler = True

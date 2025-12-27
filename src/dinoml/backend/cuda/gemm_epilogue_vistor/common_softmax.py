@@ -36,6 +36,8 @@ SRC_TEMPLATE = jinja2.Template(
 #include <memory>
 #include <random>
 #include <vector>
+#include <cstdint>
+
 #include "short_file.h"
 #include "cutlass/cutlass.h"
 #include "cutlass/gemm/device/gemm_universal.h"

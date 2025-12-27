@@ -24,7 +24,7 @@ from dinoml.compiler.base import IntVar, IntVarTensor, Tensor
 
 
 def gen_int_var(
-    values: List[int], name: str = None, symbolic_value: Optional[sympy.Basic] = None
+    values: List[int], name: str = None, symbolic_value: Optional[sympy.Basic] = None, num_buckets: Optional[int] = None
 ):
     """
     A helper function to generate IntImm or IntVar depending on the length of values.
@@ -35,20 +35,29 @@ def gen_int_var(
     if len(values) == 1:
         return IntImm(values[0], name=name)
     elif len(values) > 1:
-        return IntVar(values, name=name, symbolic_value=symbolic_value)
+        if num_buckets is not None:
+            if values[-1] > values[0]:
+                step = (values[-1] - (values[0])) // (num_buckets - 1)
+            elif values[0] > values[-1]:
+                step = (values[0] - (values[-1])) // (num_buckets - 1)
+            else:
+                step = 1
+        else:
+            step = None
+        return IntVar(values, name=name, symbolic_value=symbolic_value, bucket_step=step)
     else:
         raise RuntimeError("Unsupported dim definition: {}".format(values))
 
 
 def gen_int_var_min_max(
-    values: List[int], name: str = None, symbolic_value: Optional[sympy.Basic] = None
+    values: List[int], name: str = None, symbolic_value: Optional[sympy.Basic] = None, num_buckets: Optional[int] = None
 ):
     """
     A helper function to generate IntImm or IntVar depending on the length of values.
     Only keeps [min, max] pairs if there are more than 2 values.
     """
     return gen_int_var(
-        [min(values), max(values)], name=name, symbolic_value=symbolic_value
+        [min(values), max(values)], name=name, symbolic_value=symbolic_value, num_buckets=num_buckets
     )
 
 
@@ -259,12 +268,18 @@ def is_empty_rank1_tensor(shape) -> bool:
 
 
 def get_shape(x):
-    shape = [
-        (
-            it.value()
-            if not isinstance(it, IntVar)
-            else [it.lower_bound(), it.upper_bound()]
+    if isinstance(x, Tensor):
+        in_shape = x._attrs["shape"]
+    else:
+        in_shape = x
+    shape = []
+    for dim in in_shape:
+        value = (
+            dim.value()
+            if not isinstance(dim, IntVar)
+            else [dim.lower_bound(), dim.upper_bound()]
         )
-        for it in x._attrs["shape"]
-    ]
+        name = dim._attrs["name"]
+        buckets = dim._attrs.get("buckets", None)
+        shape.append({"name": name, "value": value, "buckets": buckets})
     return shape

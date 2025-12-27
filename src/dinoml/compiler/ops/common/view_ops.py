@@ -140,16 +140,31 @@ class _reshape_base(_view):
             assert int_var is not None, (
                 f"expected an int_var dimension, but got {int_var=} for {shape=}"
             )
-            dim_values = list(int_var._attrs["values"])
-            if len(dim_values) == 1:
-                output_shape.append(IntImm(dim_values[0]))
+            values = list(int_var._attrs["values"])
+            if len(values) == 1:
+                output_shape.append(IntImm(values[0]))
             else:
                 # dynamic dimension
                 dim_name = int_var._attrs["name"]
+                if isinstance(dim, IntVarTensor):
+                    num_buckets = dim._attrs["int_var"]._attrs.get("buckets", None)
+                else:
+                    num_buckets = dim._attrs.get("buckets", None)
+                if num_buckets is not None:
+                    num_buckets = len(num_buckets)
+                    if values[-1] > values[0]:
+                        step = (values[-1] - (values[0])) // (num_buckets - 1)
+                    elif values[0] > values[-1]:
+                        step = (values[0] - (values[-1])) // (num_buckets - 1)
+                    else:
+                        step = 1
+                else:
+                    step = None
                 var = IntVar(
                     name=dim_name,
-                    values=dim_values,
+                    values=values,
                     symbolic_value=int_var._attrs["symbolic_value"],
+                    bucket_step=step,
                 )
                 output_shape.append(var)
         return output_shape
@@ -235,6 +250,12 @@ class reshape(_reshape_base):
         self._attrs["is_intvar"] = is_intvar
 
         if not is_intvar:
+            num_buckets = None
+            for dim in x._attrs["shape"][1:]:
+                if dim._attrs.get("buckets", None) is not None:
+                    if num_buckets is not None:
+                        assert len(dim._attrs.get("buckets", None)) == num_buckets
+                    num_buckets = len(dim._attrs.get("buckets", None))
             # x_symbolic_shapes is a list of symbolic_values
             x_symbolic_shapes = [
                 var._attrs["symbolic_value"] for var in x._attrs["shape"]
@@ -337,7 +358,16 @@ class reshape(_reshape_base):
                             )
 
                             values = simplify_intvar_values(dynamic_symbol)
-                            new_var = IntVar(values, symbolic_value=dynamic_symbol)
+                            if num_buckets is not None:
+                                if values[-1] > values[0]:
+                                    step = (values[-1] - (values[0])) // (num_buckets - 1)
+                                elif values[0] > values[-1]:
+                                    step = (values[0] - (values[-1])) // (num_buckets - 1)
+                                else:
+                                    step = 1
+                            else:
+                                step = None
+                            new_var = IntVar(values, symbolic_value=dynamic_symbol, bucket_step=step)
 
                             y_shapes.append(new_var)
                     elif isinstance(val, int):
@@ -346,7 +376,7 @@ class reshape(_reshape_base):
                         y_shapes.append(x_symbolic_shapes_mapping[val])
                     elif is_symbolic(val):
                         val_var = gen_int_var_min_max(
-                            new_shape_values[idx], symbolic_value=val
+                            new_shape_values[idx], symbolic_value=val, num_buckets=num_buckets,
                         )
                         y_shapes.append(val_var)
                     else:

@@ -51,7 +51,6 @@ class ModelBase {
   // Should not be constructed directly, use the base class' factory function
   // instead.
   ModelBase(
-      size_t blob_size,
       size_t workspace_size,
       size_t unique_workspace_size,
       size_t num_inputs,
@@ -61,8 +60,7 @@ class ModelBase {
       DinoMLAllocator& allocator,
       DinoMLWorkspaceAllocationMode workspace_type =
           DinoMLWorkspaceAllocationMode::kEager)
-      : blob_size_(blob_size),
-        allocator_(allocator),
+      : allocator_(allocator),
         params_(num_inputs + num_outputs + num_unbound_constants),
         workspace_type_(workspace_type),
         workspace_size_{workspace_size},
@@ -109,10 +107,7 @@ class ModelBase {
     auto* model = static_cast<ModelType*>(this);
     if (workspace_type_ == DinoMLWorkspaceAllocationMode::kLazy ||
         workspace_type_ == DinoMLWorkspaceAllocationMode::kFau) {
-      if (!blob_) {
-        blob_ = RAII_DeviceMalloc(blob_size_, allocator_);
-        model->SetUpWorkspace();
-      }
+      model->SetUpWorkspace();
       if (!workspace_) {
         workspace_ = RAII_DeviceMalloc(workspace_size_, allocator_);
       }

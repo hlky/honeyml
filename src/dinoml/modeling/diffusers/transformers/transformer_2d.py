@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 from dinoml.compiler import ops
 
 from dinoml.frontend import nn, Tensor
-
+from dinoml.utils.shape_utils import get_shape
 from ..attention import BasicTransformerBlock
 from ..embeddings import (
     ImagePositionalEmbeddings,
@@ -509,7 +509,7 @@ class Transformer2DModel(nn.Module):
             hidden_states = self.proj_in(hidden_states)
             inner_dim = ops.size()(hidden_states, dim=-1)
             hidden_states = ops.reshape()(
-                hidden_states, [batch, height * width, inner_dim]
+                hidden_states, [batch, height._attrs["int_var"] * width._attrs["int_var"], inner_dim]
             )
         else:
             inner_dim = ops.size()(hidden_states, dim=-1)

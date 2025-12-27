@@ -3,21 +3,9 @@ from typing import Optional, Union
 from dinoml.compiler import ops
 
 from dinoml.frontend import IntVar, nn, Tensor
-
+from dinoml.utils.shape_utils import get_shape
 from .normalization import FP32LayerNorm, RMSNorm
 
-
-# TODO: other processors
-def get_shape(x):
-    shape = [
-        (
-            it.value()
-            if not isinstance(it, IntVar)
-            else [it.lower_bound(), it.upper_bound()]
-        )
-        for it in x._attrs["shape"]
-    ]
-    return shape
 
 
 class Attention(nn.Module):
@@ -556,7 +544,7 @@ class AttnProcessor2_0:
         if input_ndim == 4:
             batch_size, height, width, channel = ops.size()(hidden_states)
             hidden_states = ops.reshape()(
-                hidden_states, [batch_size, height * width, channel]
+                hidden_states, [batch_size, height._attrs["int_var"] * width._attrs["int_var"], channel]
             )
 
         batch_size, sequence_length, _ = (

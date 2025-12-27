@@ -328,9 +328,8 @@ def _construct_output_name_to_index_map(
 class ModelContainerGenerator:
     def __init__(
         self,
-        max_blob_size: int,
-        max_constant_blob_size: int,
-        workspace: Workspace,
+        buckets,
+        input_conditions,
         constants_data_file: Optional[io.BytesIO],
         graph: List[Tensor],
         output_tensors: List[Tensor],
@@ -351,6 +350,7 @@ class ModelContainerGenerator:
         self.exist_funcs = set()
         self.func_decl = []
         self.tensor_slice = []
+        self.blob_tensor_slice = {}
         self.tensor_map_set = []
         self.set_inputs = []
         self.func_name_seq = []
@@ -375,6 +375,7 @@ class ModelContainerGenerator:
         self.visited_dims = set()
         self.set_up_constant_names = []
         self.set_up_constant_original_names = []
+        self.set_up_bucket_conditions = {}
 
         self.num_constants = 0
         self.constants_data_size = 0
@@ -393,9 +394,12 @@ class ModelContainerGenerator:
         self.graph = graph
 
         self.num_inputs, self.num_outputs = count_inputs_outputs(graph)
-        self.max_blob_size = max_blob_size
-        self.max_constant_blob_size = max_constant_blob_size
-        self.workspace = workspace
+        self.max_blob_size = list(buckets.values())[0][0]
+        self.max_constant_blob_size = list(buckets.values())[0][1]
+        self.workspace = list(buckets.values())[0][2]
+
+        self.buckets = buckets
+        self.input_conditions = input_conditions
 
         self.debug_settings = (
             DinoMLDebugSettings() if debug_settings is None else debug_settings
@@ -433,6 +437,16 @@ class ModelContainerGenerator:
         indent="    ",
     ) -> str:
         offset = node._attrs["offset"]
+        name = node._attrs["name"]
+        return f"{indent}{name} = reinterpret_cast<decltype({name})>({blob_name} + {offset});"
+
+    def _tensor_bucket_slice_func(
+        self,
+        node: Tensor,
+        offset,
+        blob_name: str,
+        indent="    ",
+    ) -> str:
         name = node._attrs["name"]
         return f"{indent}{name} = reinterpret_cast<decltype({name})>({blob_name} + {offset});"
 
@@ -591,12 +605,50 @@ class ModelContainerGenerator:
                 )
             )
 
+    def emit_bucket_condition(self, var_name, bucket_idx, bucket_values):
+        """
+        bucket_values: list[list[int]]  # e.g. [[8,16,24,...], ...]
+        bucket_idx: tuple[int]
+        """
+        conds = []
+
+        for dim, idx in enumerate(bucket_idx):
+            bounds = bucket_values[dim]
+
+            hi = bounds[idx]
+            lo = bounds[idx - 1] if idx > 0 else bounds[0]
+
+            # inclusive upper bound, exclusive lower bound (except first)
+            if idx == 0:
+                cond = f"{var_name}.shape_ptrs[{dim}].GetValue() <= {hi}"
+            else:
+                cond = (
+                    f"{var_name}.shape_ptrs[{dim}].GetValue() > {lo} && "
+                    f"{var_name}.shape_ptrs[{dim}].GetValue() <= {hi}"
+                )
+
+            conds.append(cond)
+
+        return " && ".join(conds)
+
+    def _codegen_bucket_conditions(self, name: str):        
+        def bucket_str_to_tuple(bucket_str):
+            return tuple([int(b) for b in bucket_str[1:-1].replace(" ", "").split(",")])
+
+        bucket_conditions = self.input_conditions[name]
+        buckets = self.buckets
+        var_name = f"params_[{self.input_idx}]"
+        for bucket_id in buckets:
+            conds = self.emit_bucket_condition(var_name, bucket_str_to_tuple(bucket_id), bucket_conditions)
+            self.set_up_bucket_conditions[bucket_id] = conds
+
     def _codegen_input_tensor(self, tensor: Tensor) -> None:
         name = tensor._attrs["name"]
         view = tensor._attrs["is_view_of"]
         assert view is None, (
             f"_codegen_input_tensor cannot be called with a view; expected a non-view tensor with is_input=True, got: {tensor}"
         )
+        self._codegen_bucket_conditions(name)
         self.set_inputs.append(
             set_value(
                 name,
@@ -884,10 +936,13 @@ class ModelContainerGenerator:
         elif not is_view and not isinstance(node, IntVarTensor):
             # Normal, internal tensor that is not a view: point it to the
             # internal blob of memory
-            assert node._attrs["offset"] >= 0, (
-                f"Non-parameter node '{name}' must have non-negative offset"
-            )
-            self.tensor_slice.append(self._tensor_slice_func(node, "blob_ptr"))
+            for bucket_id, offset in node._attrs["offset"].items():
+                assert offset >= 0, (
+                   f"Non-parameter node '{name}' must have non-negative offset"
+                )
+                if bucket_id not in self.blob_tensor_slice:
+                    self.blob_tensor_slice[bucket_id] = []
+                self.blob_tensor_slice[bucket_id].append(self._tensor_bucket_slice_func(node, offset, "blob_ptr"))
         elif not isinstance(node, IntVarTensor):
             # Normal view, point it to the same memory as whatever it
             # aliases
@@ -1004,6 +1059,9 @@ class ModelContainerGenerator:
             function_decl="\n".join(self.func_decl),
             set_inputs="\n".join(self.set_inputs),
             tensor_slice="\n".join(self.tensor_slice),
+            blob_tensor_slice=self.blob_tensor_slice,
+            bucket_conditions=self.set_up_bucket_conditions,
+            buckets=self.buckets,
             tensor_map_set="\n".join(self.tensor_map_set),
             set_up_constants="\n".join(self.set_up_constants),
             device_to_device_copies="\n".join(self.device_to_device_copies),
@@ -1185,9 +1243,8 @@ _DEBUG_SETTINGS = DinoMLDebugSettings()
 
 def gen_library_src(  # noqa: C901
     sorted_graph: List[Tensor],
-    max_blob_size: int,
-    max_constant_blob_size: int,
-    workspace: Workspace,
+    buckets,
+    input_conditions,
     workdir: str,
     output_tensors: List[Tensor],
     model_name: str = "",
@@ -1227,9 +1284,8 @@ def gen_library_src(  # noqa: C901
     constants_data_file = open(constants_fname, "wb")
 
     model_container_generator = ModelContainerGenerator(
-        max_blob_size,
-        max_constant_blob_size,
-        workspace,
+        buckets,
+        input_conditions,
         constants_data_file,
         sorted_graph,
         output_tensors,

@@ -1,4 +1,8 @@
 import click
+import os
+# os.environ["DISABLE_PROFILER_CODEGEN"] = "1"
+# os.environ["CI_FLAG"] = "CIRCLECI"
+os.environ["DINOML_ALLOCATION_MODE"] = "2"
 
 from dinoml.builder.autoencoder_kl import AutoencoderKLDecodeBuilder
 

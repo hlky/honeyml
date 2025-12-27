@@ -64,7 +64,7 @@ def _find_original_tensor(tensor: Tensor):
     return _find_original_tensor(view)
 
 
-def _make_tensor_usage_records(sorted_ops: List[Operator]) -> List[TensorUsageRecord]:
+def _make_tensor_usage_records(sorted_ops: List[Operator], bucket=None) -> List[TensorUsageRecord]:
     num_of_ops = len(sorted_ops)
     tensor_records = defaultdict(
         lambda: TensorUsageRecord(
@@ -103,7 +103,7 @@ def _make_tensor_usage_records(sorted_ops: List[Operator]) -> List[TensorUsageRe
                 tensor_records[name].last_op_idx = num_of_ops - 1
 
             size = tensor_records[name].size
-            tensor_size = tensor.size_bytes(alignment=64)
+            tensor_size = tensor.size_bytes(alignment=64, bucket_id=bucket)
             if size is None:
                 tensor_records[name].size = tensor_size
             else:
@@ -200,7 +200,7 @@ def _compute_workspace(sorted_graph: List[Tensor]) -> Workspace:
 
 
 def _greedy_by_size_memory_planning(
-    sorted_graph: List[Tensor], tensor_usage_records: List[TensorUsageRecord]
+    sorted_graph: List[Tensor], tensor_usage_records: List[TensorUsageRecord], bucket = None,
 ):
     """
     based on the greedy-by-size algorithm for offset calculation described in
@@ -228,13 +228,15 @@ def _greedy_by_size_memory_planning(
         # tensor, we try to find the smallest valid memory gap between such two
         # allocated tensors, which is big enough to hold current tensor.
         # If such a gap is found, we will place current tensor in the gap.
+        if tensor._attrs["offset"] is None:
+            tensor._attrs["offset"] = {}
         for a_record in sorted_assigned_records:
             a_tensor, a_first_op_idx, a_last_op_idx, a_size = a_record
             max_first_op_idx = max(first_op_idx, a_first_op_idx)
             min_last_op_idx = min(last_op_idx, a_last_op_idx)
             # current tensor overlaps with this assigned tensor
             if max_first_op_idx <= min_last_op_idx:
-                a_offset = a_tensor._attrs["offset"]
+                a_offset = a_tensor._attrs["offset"][bucket]
                 gap = a_offset - prev_offset
                 if size <= gap < smallest_gap:
                     smallest_gap = gap
@@ -245,13 +247,13 @@ def _greedy_by_size_memory_planning(
         # intersects with that of the current tensor.
         if best_offset is None:
             best_offset = prev_offset
-        tensor._attrs["offset"] = best_offset
+        tensor._attrs["offset"][bucket] = best_offset
         max_blob = max(max_blob, best_offset + size)
 
         # bisect from Python <=3.9 doesn't have the key parameter
-        sorted_offsets = [r.tensor._attrs["offset"] for r in sorted_assigned_records]
+        sorted_offsets = [r.tensor._attrs["offset"][bucket] for r in sorted_assigned_records]
         in_pos = bisect.bisect_right(
-            sorted_offsets, tensor_record.tensor._attrs["offset"]
+            sorted_offsets, tensor_record.tensor._attrs["offset"][bucket]
         )
         sorted_assigned_records.insert(in_pos, tensor_record)
 
@@ -290,6 +292,62 @@ def greedy_by_size_memory_planning(sorted_graph: List[Tensor]):  # noqa: C901
     tensor_usage_records = _make_tensor_usage_records(sorted_ops)
 
     return _greedy_by_size_memory_planning(sorted_graph, tensor_usage_records)
+
+def enumerate_buckets(sorted_ops):
+    from itertools import product
+
+    tensor_bucket = {}
+    input_conditions = {}
+
+    for op_idx, op in enumerate(sorted_ops):
+        tensors = (
+            op._attrs["inputs"] + op._attrs["outputs"]
+            if op._attrs["inputs"] is not None
+            else op._attrs["outputs"]
+        )
+        for tensor in tensors:
+            buckets = []
+            for dim in tensor._attrs["shape"]:
+                if dim._attrs.get("buckets", None):
+                    buckets.append(dim._attrs.get("buckets", None))
+            if buckets:
+                tensor_bucket[tensor._attrs["name"]] = buckets
+            if tensor._attrs["is_input"] == True:
+                input_conditions[tensor._attrs["name"]] = buckets
+
+    total_buckets = None
+    num_bucket_dims = 0
+    bucket_ids = None
+    for tensor, buckets in tensor_bucket.items():
+        bucket_size = 1
+        for bucket in buckets:
+            bucket_size *= len(bucket)
+        if total_buckets is None:
+            total_buckets = bucket_size
+        if len(buckets) > num_bucket_dims:
+            num_bucket_dims = len(buckets)
+            bucket_ids = list(product(*(list(range(len(b))) for b in buckets)))
+
+    return bucket_ids, input_conditions
+
+def plan_memory_per_bucket(sorted_graph):
+    sorted_ops = []
+    for node in sorted_graph:
+        sorted_ops.extend(node.src_ops())
+    buckets, input_conditions = enumerate_buckets(sorted_ops)
+    plans = {}
+
+    for bucket in buckets:
+        tensor_records = _make_tensor_usage_records(
+            sorted_ops,
+            bucket=bucket
+        )
+        max_blob, const_offset, workspace = _greedy_by_size_memory_planning(
+            sorted_graph, tensor_records, bucket=str(bucket)
+        )
+        plans[str(bucket)] = (max_blob, const_offset, workspace)
+
+    return plans, input_conditions
 
 
 def naive_memory_planning(sorted_graph: List[Tensor]):
@@ -445,7 +503,7 @@ def proxy_memory_planning(sorted_graph: List[Tensor]):
     run_mode = multistream_mode()
     if run_mode == 0:
         # no multistream
-        max_blob, constant_offset, workspace = greedy_by_size_memory_planning(
+        buckets, input_conditions = plan_memory_per_bucket(
             sorted_graph
         )
     elif run_mode == 1:
@@ -457,14 +515,16 @@ def proxy_memory_planning(sorted_graph: List[Tensor]):
         # unsupported
         raise Exception(f"Unsupported multistream mode ({run_mode})")
 
-    # print some statistics
-    _LOGGER.info(
-        f"Workspace shared_size={workspace.shared_size} unique_size={workspace.unique_size}"
-    )
-    _LOGGER.info(f"max_blob={max_blob} constant_offset={constant_offset}")
+    # for bucket, (max_blob, constant_offset, workspace) in buckets.items():
+    #     # print some statistics
+    #     _LOGGER.info(bucket)
+    #     _LOGGER.info(
+    #         f"Workspace shared_size={workspace.shared_size} unique_size={workspace.unique_size}"
+    #     )
+    #     _LOGGER.info(f"max_blob={max_blob} constant_offset={constant_offset}")
 
     # done
-    return (max_blob, constant_offset, workspace)
+    return buckets, input_conditions
 
 
 # memory_planning = greedy_by_size_memory_planning
