@@ -17,10 +17,10 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
 )
@@ -65,7 +65,7 @@ class GroupGEMMRcrCatTestCase(unittest.TestCase):
         Y_pt = torch.cat([Y1_pt, Y2_pt], dim=1)
 
         y_shape = [var._attrs["values"][0] for var in Y._attrs["shape"]]
-        _LOGGER.info("Honey y_shape: {}".format(y_shape))
+        _LOGGER.info("DinoML y_shape: {}".format(y_shape))
         torch.testing.assert_close(y_shape, list(Y_pt.shape))
 
         inputs = {

@@ -18,23 +18,23 @@
 #include "raii_wrapper.h"
 
 namespace {
-std::string GetEnumString(HoneyDtype dtype) {
+std::string GetEnumString(DinoMLDtype dtype) {
   switch (dtype) {
-    case HoneyDtype::kUnset:
+    case DinoMLDtype::kUnset:
       return "kUnset";
-    case HoneyDtype::kHalf:
+    case DinoMLDtype::kHalf:
       return "kHalf";
-    case HoneyDtype::kFloat:
+    case DinoMLDtype::kFloat:
       return "kFloat";
-    case HoneyDtype::kInt:
+    case DinoMLDtype::kInt:
       return "kInt";
-    case HoneyDtype::kLong:
+    case DinoMLDtype::kLong:
       return "kLong";
-    case HoneyDtype::kBFloat16:
+    case DinoMLDtype::kBFloat16:
       return "kBFloat16";
-    case HoneyDtype::kFloat8_e4m3:
+    case DinoMLDtype::kFloat8_e4m3:
       return "kFloat8_e4m3";
-    case HoneyDtype::kFloat8_e5m2:
+    case DinoMLDtype::kFloat8_e5m2:
       return "kFloat8_e5m2";
     default:
       return "unknown";
@@ -42,7 +42,7 @@ std::string GetEnumString(HoneyDtype dtype) {
 }
 } // namespace
 
-namespace honey {
+namespace dinoml {
 
 ModelContainer::ModelContainer(
     size_t num_models,
@@ -53,7 +53,7 @@ ModelContainer::ModelContainer(
     size_t params_size,
     size_t blob_size,
     size_t workspace_size,
-    HoneyAllocator& allocator)
+    DinoMLAllocator& allocator)
     : ModelContainerBase(
           num_inputs,
           num_outputs,
@@ -69,7 +69,7 @@ ModelContainer::ModelContainer(
   if (num_models == 0) {
     throw std::runtime_error("Number of models must be positive");
   }
-  dmlc::InitLogging("honey"); // TODO(xxx): render network name
+  dmlc::InitLogging("dinoml"); // TODO(xxx): render network name
   int runtime_version;
   int driver_version;
   DEVICE_CHECK(GetDriverVersion(&driver_version));
@@ -101,9 +101,9 @@ ModelContainer::ModelContainer(
 }
 
 void ModelContainer::Run(
-    const HoneyData* inputs,
+    const DinoMLData* inputs,
     size_t num_inputs,
-    HoneyData* outputs,
+    DinoMLData* outputs,
     size_t num_outputs,
     StreamType stream,
     bool sync,
@@ -151,9 +151,9 @@ void ModelContainer::Run(
 }
 
 void ModelContainer::Profile(
-    const HoneyData* inputs,
+    const DinoMLData* inputs,
     size_t num_inputs,
-    HoneyData* outputs,
+    DinoMLData* outputs,
     size_t num_outputs,
     StreamType stream,
     size_t num_iters,
@@ -179,15 +179,15 @@ void ModelContainer::Profile(
 }
 
 void ModelContainer::RunWithOutputsOnHost(
-    const HoneyData* inputs,
+    const DinoMLData* inputs,
     size_t num_inputs,
-    HoneyData* outputs,
+    DinoMLData* outputs,
     size_t num_outputs,
     StreamType stream,
     bool graph_mode,
     int64_t** output_shapes_out) {
   std::vector<std::pair<GPUPtr, size_t>> owned_outputs_ptrs;
-  std::vector<HoneyData> owned_outputs;
+  std::vector<DinoMLData> owned_outputs;
   owned_outputs_ptrs.reserve(num_outputs);
   owned_outputs.reserve(num_outputs);
   for (size_t i = 0; i < num_outputs; ++i) {
@@ -220,9 +220,9 @@ void ModelContainer::RunWithOutputsOnHost(
 }
 
 float ModelContainer::Benchmark(
-    const HoneyData* inputs,
+    const DinoMLData* inputs,
     size_t num_inputs,
-    HoneyData* outputs,
+    DinoMLData* outputs,
     size_t num_outputs,
     StreamType stream,
     bool graph_mode,
@@ -260,7 +260,7 @@ float ModelContainer::Benchmark(
   }
   // Clone the outputs, each thread needs its own set
   std::vector<std::vector<GPUPtr>> per_thread_outputs_ptrs;
-  std::vector<std::vector<HoneyData>> per_thread_outputs;
+  std::vector<std::vector<DinoMLData>> per_thread_outputs;
   std::vector<StreamPtr> per_thread_streams;
   per_thread_outputs_ptrs.reserve(num_threads - 1);
   per_thread_outputs.reserve(num_threads - 1);
@@ -274,7 +274,7 @@ float ModelContainer::Benchmark(
 
   for (size_t i = 1; i < num_threads; ++i) {
     std::vector<GPUPtr> cloned_outputs_ptrs;
-    std::vector<HoneyData> cloned_outputs;
+    std::vector<DinoMLData> cloned_outputs;
 
     cloned_outputs_ptrs.reserve(num_outputs);
     cloned_outputs.reserve(num_outputs);
@@ -303,7 +303,7 @@ float ModelContainer::Benchmark(
   };
 
   auto thread_func = [&](size_t thread_idx) {
-    HoneyData* thread_outputs =
+    DinoMLData* thread_outputs =
         thread_idx == 0 ? outputs : per_thread_outputs[thread_idx - 1].data();
     StreamType thread_stream = get_stream(thread_idx);
     auto* thread_output_shapes_out =
@@ -362,7 +362,7 @@ float ModelContainer::Benchmark(
 
 void ModelContainer::SetConstantImpl(
     const char* name,
-    const HoneyData& tensor,
+    const DinoMLData& tensor,
     bool double_buffer,
     StreamType stream) {
   auto unbound_it = unbound_constant_name_to_idx_.find(name);
@@ -374,7 +374,7 @@ void ModelContainer::SetConstantImpl(
     CHECK_VECTOR_ACCESS(max_param_storage_bytes_, constant_idx)
     auto expected_num_bytes = max_param_storage_bytes_[constant_idx];
     auto actual_num_bytes =
-        tensor.shape.Numel() * HoneyDtypeSizeBytes(tensor.dtype);
+        tensor.shape.Numel() * DinoMLDtypeSizeBytes(tensor.dtype);
     if (expected_num_bytes != actual_num_bytes) {
       throw std::runtime_error(
           std::string(
@@ -390,7 +390,7 @@ void ModelContainer::SetConstantImpl(
     CHECK_VECTOR_ACCESS(bound_constant_size_, constant_idx)
     auto expected_num_bytes = bound_constant_size_[constant_idx];
     auto actual_num_bytes =
-        tensor.shape.Numel() * HoneyDtypeSizeBytes(tensor.dtype);
+        tensor.shape.Numel() * DinoMLDtypeSizeBytes(tensor.dtype);
     if (expected_num_bytes != actual_num_bytes) {
       throw std::runtime_error(
           std::string(
@@ -446,7 +446,7 @@ void ModelContainer::SetConstantImpl(
   buffer_state_ = BufferState::CONSTANTS_UPDATED;
 }
 
-void ModelContainer::SetConstant(const char* name, const HoneyData& tensor) {
+void ModelContainer::SetConstant(const char* name, const DinoMLData& tensor) {
   std::lock_guard lk(constants_sync_mutex_);
   WaitForAllModels(/*include_constant_folder=*/true);
   SetConstantImpl(name, tensor);
@@ -454,7 +454,7 @@ void ModelContainer::SetConstant(const char* name, const HoneyData& tensor) {
 
 void ModelContainer::SetManyConstants(
     const char** names,
-    const HoneyData* tensors,
+    const DinoMLData* tensors,
     size_t num_tensors) {
   if (num_tensors == 0) {
     return;
@@ -501,7 +501,7 @@ uint8_t* ModelContainer::GetInactiveConstantsBuffer() {
 
 void ModelContainer::SetDoubleBufferConstant(
     const char* name,
-    const HoneyData& tensor,
+    const DinoMLData& tensor,
     StreamType stream) {
   std::lock_guard lk(constants_double_buffer_mutex_);
   SetConstantImpl(name, tensor, /* double_buffer */ true, stream);
@@ -509,7 +509,7 @@ void ModelContainer::SetDoubleBufferConstant(
 
 void ModelContainer::SetManyDoubleBufferConstants(
     const char** names,
-    const HoneyData* tensors,
+    const DinoMLData* tensors,
     size_t num_tensors,
     StreamType stream) {
   if (num_tensors == 0) {
@@ -545,14 +545,14 @@ const char* ModelContainer::InputName(size_t input_idx) const {
   return param_names_[input_idx];
 }
 
-HoneyParamShape ModelContainer::MaxInputShape(size_t input_idx) const {
+DinoMLParamShape ModelContainer::MaxInputShape(size_t input_idx) const {
   CHECK(input_idx < num_inputs_);
   CHECK_VECTOR_ACCESS(max_param_shapes_, input_idx)
   auto& input_shape = max_param_shapes_[input_idx];
-  return HoneyParamShape{input_shape.data(), input_shape.size()};
+  return DinoMLParamShape{input_shape.data(), input_shape.size()};
 }
 
-HoneyDtype ModelContainer::InputDtype(size_t input_idx) const {
+DinoMLDtype ModelContainer::InputDtype(size_t input_idx) const {
   CHECK(input_idx < num_inputs_);
   CHECK_VECTOR_ACCESS(param_dtypes_, input_idx)
   return param_dtypes_[input_idx];
@@ -568,14 +568,14 @@ const char* ModelContainer::OutputName(size_t output_idx) const {
   return param_names_[idx];
 }
 
-HoneyParamShape ModelContainer::MaxOutputShape(size_t output_idx) const {
+DinoMLParamShape ModelContainer::MaxOutputShape(size_t output_idx) const {
   auto idx = output_idx + num_inputs_;
   CHECK_VECTOR_ACCESS(max_param_shapes_, idx)
   auto& out_shape = max_param_shapes_[idx];
-  return HoneyParamShape{out_shape.data(), out_shape.size()};
+  return DinoMLParamShape{out_shape.data(), out_shape.size()};
 }
 
-HoneyDtype ModelContainer::OutputDtype(size_t output_idx) const {
+DinoMLDtype ModelContainer::OutputDtype(size_t output_idx) const {
   auto idx = output_idx + num_inputs_;
   CHECK_VECTOR_ACCESS(param_dtypes_, idx)
   return param_dtypes_[idx];
@@ -728,7 +728,7 @@ void ModelContainer::WriteAllConstantNamesTo(
   }
 }
 
-HoneyDtype ModelContainer::ConstantDtype(const char* name) const {
+DinoMLDtype ModelContainer::ConstantDtype(const char* name) const {
   auto unbound_it = unbound_constant_name_to_idx_.find(name);
   if (unbound_it != unbound_constant_name_to_idx_.end()) {
     auto idx = unbound_it->second + num_inputs_ + num_outputs_;
@@ -757,9 +757,9 @@ const char* ModelContainer::ConstantOriginalName(const char* name) const {
 
 void ModelContainer::PrepareForRun(
     Model* model,
-    const HoneyData* inputs,
+    const DinoMLData* inputs,
     size_t num_inputs,
-    HoneyData* outputs,
+    DinoMLData* outputs,
     size_t num_outputs) {
   if (num_inputs != num_inputs_) {
     auto msg = "Got wrong number of inputs; expected " +
@@ -832,7 +832,7 @@ void ModelContainer::ReclaimFinishedModels(std::unique_lock<std::mutex>& lk) {
   available_models_.push_back(model);
 }
 
-void ModelContainer::ValidateParamDtype(HoneyDtype dtype, size_t idx)
+void ModelContainer::ValidateParamDtype(DinoMLDtype dtype, size_t idx)
     const {
   CHECK_VECTOR_ACCESS(param_dtypes_, idx)
   if (dtype != param_dtypes_[idx]) {
@@ -843,7 +843,7 @@ void ModelContainer::ValidateParamDtype(HoneyDtype dtype, size_t idx)
 }
 
 void ModelContainer::ValidateBoundConstantDtype(
-    HoneyDtype dtype,
+    DinoMLDtype dtype,
     size_t idx) const {
   CHECK_VECTOR_ACCESS(bound_constant_dtypes_, idx)
   if (dtype != bound_constant_dtypes_[idx]) {
@@ -855,9 +855,9 @@ void ModelContainer::ValidateBoundConstantDtype(
 }
 
 float ModelContainer::BenchmarkImpl(
-    const HoneyData* inputs,
+    const DinoMLData* inputs,
     size_t num_inputs,
-    HoneyData* outputs,
+    DinoMLData* outputs,
     size_t num_outputs,
     StreamType stream,
     bool graph_mode,
@@ -901,4 +901,4 @@ float ModelContainer::BenchmarkImpl(
   return runtime_ms;
 }
 
-} // namespace honey
+} // namespace dinoml

@@ -18,7 +18,7 @@ Unittests for StableSet.
 
 import unittest
 
-from honey.compiler.stable_set import StableSet
+from dinoml.compiler.stable_set import StableSet
 
 
 class StableSetTestCase(unittest.TestCase):

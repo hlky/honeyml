@@ -21,7 +21,7 @@
 #include <cstdint>
 #include <utility>
 
-namespace honey {
+namespace dinoml {
 
 struct ConstantInfo {
   // Unowned pointer w/ static lifetime
@@ -34,7 +34,7 @@ struct ConstantInfo {
   size_t num_bytes;
 };
 
-} // namespace honey
+} // namespace dinoml
 
 // At codegen time, we write out a binary file called constants.bin.
 // We then turn the raw binary to an object file that exposes this

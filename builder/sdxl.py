@@ -1,10 +1,10 @@
 from typing import Optional
 
-from honey.compiler import compile_model
-from honey.frontend import IntVar, Tensor
-from honey.testing import detect_target
+from dinoml.compiler import compile_model
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import detect_target
 
-from honey.builder.config import load_config, mark_output
+from dinoml.builder.config import load_config, mark_output
 
 batch_size = 1, 1
 resolution = 512, 1024
@@ -13,10 +13,10 @@ height, width = resolution, resolution
 hf_hub = "stabilityai/stable-diffusion-xl-base-1.0"
 model_name = "stable-diffusion-xl-base-1.0"
 
-config, honey_cls, pt_cls = load_config(hf_hub, subfolder="unet")
+config, dinoml_cls, pt_cls = load_config(hf_hub, subfolder="unet")
 
-honey_module = honey_cls(**config)
-honey_module.name_parameter_tensor()
+dinoml_module = dinoml_cls(**config)
+dinoml_module.name_parameter_tensor()
 
 sample = Tensor(
     [
@@ -51,7 +51,7 @@ add_text_embeds = Tensor(
 )
 added_cond_kwargs = {"text_embeds": add_text_embeds, "time_ids": add_time_ids}
 
-Y = honey_module.forward(
+Y = dinoml_module.forward(
     sample=sample,
     encoder_hidden_states=encoder_hidden_states,
     timestep=timestep,

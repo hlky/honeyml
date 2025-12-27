@@ -17,17 +17,17 @@ import unittest
 from typing import List
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.frontend import IntImm, IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntImm, IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import shape_utils, torch_utils
+from dinoml.utils import shape_utils, torch_utils
 
 
-def build_honey_module(
+def build_dinoml_module(
     *,
     batch_sizes,
     input_nonbatch_shapes,
@@ -39,7 +39,7 @@ def build_honey_module(
     fuse_sigmoid_mul,
     eps,
     test_id,
-    honey_dtype="float16",
+    dinoml_dtype="float16",
     workdir="./tmp",
     test_name="strided_group_layernorm",
 ):
@@ -50,7 +50,7 @@ def build_honey_module(
                 shape_utils.gen_int_var_min_max(values=batch_sizes, name="input_batch"),
                 *shape,
             ],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name=f"input_{i}",
             is_input=True,
         )
@@ -68,7 +68,7 @@ def build_honey_module(
             None
             if gamma_is_none
             else Tensor(
-                shape=shape, dtype=honey_dtype, name=f"gamma_{i}", is_input=True
+                shape=shape, dtype=dinoml_dtype, name=f"gamma_{i}", is_input=True
             )
         )
         for i, shape in enumerate(layernorm_weight_shapes)
@@ -77,7 +77,7 @@ def build_honey_module(
         (
             None
             if beta_is_none
-            else Tensor(shape=shape, dtype=honey_dtype, name=f"beta_{i}", is_input=True)
+            else Tensor(shape=shape, dtype=dinoml_dtype, name=f"beta_{i}", is_input=True)
         )
         for i, shape in enumerate(layernorm_weight_shapes)
     ]
@@ -211,11 +211,11 @@ class SliceGroupLayerNormTestCase(unittest.TestCase):
             "end_indices": end_indices,
         }
 
-        honey_module = build_honey_module(
+        dinoml_module = build_dinoml_module(
             batch_sizes=batch_sizes,
             **_layernorm_common_params,
             test_id=self._test_id,
-            honey_dtype=dtype,
+            dinoml_dtype=dtype,
         )
         self._test_id += 1
         pt_dtype = torch_utils.string_to_torch_dtype(dtype)
@@ -223,19 +223,19 @@ class SliceGroupLayerNormTestCase(unittest.TestCase):
             pt_tensors = eval_pt(
                 batch_size=batch_size, **_layernorm_common_params, dtype=pt_dtype
             )
-            honey_inputs = {
+            dinoml_inputs = {
                 k: v
                 for k, v in pt_tensors.items()
                 if v is not None and not k.startswith("output")
             }
-            honey_outputs = {
+            dinoml_outputs = {
                 k: torch.empty_like(v)
                 for k, v in pt_tensors.items()
                 if k.startswith("output")
             }
-            honey_module.run_with_tensors(honey_inputs, honey_outputs)
+            dinoml_module.run_with_tensors(dinoml_inputs, dinoml_outputs)
 
-            for k, v in honey_outputs.items():
+            for k, v in dinoml_outputs.items():
                 self.assertTrue(
                     torch.allclose(v, pt_tensors[k], atol=1e-2, rtol=1e-3),
                     f"max diff: {torch.max(v - pt_tensors[k]) if v.numel() > 0 else 0}, "

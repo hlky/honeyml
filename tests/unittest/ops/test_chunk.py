@@ -18,11 +18,11 @@ from typing import List
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm
-from honey.frontend import IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
 
 class ChunkTestCase(unittest.TestCase):

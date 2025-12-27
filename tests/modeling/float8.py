@@ -3,12 +3,12 @@ import unittest
 from typing import cast, List, Optional, Tuple
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.frontend import nn, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor, string_to_torch_dtype
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import nn, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor, string_to_torch_dtype
 
-from honey.builder.config import mark_output
+from dinoml.builder.config import mark_output
 
 
 class Float8TestModel(nn.Module):
@@ -66,7 +66,7 @@ class Float8TestCase(unittest.TestCase):
             y,
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def test_float8(self):

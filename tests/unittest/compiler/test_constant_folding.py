@@ -16,15 +16,15 @@ import itertools
 import unittest
 
 import torch
-from honey.compiler import compile_model, Model, ops
+from dinoml.compiler import compile_model, Model, ops
 
-from honey.compiler.base import _create_host_zero_tensor, Tensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.compiler.public import IntImm
-from honey.compiler.transform.transform_utils import check_graph_validity
+from dinoml.compiler.base import _create_host_zero_tensor, Tensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.compiler.public import IntImm
+from dinoml.compiler.transform.transform_utils import check_graph_validity
 
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     get_torch_empty_tensor,
@@ -54,21 +54,21 @@ class ConstantFoldingTestCase(unittest.TestCase):
         x_pt = inp0_pt * inp1_pt
         y_pt = (inp2_pt + x_pt).flatten()
 
-        inp0_honey = Tensor(shape=(3, 3), dtype=dtype, name="inp0")
-        inp1_honey = Tensor(shape=(3, 3), dtype=dtype, name="inp1")
-        inp2_honey = Tensor(shape=[3, 3], dtype=dtype, name="inp2", is_input=True)
+        inp0_dinoml = Tensor(shape=(3, 3), dtype=dtype, name="inp0")
+        inp1_dinoml = Tensor(shape=(3, 3), dtype=dtype, name="inp1")
+        inp2_dinoml = Tensor(shape=[3, 3], dtype=dtype, name="inp2", is_input=True)
 
-        x_honey = ops.elementwise(FuncEnum.MUL)(inp0_honey, inp1_honey)
-        # prevent mul/add fusion. If the ops get fused, then inp2_honey will be
+        x_dinoml = ops.elementwise(FuncEnum.MUL)(inp0_dinoml, inp1_dinoml)
+        # prevent mul/add fusion. If the ops get fused, then inp2_dinoml will be
         # an input to the fused op, which will prevent constant folding.
-        x_view = ops.flatten()(x_honey)
-        inp2_view = ops.flatten()(inp2_honey)
-        y_honey = ops.elementwise(FuncEnum.ADD)(inp2_view, x_view)
-        y_honey._attrs["name"] = "y"
-        y_honey._attrs["is_output"] = True
+        x_view = ops.flatten()(x_dinoml)
+        inp2_view = ops.flatten()(inp2_dinoml)
+        y_dinoml = ops.elementwise(FuncEnum.ADD)(inp2_view, x_view)
+        y_dinoml._attrs["name"] = "y"
+        y_dinoml._attrs["is_output"] = True
 
         mod = compile_model(
-            y_honey, target, "./tmp", f"test_constant_folding_simple_{dtype}"
+            y_dinoml, target, "./tmp", f"test_constant_folding_simple_{dtype}"
         )
         mod.set_constant_with_tensor("inp0", inp0_pt)
         mod.set_constant_with_tensor("inp1", inp1_pt)
@@ -161,18 +161,18 @@ class ConstantFoldingTestCase(unittest.TestCase):
         w4_pt = get_random_torch_tensor((M, N), dtype)
         z_pt = y_pt * w4_pt
 
-        w1_honey = Tensor(shape=[K, N], dtype=dtype, name="w1")
-        w2_honey = Tensor(shape=[K, N], dtype=dtype, name="w2")
-        w3_honey = ops.elementwise(FuncEnum.MUL)(w1_honey, w2_honey)
-        x_honey = Tensor(shape=[M, K], dtype=dtype, name="x")
-        y_honey = ops.gemm_rrr()(x_honey, w3_honey)
-        w4_honey = Tensor(shape=[M, N], dtype=dtype, name="w4")
-        z_honey = ops.elementwise(FuncEnum.MUL)(y_honey, w4_honey)
-        z_honey._attrs["name"] = "z"
-        z_honey._attrs["is_output"] = True
+        w1_dinoml = Tensor(shape=[K, N], dtype=dtype, name="w1")
+        w2_dinoml = Tensor(shape=[K, N], dtype=dtype, name="w2")
+        w3_dinoml = ops.elementwise(FuncEnum.MUL)(w1_dinoml, w2_dinoml)
+        x_dinoml = Tensor(shape=[M, K], dtype=dtype, name="x")
+        y_dinoml = ops.gemm_rrr()(x_dinoml, w3_dinoml)
+        w4_dinoml = Tensor(shape=[M, N], dtype=dtype, name="w4")
+        z_dinoml = ops.elementwise(FuncEnum.MUL)(y_dinoml, w4_dinoml)
+        z_dinoml._attrs["name"] = "z"
+        z_dinoml._attrs["is_output"] = True
 
         target = detect_target()
-        mod = compile_model(z_honey, target, "./tmp", f"test_fold_long_chain_{dtype}")
+        mod = compile_model(z_dinoml, target, "./tmp", f"test_fold_long_chain_{dtype}")
         mod.set_constant_with_tensor("w1", w1_pt)
         mod.set_constant_with_tensor("w2", w2_pt)
         mod.set_constant_with_tensor("x", x_pt)
@@ -204,16 +204,16 @@ class ConstantFoldingTestCase(unittest.TestCase):
         inp1_pt = get_random_torch_tensor((3, 3), dtype)
         y_pt = (inp0_pt * inp1_pt).flatten()
 
-        inp0_honey = Tensor(shape=(3, 3), dtype=dtype, name="inp0")
-        inp1_honey = Tensor(shape=(3, 3), dtype=dtype, name="inp1")
-        inp0_view = ops.flatten()(inp0_honey)
-        inp1_view = ops.flatten()(inp1_honey)
-        y_honey = ops.elementwise(FuncEnum.MUL)(inp0_view, inp1_view)
-        y_honey._attrs["name"] = "y"
-        y_honey._attrs["is_output"] = True
+        inp0_dinoml = Tensor(shape=(3, 3), dtype=dtype, name="inp0")
+        inp1_dinoml = Tensor(shape=(3, 3), dtype=dtype, name="inp1")
+        inp0_view = ops.flatten()(inp0_dinoml)
+        inp1_view = ops.flatten()(inp1_dinoml)
+        y_dinoml = ops.elementwise(FuncEnum.MUL)(inp0_view, inp1_view)
+        y_dinoml._attrs["name"] = "y"
+        y_dinoml._attrs["is_output"] = True
 
         mod = compile_model(
-            y_honey, target, "./tmp", f"test_constant_folding_through_views_{dtype}"
+            y_dinoml, target, "./tmp", f"test_constant_folding_through_views_{dtype}"
         )
         mod.set_constant_with_tensor("inp0", inp0_pt)
         mod.set_constant_with_tensor("inp1", inp1_pt)
@@ -252,18 +252,18 @@ class ConstantFoldingTestCase(unittest.TestCase):
         w4_pt = get_random_torch_tensor((M, N), dtype)
         z_pt = y_pt * w4_pt
 
-        w1_honey = Tensor(shape=[K, N], dtype=dtype, name="w1")
-        w2_honey = Tensor(shape=[K, N], dtype=dtype, name="w2")
-        w3_honey = ops.elementwise(FuncEnum.MUL)(w1_honey, w2_honey)
-        x_honey = Tensor(shape=[M, K], dtype=dtype, name="x")
-        y_honey = ops.gemm_rrr()(x_honey, w3_honey)
-        w4_honey = Tensor(shape=[M, N], dtype=dtype, name="w4")
-        z_honey = ops.elementwise(FuncEnum.MUL)(y_honey, w4_honey)
-        z_honey._attrs["name"] = "z"
-        z_honey._attrs["is_output"] = True
+        w1_dinoml = Tensor(shape=[K, N], dtype=dtype, name="w1")
+        w2_dinoml = Tensor(shape=[K, N], dtype=dtype, name="w2")
+        w3_dinoml = ops.elementwise(FuncEnum.MUL)(w1_dinoml, w2_dinoml)
+        x_dinoml = Tensor(shape=[M, K], dtype=dtype, name="x")
+        y_dinoml = ops.gemm_rrr()(x_dinoml, w3_dinoml)
+        w4_dinoml = Tensor(shape=[M, N], dtype=dtype, name="w4")
+        z_dinoml = ops.elementwise(FuncEnum.MUL)(y_dinoml, w4_dinoml)
+        z_dinoml._attrs["name"] = "z"
+        z_dinoml._attrs["is_output"] = True
 
         mod = compile_model(
-            z_honey,
+            z_dinoml,
             target,
             "./tmp",
             f"test_late_binding_{dtype}",
@@ -286,17 +286,17 @@ class ConstantFoldingTestCase(unittest.TestCase):
         dtype = "float16"
 
         N, K = IntImm(16), IntImm(32)
-        w1_honey = _create_host_zero_tensor(shape=[K, N], name="w1", dtype=dtype)
-        w2_honey = Tensor(shape=[K, N], dtype=dtype, name="w2")
-        y_honey = ops.elementwise(FuncEnum.MUL)(w1_honey, w2_honey)
-        y_honey._attrs["name"] = "y"
-        y_honey._attrs["is_output"] = True
+        w1_dinoml = _create_host_zero_tensor(shape=[K, N], name="w1", dtype=dtype)
+        w2_dinoml = Tensor(shape=[K, N], dtype=dtype, name="w2")
+        y_dinoml = ops.elementwise(FuncEnum.MUL)(w1_dinoml, w2_dinoml)
+        y_dinoml._attrs["name"] = "y"
+        y_dinoml._attrs["is_output"] = True
 
         torch_shape = (K.value(), N.value())
         target = detect_target()
         with self.assertRaisesRegex(ValueError, "Tensor w1 is already bound!"):
             compile_model(
-                y_honey,
+                y_dinoml,
                 target,
                 "./tmp",
                 "test_late_binding",
@@ -310,17 +310,17 @@ class ConstantFoldingTestCase(unittest.TestCase):
         dtype = "float16"
 
         N, K = IntImm(16), IntImm(32)
-        w1_honey = Tensor(shape=[K, N], dtype=dtype, name="w1", is_input=True)
-        w2_honey = Tensor(shape=[K, N], dtype=dtype, name="w2")
-        y_honey = ops.elementwise(FuncEnum.MUL)(w1_honey, w2_honey)
-        y_honey._attrs["name"] = "y"
-        y_honey._attrs["is_output"] = True
+        w1_dinoml = Tensor(shape=[K, N], dtype=dtype, name="w1", is_input=True)
+        w2_dinoml = Tensor(shape=[K, N], dtype=dtype, name="w2")
+        y_dinoml = ops.elementwise(FuncEnum.MUL)(w1_dinoml, w2_dinoml)
+        y_dinoml._attrs["name"] = "y"
+        y_dinoml._attrs["is_output"] = True
 
         torch_shape = (K.value(), N.value())
         target = detect_target()
         with self.assertRaisesRegex(ValueError, "Cannot bind input tensor w1"):
             compile_model(
-                y_honey,
+                y_dinoml,
                 target,
                 "./tmp",
                 "test_late_binding",
@@ -334,17 +334,17 @@ class ConstantFoldingTestCase(unittest.TestCase):
         dtype = "float16"
 
         N, K = IntImm(16), IntImm(32)
-        w1_honey = Tensor(shape=[K, N], dtype=dtype, name="w1")
-        w2_honey = Tensor(shape=[K, N], dtype=dtype, name="w2")
-        y_honey = ops.elementwise(FuncEnum.MUL)(w1_honey, w2_honey)
-        y_honey._attrs["name"] = "y"
-        y_honey._attrs["is_output"] = True
+        w1_dinoml = Tensor(shape=[K, N], dtype=dtype, name="w1")
+        w2_dinoml = Tensor(shape=[K, N], dtype=dtype, name="w2")
+        y_dinoml = ops.elementwise(FuncEnum.MUL)(w1_dinoml, w2_dinoml)
+        y_dinoml._attrs["name"] = "y"
+        y_dinoml._attrs["is_output"] = True
 
         torch_shape = (K.value(), N.value())
         target = detect_target()
         with self.assertRaisesRegex(ValueError, "Cannot bind non-constant tensor y"):
             compile_model(
-                y_honey,
+                y_dinoml,
                 target,
                 "./tmp",
                 "test_late_binding",
@@ -358,8 +358,8 @@ class ConstantFoldingTestCase(unittest.TestCase):
     def test_late_binding_fails_wrong_dtype(self):
         dtype = "float16"
 
-        w1_honey = Tensor(shape=[1], name="w1", dtype=dtype)
-        y = ops.elementwise(FuncEnum.MUL)(w1_honey, w1_honey)
+        w1_dinoml = Tensor(shape=[1], name="w1", dtype=dtype)
+        y = ops.elementwise(FuncEnum.MUL)(w1_dinoml, w1_dinoml)
         y._attrs["name"] = "y"
         y._attrs["is_output"] = True
 
@@ -387,11 +387,11 @@ class ConstantFoldingTestCase(unittest.TestCase):
         dtype = "float16"
 
         N, K = IntImm(16), IntImm(32)
-        w1_honey = Tensor(shape=[K, N], dtype=dtype, name="w1")
-        w2_honey = Tensor(shape=[K, N], dtype=dtype, name="w2")
-        y_honey = ops.elementwise(FuncEnum.MUL)(w1_honey, w2_honey)
-        y_honey._attrs["name"] = "y"
-        y_honey._attrs["is_output"] = True
+        w1_dinoml = Tensor(shape=[K, N], dtype=dtype, name="w1")
+        w2_dinoml = Tensor(shape=[K, N], dtype=dtype, name="w2")
+        y_dinoml = ops.elementwise(FuncEnum.MUL)(w1_dinoml, w2_dinoml)
+        y_dinoml._attrs["name"] = "y"
+        y_dinoml._attrs["is_output"] = True
 
         shape = (K.value(), N.value())
         w1_pt = get_random_torch_tensor(shape, dtype)
@@ -400,7 +400,7 @@ class ConstantFoldingTestCase(unittest.TestCase):
         y = torch.empty_like(y_pt)
 
         with compile_model(
-            y_honey, detect_target(), "./tmp", "test_constant_folding_manual_call"
+            y_dinoml, detect_target(), "./tmp", "test_constant_folding_manual_call"
         ) as mod:
             # Unset constants
             self.assertRaises(RuntimeError, mod.run_with_tensors, {}, [y])
@@ -425,25 +425,25 @@ class ConstantFoldingTestCase(unittest.TestCase):
         input_0 = Tensor(shape=[N, N], dtype=dtype, name="input_0", is_input=True)
 
         # Unbound, unfolded constant
-        w1_honey = Tensor(shape=[N, N], dtype=dtype, name="w1")
+        w1_dinoml = Tensor(shape=[N, N], dtype=dtype, name="w1")
 
-        x1_honey = ops.elementwise(FuncEnum.MUL)(w1_honey, input_0)
+        x1_dinoml = ops.elementwise(FuncEnum.MUL)(w1_dinoml, input_0)
 
         # Unbound folded constant
-        w2_honey = Tensor(shape=[N, K], dtype=dtype, name="w2")
+        w2_dinoml = Tensor(shape=[N, K], dtype=dtype, name="w2")
 
         # Bound folded constants
-        w3_honey = Tensor(shape=[N, K], dtype=dtype, name="w3")
-        w4_honey = Tensor(shape=[N, K], dtype=dtype, name="w4")
+        w3_dinoml = Tensor(shape=[N, K], dtype=dtype, name="w3")
+        w4_dinoml = Tensor(shape=[N, K], dtype=dtype, name="w4")
 
-        x2_honey = ops.elementwise(FuncEnum.MUL)(w2_honey, w3_honey)
-        x3_honey = ops.gemm_rcr()(x2_honey, w4_honey)
+        x2_dinoml = ops.elementwise(FuncEnum.MUL)(w2_dinoml, w3_dinoml)
+        x3_dinoml = ops.gemm_rcr()(x2_dinoml, w4_dinoml)
 
-        x4_honey = ops.elementwise(FuncEnum.MUL)(x3_honey, x1_honey)
+        x4_dinoml = ops.elementwise(FuncEnum.MUL)(x3_dinoml, x1_dinoml)
 
         # Bound unfolded constant
-        w5_honey = Tensor(shape=[N, N], dtype=dtype, name="w5")
-        output = ops.elementwise(FuncEnum.MUL)(w5_honey, x4_honey)
+        w5_dinoml = Tensor(shape=[N, N], dtype=dtype, name="w5")
+        output = ops.elementwise(FuncEnum.MUL)(w5_dinoml, x4_dinoml)
         output._attrs["is_output"] = True
         output._attrs["name"] = "output"
 
@@ -520,14 +520,14 @@ class ConstantFoldingTestCase(unittest.TestCase):
         x3_pt = x2_pt * y_pt
         x4_pt = x3_pt + x3_pt
 
-        x2_honey, x3_honey, x4_honey = (
+        x2_dinoml, x3_dinoml, x4_dinoml = (
             torch.empty_like(x2_pt),
             torch.empty_like(x3_pt),
             torch.empty_like(x4_pt),
         )
 
         mod.set_many_constants_with_tensors({"x": x_pt, "y": y_pt})
-        mod.run_with_tensors([], {"x2": x2_honey, "x3": x3_honey, "x4": x4_honey})
+        mod.run_with_tensors([], {"x2": x2_dinoml, "x3": x3_dinoml, "x4": x4_dinoml})
 
     @parameterized.expand(
         list(
@@ -630,10 +630,10 @@ class ConstantFoldingTestCase(unittest.TestCase):
             return output_pt
 
         output_pt = _get_output(bound_constants, unbound_constants)
-        output_honey = torch.empty_like(output_pt)
+        output_dinoml = torch.empty_like(output_pt)
         mod.set_many_constants_with_tensors(unbound_constants)
-        mod.run_with_tensors({"input_0": inp0_pt}, {"output": output_honey})
-        self.assertTrue(torch.equal(output_pt, output_honey))
+        mod.run_with_tensors({"input_0": inp0_pt}, {"output": output_dinoml})
+        self.assertTrue(torch.equal(output_pt, output_dinoml))
 
         new_bound_constants = bound_constants
         new_unbound_constants = unbound_constants
@@ -660,9 +660,9 @@ class ConstantFoldingTestCase(unittest.TestCase):
         mod.fold_constants(double_buffer=double_buffer)
         if double_buffer:
             mod.swap_constants()
-        mod.run_with_tensors({"input_0": inp0_pt}, {"output": output_honey})
+        mod.run_with_tensors({"input_0": inp0_pt}, {"output": output_dinoml})
         output_pt = _get_output(new_bound_constants, new_unbound_constants)
-        self.assertTrue(torch.equal(output_pt, output_honey))
+        self.assertTrue(torch.equal(output_pt, output_dinoml))
 
 
 if __name__ == "__main__":

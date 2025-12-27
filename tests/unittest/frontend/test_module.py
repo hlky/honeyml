@@ -17,20 +17,20 @@ from collections import OrderedDict
 
 import torch
 import torch as pt
-from honey import frontend as honey
+from dinoml import frontend as dinoml
 
-from honey.compiler import ops
+from dinoml.compiler import ops
 
 
 class NNModule(unittest.TestCase):
     def test_module(self):
-        class HoneyModule(honey.nn.Module):
+        class DinoMLModule(dinoml.nn.Module):
             def __init__(self):
                 super().__init__()
                 self.w = None
                 self.b = None
-                self.w = honey.Parameter(shape=[32, 32], dtype="float16")
-                self.b = honey.Parameter(
+                self.w = dinoml.Parameter(shape=[32, 32], dtype="float16")
+                self.b = dinoml.Parameter(
                     shape=[
                         32,
                     ],
@@ -53,21 +53,21 @@ class NNModule(unittest.TestCase):
             def forward(self, x):
                 return pt.mm(x, self.w) + self.b
 
-        a = HoneyModule()
-        honey_param_names = [x[0] for x in a.named_parameters()]
+        a = DinoMLModule()
+        dinoml_param_names = [x[0] for x in a.named_parameters()]
 
         b = PTModule()
         pt_param_names = [x[0] for x in b.named_parameters()]
 
-        for x, y in zip(honey_param_names, pt_param_names):
+        for x, y in zip(dinoml_param_names, pt_param_names):
             assert x == y
 
     def test_sequential_1(self):
-        class HoneyModule(honey.nn.Module):
+        class DinoMLModule(dinoml.nn.Module):
             def __init__(self):
                 super().__init__()
-                self.w = honey.Parameter(shape=[32, 32], dtype="float16")
-                self.b = honey.Parameter(
+                self.w = dinoml.Parameter(shape=[32, 32], dtype="float16")
+                self.b = dinoml.Parameter(
                     shape=[
                         32,
                     ],
@@ -90,25 +90,25 @@ class NNModule(unittest.TestCase):
             def forward(self, x):
                 return pt.mm(x, self.w) + self.b
 
-        a = honey.nn.Sequential(HoneyModule(), HoneyModule(), HoneyModule())
+        a = dinoml.nn.Sequential(DinoMLModule(), DinoMLModule(), DinoMLModule())
         b = pt.nn.Sequential(
             PTModule(),
             PTModule(),
             PTModule(),
         )
 
-        honey_param_names = [x[0] for x in a.named_parameters()]
+        dinoml_param_names = [x[0] for x in a.named_parameters()]
         pt_param_names = [x[0] for x in b.named_parameters()]
 
-        for x, y in zip(honey_param_names, pt_param_names):
+        for x, y in zip(dinoml_param_names, pt_param_names):
             assert x == y
 
     def test_sequential_2(self):
-        class HoneyModule(honey.nn.Module):
+        class DinoMLModule(dinoml.nn.Module):
             def __init__(self):
                 super().__init__()
-                self.w = honey.Parameter(shape=[32, 32], dtype="float16")
-                self.b = honey.Parameter(
+                self.w = dinoml.Parameter(shape=[32, 32], dtype="float16")
+                self.b = dinoml.Parameter(
                     shape=[
                         32,
                     ],
@@ -131,12 +131,12 @@ class NNModule(unittest.TestCase):
             def forward(self, x):
                 return pt.mm(x, self.w) + self.b
 
-        a = honey.nn.Sequential(
+        a = dinoml.nn.Sequential(
             OrderedDict(
                 [
-                    ("block1", HoneyModule()),
-                    ("block2", HoneyModule()),
-                    ("block3", HoneyModule()),
+                    ("block1", DinoMLModule()),
+                    ("block2", DinoMLModule()),
+                    ("block3", DinoMLModule()),
                 ]
             )
         )
@@ -150,18 +150,18 @@ class NNModule(unittest.TestCase):
             )
         )
 
-        honey_param_names = [x[0] for x in a.named_parameters()]
+        dinoml_param_names = [x[0] for x in a.named_parameters()]
         pt_param_names = [x[0] for x in b.named_parameters()]
 
-        for x, y in zip(honey_param_names, pt_param_names):
+        for x, y in zip(dinoml_param_names, pt_param_names):
             assert x == y
 
     def test_module_dict(self):
-        class HoneyModule(honey.nn.Module):
+        class DinoMLModule(dinoml.nn.Module):
             def __init__(self):
                 super().__init__()
-                self.w = honey.Parameter(shape=[32, 32], dtype="float16")
-                self.b = honey.Parameter(
+                self.w = dinoml.Parameter(shape=[32, 32], dtype="float16")
+                self.b = dinoml.Parameter(
                     shape=[
                         32,
                     ],
@@ -184,19 +184,19 @@ class NNModule(unittest.TestCase):
             def forward(self, x):
                 return pt.mm(x, self.w) + self.b
 
-        class HoneyDict(honey.nn.Module):
+        class DinoMLDict(dinoml.nn.Module):
             def __init__(self):
                 super().__init__()
-                self.dict_a = honey.nn.ModuleDict(
+                self.dict_a = dinoml.nn.ModuleDict(
                     {
-                        "block1": HoneyModule(),
-                        "block2": HoneyModule(),
+                        "block1": DinoMLModule(),
+                        "block2": DinoMLModule(),
                     }
                 )
-                self.dict_b = honey.nn.ModuleDict(
+                self.dict_b = dinoml.nn.ModuleDict(
                     {
-                        "block_a": HoneyModule(),
-                        "block_b": HoneyModule(),
+                        "block_a": DinoMLModule(),
+                        "block_b": DinoMLModule(),
                     }
                 )
 
@@ -232,13 +232,13 @@ class NNModule(unittest.TestCase):
                     + self.dict_b["block_b"](x)
                 )
 
-        a = HoneyDict()
+        a = DinoMLDict()
         b = PTDict()
 
-        honey_param_names = [x[0] for x in a.named_parameters()]
+        dinoml_param_names = [x[0] for x in a.named_parameters()]
         pt_param_names = [x[0] for x in b.named_parameters()]
 
-        for x, y in zip(honey_param_names, pt_param_names):
+        for x, y in zip(dinoml_param_names, pt_param_names):
             assert x == y
 
 

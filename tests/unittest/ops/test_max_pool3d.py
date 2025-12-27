@@ -15,12 +15,12 @@
 import unittest
 
 import torch
-from honey.compiler import compile_model
+from dinoml.compiler import compile_model
 
-from honey.frontend import Tensor
-from honey.frontend.nn.pool3d import MaxPool3d
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.frontend import Tensor
+from dinoml.frontend.nn.pool3d import MaxPool3d
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
 
 class MaxPool3dTestCase(unittest.TestCase):
@@ -30,7 +30,7 @@ class MaxPool3dTestCase(unittest.TestCase):
         stride,
         padding,
         pt_input_shape,
-        honey_input_shape,
+        dinoml_input_shape,
         dtype="float16",
     ):
         X_pt = get_random_torch_tensor(pt_input_shape, dtype=dtype)
@@ -40,20 +40,20 @@ class MaxPool3dTestCase(unittest.TestCase):
             .half()
         )
         Y_pt = OP_pt(X_pt)
-        X_honey = Tensor(
-            shape=honey_input_shape,
+        X_dinoml = Tensor(
+            shape=dinoml_input_shape,
             dtype=dtype,
             name="input0",
             is_input=True,
         )
-        OP_honey = MaxPool3d(kernel_size=kernel_size, stride=stride, padding=padding)
-        Y_honey = OP_honey(X_honey)
+        OP_dinoml = MaxPool3d(kernel_size=kernel_size, stride=stride, padding=padding)
+        Y_dinoml = OP_dinoml(X_dinoml)
 
-        Y_honey._attrs["name"] = "output_0"
-        Y_honey._attrs["is_output"] = True
+        Y_dinoml._attrs["name"] = "output_0"
+        Y_dinoml._attrs["is_output"] = True
 
         target = detect_target()
-        module = compile_model(Y_honey, target, "./tmp", "max_pool3d")
+        module = compile_model(Y_dinoml, target, "./tmp", "max_pool3d")
 
         x = X_pt.permute((0, 2, 3, 4, 1)).contiguous()
         y = torch.empty_like(Y_pt).permute(0, 2, 3, 4, 1).contiguous()
@@ -69,7 +69,7 @@ class MaxPool3dTestCase(unittest.TestCase):
                 stride=(1, 2, 2),
                 padding=(0, 1, 1),
                 pt_input_shape=[batch, 4, 8, 256, 256],
-                honey_input_shape=[batch, 8, 256, 256, 4],
+                dinoml_input_shape=[batch, 8, 256, 256, 4],
                 dtype="float16",
             )
             self._test_max_pool_3d(
@@ -77,7 +77,7 @@ class MaxPool3dTestCase(unittest.TestCase):
                 stride=(1, 2, 2),
                 padding=(0, 1, 1),
                 pt_input_shape=[batch, 4, 8, 256, 256],
-                honey_input_shape=[batch, 8, 256, 256, 4],
+                dinoml_input_shape=[batch, 8, 256, 256, 4],
                 dtype="float16",
             )
 
@@ -89,7 +89,7 @@ class MaxPool3dTestCase(unittest.TestCase):
                 stride=(1, 2, 2),
                 padding=(0, 1, 1),
                 pt_input_shape=[batch, 4, 8, 256, 256],
-                honey_input_shape=[batch, 8, 256, 256, 4],
+                dinoml_input_shape=[batch, 8, 256, 256, 4],
                 dtype="float32",
             )
             self._test_max_pool_3d(
@@ -97,7 +97,7 @@ class MaxPool3dTestCase(unittest.TestCase):
                 stride=(1, 2, 2),
                 padding=(0, 1, 1),
                 pt_input_shape=[batch, 4, 8, 256, 256],
-                honey_input_shape=[batch, 8, 256, 256, 4],
+                dinoml_input_shape=[batch, 8, 256, 256, 4],
                 dtype="float32",
             )
 

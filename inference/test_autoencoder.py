@@ -4,7 +4,7 @@ Verifies module works at every possible resolution combination.
 
 import torch
 import json
-from honey.compiler import Model
+from dinoml.compiler import Model
 
 device = "cuda"
 dtype = torch.float16

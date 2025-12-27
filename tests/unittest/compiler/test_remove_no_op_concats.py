@@ -17,10 +17,10 @@ from typing import Sequence
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor, graph_has_op
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor, graph_has_op
 
 
 class TestRemoveNoOpConcats(unittest.TestCase):
@@ -28,7 +28,7 @@ class TestRemoveNoOpConcats(unittest.TestCase):
     Tests the compiler's behavior of removing no-op concats.
 
     NOTE: Whenever we include an empty input tensor, the non-empty input tensor
-    must be rank 1. That's because Honey's concat expects all its inputs to have
+    must be rank 1. That's because DinoML's concat expects all its inputs to have
     the same rank and have matching dimension sizes except along the
     concatenating dimension.
 
@@ -63,8 +63,8 @@ class TestRemoveNoOpConcats(unittest.TestCase):
         )
 
     def test_remove_no_op_concats_no_ops_all_empty(self):
-        """Below we test when all the input tensors are empty. fx2honey will fail
-        in these cases. However, it's possible to create it directly in Honey.
+        """Below we test when all the input tensors are empty. fx2dinoml will fail
+        in these cases. However, it's possible to create it directly in DinoML.
         Therefore, we test this case and treat it as a no-op.
         """
         self._test_remove_no_op_concats_impl(
@@ -103,7 +103,7 @@ class TestRemoveNoOpConcats(unittest.TestCase):
     def test_remove_no_op_concats_exceptions(self):
         """We expect this to raise an exception in these test cases."""
 
-        # Honey expects all concat inputs to have the same rank.
+        # DinoML expects all concat inputs to have the same rank.
         with self.assertRaises(RuntimeError):
             self._test_remove_no_op_concats_impl(
                 input_shapes=[[2, 4], [1]],
@@ -111,7 +111,7 @@ class TestRemoveNoOpConcats(unittest.TestCase):
                 test_name="test_remove_no_op_concats_same_rank",
             )
 
-        # Honey expects all concat inputs to have the same dimension sizes except for the concat_dim.
+        # DinoML expects all concat inputs to have the same dimension sizes except for the concat_dim.
         with self.assertRaises(RuntimeError):
             self._test_remove_no_op_concats_impl(
                 input_shapes=[[2, 4], [0, 0]],
@@ -148,15 +148,15 @@ class TestRemoveNoOpConcats(unittest.TestCase):
         concatenated_pt = torch.concat(list(inputs_pt.values()), dim=concat_dim)
         c_pt = get_random_torch_tensor(shape=[1])
         Y_pt = (concatenated_pt * c_pt) + (concatenated_pt / c_pt)
-        Y_honey = torch.empty_like(Y_pt)
+        Y_dinoml = torch.empty_like(Y_pt)
 
         with compile_model(model_output, detect_target(), "./tmp", test_name) as module:
             module.run_with_tensors(
-                {**inputs_pt, "input_const": c_pt}, {"output_0": Y_honey}
+                {**inputs_pt, "input_const": c_pt}, {"output_0": Y_dinoml}
             )
 
             self.assertEqual(
                 graph_has_op(module.debug_sorted_graph, "concatenate"),
                 should_keep_concat,
             )
-            self.assertTrue(torch.allclose(Y_pt, Y_honey, atol=1e-2, rtol=1e-2))
+            self.assertTrue(torch.allclose(Y_pt, Y_dinoml, atol=1e-2, rtol=1e-2))

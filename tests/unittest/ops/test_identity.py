@@ -16,11 +16,11 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.public import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.public import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 from parameterized import param, parameterized
 
 

@@ -14,7 +14,7 @@
 //
 #pragma once
 
-namespace honey {
+namespace dinoml {
 
 // This structure is used to pack the offset metadata related to a
 // jagged Tensor's first dimension: JaggedIntVar. The offsets are not
@@ -33,4 +33,4 @@ struct JaggedOffsets {
   const OFFSET_TYPE* data[NUM_OFFSET_ARRAYS]{nullptr};
 };
 
-} // namespace honey
+} // namespace dinoml

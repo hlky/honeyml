@@ -16,11 +16,11 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops, transform
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.compiler.stable_set import StableSet
-from honey.frontend import Tensor
-from honey.testing import detect_target
+from dinoml.compiler import compile_model, ops, transform
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.compiler.stable_set import StableSet
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
 
 
 class TransformUtilsCheckValidityTestCase(unittest.TestCase):

@@ -20,10 +20,10 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import IntVar, Tensor
-from honey.testing import detect_target
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.utils.torch_utils import string_to_torch_dtype
 from parameterized import param, parameterized
 
 

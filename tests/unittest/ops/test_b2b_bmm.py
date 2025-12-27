@@ -23,17 +23,17 @@ from typing import List, Tuple
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm
-from honey.compiler.ops.b2b_bmm.b2b_bmm_base import CausalType
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm
+from dinoml.compiler.ops.b2b_bmm.b2b_bmm_base import CausalType
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     epilogue_math_name_to_torch_fn,
     get_attn_mask_per_causal_type,
 )
-from honey.utils import shape_utils
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.utils import shape_utils
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ class ClassicB2bBmmTestCase(unittest.TestCase):
         rtol=1e-2,
         use_fp16_acc=True,
     ):
-        # Initialize Honey classic_b2b_bmm operator.
+        # Initialize DinoML classic_b2b_bmm operator.
         if isinstance(batch_sizes, int):
             batch_sizes = [batch_sizes]
         alpha0 = 1.0 / (k0**0.5)
@@ -134,7 +134,7 @@ class ClassicB2bBmmTestCase(unittest.TestCase):
             output = attn @ v_pt
             y_pt = output.detach()
 
-            # Run Honey.
+            # Run DinoML.
             inputs = {"q": q_pt, "k": k_pt, "v": v_pt, "bias": bias_pt}
             y = torch.empty(
                 [batch_size, m, n1],
@@ -259,7 +259,7 @@ class ClassicMultiheadB2bBmmTestCase(unittest.TestCase):
         bias_broadcast=(False, False, False, False),
         use_fp16_acc=True,
     ):
-        # Initialize Honey classic_b2b_bmm operator.
+        # Initialize DinoML classic_b2b_bmm operator.
         assert len(bias_broadcast) == 4
         assert bias_broadcast[3] is False, (
             "Classic b2b bmm cannot broadcast bias on last dimension."
@@ -349,7 +349,7 @@ class ClassicMultiheadB2bBmmTestCase(unittest.TestCase):
             )  # permute back to original dim order
             y_pt = output.detach()
 
-            # Run Honey.
+            # Run DinoML.
             inputs = {"q": q_pt, "k": k_pt, "v": v_pt, "bias": bias_pt}
             y = torch.empty(
                 [batch_size, m, num_heads, n1],
@@ -517,7 +517,7 @@ class FMHAStyleB2bBmmTestCase(unittest.TestCase):
         rtol=1e-2,
         use_fp16_acc=True,
     ):
-        # Initialize Honey fmha_style_b2b_bmm operator.
+        # Initialize DinoML fmha_style_b2b_bmm operator.
         if isinstance(batch_sizes, int):
             batch_sizes = [batch_sizes]
         if isinstance(seq_lens, int):
@@ -622,7 +622,7 @@ class FMHAStyleB2bBmmTestCase(unittest.TestCase):
             output = (attn @ v_pt.transpose(1, 2)).transpose(1, 2)
             y_pt = output.detach()
 
-            # Run Honey.
+            # Run DinoML.
             inputs = {
                 "q": q_pt,
                 "k": k_pt,

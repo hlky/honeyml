@@ -18,11 +18,11 @@ import unittest
 import numpy as np
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm, IntVar
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm, IntVar
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
 
 
 _LOGGER = logging.getLogger(__name__)

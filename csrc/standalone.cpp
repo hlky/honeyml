@@ -42,7 +42,7 @@
 #include "model_interface.h"
 #include "raii_wrapper.h"
 
-using namespace honey;
+using namespace dinoml;
 
 template <typename T>
 static void make_random_integer_values(
@@ -96,16 +96,16 @@ static void make_random_bfloat16_values(
 }
 
 static GPUPtr make_random_data(
-    HoneyAllocator& allocator,
+    DinoMLAllocator& allocator,
     std::mt19937& rnd_generator,
-    const HoneyParamShape& shape,
-    const HoneyDtype& dtype) {
+    const DinoMLParamShape& shape,
+    const DinoMLDtype& dtype) {
   size_t numel = shape.Numel();
-  size_t num_bytes = numel * HoneyDtypeSizeBytes(dtype);
+  size_t num_bytes = numel * DinoMLDtypeSizeBytes(dtype);
   void* h_data;
   DEVICE_CHECK(DeviceMallocHost(&h_data, num_bytes));
   switch (dtype) {
-    case HoneyDtype::kInt:
+    case DinoMLDtype::kInt:
       make_random_integer_values<int>(
           rnd_generator,
           static_cast<int*>(h_data),
@@ -113,7 +113,7 @@ static GPUPtr make_random_data(
           /*lb*/ -10,
           /*ub*/ 10);
       break;
-    case HoneyDtype::kLong:
+    case DinoMLDtype::kLong:
       make_random_integer_values<int64_t>(
           rnd_generator,
           static_cast<int64_t*>(h_data),
@@ -121,7 +121,7 @@ static GPUPtr make_random_data(
           /*lb*/ -10,
           /*ub*/ 10);
       break;
-    case HoneyDtype::kFloat:
+    case DinoMLDtype::kFloat:
       make_random_float_values(
           rnd_generator,
           static_cast<float*>(h_data),
@@ -129,7 +129,7 @@ static GPUPtr make_random_data(
           /*lb*/ 1.0,
           /*ub*/ 2.0);
       break;
-    case HoneyDtype::kBFloat16:
+    case DinoMLDtype::kBFloat16:
       make_random_bfloat16_values(
           rnd_generator,
           static_cast<bfloat16*>(h_data),
@@ -137,7 +137,7 @@ static GPUPtr make_random_data(
           /*lb*/ 1.0,
           /*ub*/ 2.0);
       break;
-    case HoneyDtype::kHalf:
+    case DinoMLDtype::kHalf:
       make_random_float16_values(
           rnd_generator,
           static_cast<half*>(h_data),
@@ -145,7 +145,7 @@ static GPUPtr make_random_data(
           /*lb*/ 1.0,
           /*ub*/ 2.0);
       break;
-    case HoneyDtype::kBool:
+    case DinoMLDtype::kBool:
       make_random_integer_values<bool>(
           rnd_generator, static_cast<bool*>(h_data), numel, /*lb*/ 0, /*ub*/ 1);
       break;
@@ -170,7 +170,7 @@ struct OutputData {
       std::unique_ptr<int64_t[]>& shape_ptr_in,
       int shape_size_in,
       int index_in,
-      HoneyDtype dtype_in,
+      DinoMLDtype dtype_in,
       const char* name_in)
       : data(std::move(data_in)),
         shape_ptr(std::move(shape_ptr_in)),
@@ -191,38 +191,38 @@ struct OutputData {
   std::unique_ptr<int64_t[]> shape_ptr;
   int shape_size;
   int index;
-  HoneyDtype dtype;
+  DinoMLDtype dtype;
   std::string name;
 };
 
-static HoneyError run(
-    HoneyModelHandle handle,
-    HoneyAllocator& allocator,
+static DinoMLError run(
+    DinoMLModelHandle handle,
+    DinoMLAllocator& allocator,
     std::vector<OutputData>& outputs) {
   size_t num_outputs = 0;
-  HoneyModelContainerGetNumOutputs(handle, &num_outputs);
+  DinoMLModelContainerGetNumOutputs(handle, &num_outputs);
 
   outputs.reserve(num_outputs);
-  std::vector<HoneyData> honey_outputs;
-  honey_outputs.reserve(num_outputs);
-  std::vector<int64_t*> honey_output_shapes_out;
-  honey_output_shapes_out.reserve(num_outputs);
+  std::vector<DinoMLData> dinoml_outputs;
+  dinoml_outputs.reserve(num_outputs);
+  std::vector<int64_t*> dinoml_output_shapes_out;
+  dinoml_output_shapes_out.reserve(num_outputs);
 
   for (unsigned i = 0; i < num_outputs; i++) {
     const char* name;
-    HoneyModelContainerGetOutputName(handle, i, &name);
-    HoneyParamShape shape;
-    HoneyModelContainerGetMaximumOutputShape(handle, i, &shape);
-    HoneyDtype dtype;
-    HoneyModelContainerGetOutputDtype(handle, i, &dtype);
+    DinoMLModelContainerGetOutputName(handle, i, &name);
+    DinoMLParamShape shape;
+    DinoMLModelContainerGetMaximumOutputShape(handle, i, &shape);
+    DinoMLDtype dtype;
+    DinoMLModelContainerGetOutputDtype(handle, i, &dtype);
 
     std::unique_ptr<int64_t[]> shape_ptr =
         std::make_unique<int64_t[]>(shape.size);
-    honey_output_shapes_out.push_back(shape_ptr.get());
-    size_t num_bytes = shape.Numel() * HoneyDtypeSizeBytes(dtype);
+    dinoml_output_shapes_out.push_back(shape_ptr.get());
+    size_t num_bytes = shape.Numel() * DinoMLDtypeSizeBytes(dtype);
     void* h_data;
     DEVICE_CHECK(DeviceMallocHost(&h_data, num_bytes));
-    honey_outputs.emplace_back(h_data, shape, dtype);
+    dinoml_outputs.emplace_back(h_data, shape, dtype);
     auto deleter = [](void* data) { FreeDeviceHostMemory(data); };
     OutputDataPtr h_output_ptr(h_data, deleter);
     outputs.emplace_back(
@@ -230,25 +230,25 @@ static HoneyError run(
   }
 
   size_t num_inputs = 0;
-  HoneyModelContainerGetNumInputs(handle, &num_inputs);
+  DinoMLModelContainerGetNumInputs(handle, &num_inputs);
   // Holding unique_ptr(s) that will be auto-released.
   std::vector<GPUPtr> input_ptrs;
   input_ptrs.reserve(num_inputs);
 
   std::map<std::string, unsigned> input_name_to_index;
-  std::vector<HoneyData> inputs(num_inputs);
+  std::vector<DinoMLData> inputs(num_inputs);
   std::mt19937 rnd_generator(1234);
   // set up the name-to-index map each input
   for (unsigned i = 0; i < num_inputs; i++) {
     const char* name;
-    HoneyModelContainerGetInputName(handle, i, &name);
+    DinoMLModelContainerGetInputName(handle, i, &name);
     input_name_to_index.insert({name, i});
     std::cout << "input: " << name << ", at idx: " << i << "\n";
 
-    HoneyParamShape shape;
-    HoneyModelContainerGetMaximumInputShape(handle, i, &shape);
-    HoneyDtype dtype;
-    HoneyModelContainerGetInputDtype(handle, i, &dtype);
+    DinoMLParamShape shape;
+    DinoMLModelContainerGetMaximumInputShape(handle, i, &shape);
+    DinoMLDtype dtype;
+    DinoMLModelContainerGetInputDtype(handle, i, &dtype);
     // This file aims for helping debugging so we make the code logic
     // simple. Instead of asking the user to pass input names along with
     // shapes, we just use the shape with the largest dimension values
@@ -257,20 +257,20 @@ static HoneyError run(
     // changes to the code. We don't force us to predict the user's behavior.
     input_ptrs.emplace_back(
         make_random_data(allocator, rnd_generator, shape, dtype));
-    inputs[i] = HoneyData(input_ptrs.back().get(), shape, dtype);
+    inputs[i] = DinoMLData(input_ptrs.back().get(), shape, dtype);
   }
 
   bool graph_mode = false;
   auto stream = RAII_StreamCreate(/*non_blocking=*/true);
-  return HoneyModelContainerRunWithOutputsOnHost(
+  return DinoMLModelContainerRunWithOutputsOnHost(
       handle,
       inputs.data(),
       num_inputs,
-      honey_outputs.data(),
+      dinoml_outputs.data(),
       num_outputs,
-      reinterpret_cast<HoneyStreamHandle>(stream.get()),
+      reinterpret_cast<DinoMLStreamHandle>(stream.get()),
       graph_mode,
-      honey_output_shapes_out.data());
+      dinoml_output_shapes_out.data());
 }
 
 template <typename T>
@@ -284,30 +284,30 @@ void read_element(std::ifstream& fh, T& elem) {
   }
 }
 
-struct HoneyStandaloneTestcase {
-  std::vector<HoneyData> expected_outputs;
-  std::vector<HoneyData> host_outputs;
-  std::vector<HoneyData> gpu_outputs;
+struct DinoMLStandaloneTestcase {
+  std::vector<DinoMLData> expected_outputs;
+  std::vector<DinoMLData> host_outputs;
+  std::vector<DinoMLData> gpu_outputs;
 
-  std::vector<int64_t*> honey_output_shapes_out;
+  std::vector<int64_t*> dinoml_output_shapes_out;
 
-  std::vector<HoneyData>
-      inputs; // this will be filled the HoneyData instances for the inputs
+  std::vector<DinoMLData>
+      inputs; // this will be filled the DinoMLData instances for the inputs
 
   std::vector<int64_t> shape_data_owner;
   std::vector<GPUPtr> gpu_data_owner;
 
   const std::string test_data_path; // path to test data file
-  HoneyModelHandle& handle;
-  HoneyAllocator& allocator;
+  DinoMLModelHandle& handle;
+  DinoMLAllocator& allocator;
 
   float atol;
   float rtol;
 
-  HoneyStandaloneTestcase(
+  DinoMLStandaloneTestcase(
       const char* test_data_path_,
-      HoneyModelHandle& handle_, // model handle
-      HoneyAllocator& allocator_)
+      DinoMLModelHandle& handle_, // model handle
+      DinoMLAllocator& allocator_)
       : handle(handle_),
         allocator(allocator_),
         test_data_path(test_data_path_) {
@@ -317,9 +317,9 @@ struct HoneyStandaloneTestcase {
   void _load() { // relative error tolerance
     size_t num_outputs = 0;
     size_t num_inputs = 0;
-    HoneyModelContainerGetNumInputs(handle, &num_inputs);
-    HoneyModelContainerGetNumOutputs(handle, &num_outputs);
-    honey_output_shapes_out.reserve(num_outputs);
+    DinoMLModelContainerGetNumInputs(handle, &num_inputs);
+    DinoMLModelContainerGetNumOutputs(handle, &num_outputs);
+    dinoml_output_shapes_out.reserve(num_outputs);
     expected_outputs.reserve(num_outputs);
     host_outputs.reserve(num_outputs);
     gpu_outputs.reserve(num_outputs);
@@ -328,20 +328,20 @@ struct HoneyStandaloneTestcase {
     read_element(fh, rtol); // relative error tolerance
 
     gpu_data_owner.reserve(num_inputs + num_outputs);
-    honey_output_shapes_out.reserve(num_outputs);
+    dinoml_output_shapes_out.reserve(num_outputs);
 
     std::map<std::string, unsigned> input_name_to_index;
     size_t total_dim_count =
         0; // the sum of shape.ndims for all input and output tensors
     // calculate total_dim_count
     for (unsigned i = 0; i < num_inputs; i++) {
-      HoneyParamShape shape;
-      HoneyModelContainerGetMaximumInputShape(handle, i, &shape);
+      DinoMLParamShape shape;
+      DinoMLModelContainerGetMaximumInputShape(handle, i, &shape);
       total_dim_count += shape.size;
     }
     for (unsigned i = 0; i < num_outputs; i++) {
-      HoneyParamShape shape;
-      HoneyModelContainerGetMaximumOutputShape(handle, i, &shape);
+      DinoMLParamShape shape;
+      DinoMLModelContainerGetMaximumOutputShape(handle, i, &shape);
       total_dim_count += shape.size * 2; // allocation required twice
     }
     // this is just a vector that owns the memory for the shape.shape_data
@@ -351,12 +351,12 @@ struct HoneyStandaloneTestcase {
     for (unsigned i = 0; i < num_inputs; i++) {
       // for each input tensor
       const char* name;
-      HoneyModelContainerGetInputName(handle, i, &name);
-      HoneyDtype dtype;
-      HoneyModelContainerGetInputDtype(handle, i, &dtype);
-      size_t dtype_size = HoneyDtypeSizeBytes(dtype);
-      HoneyParamShape shape;
-      HoneyModelContainerGetMaximumInputShape(handle, i, &shape);
+      DinoMLModelContainerGetInputName(handle, i, &name);
+      DinoMLDtype dtype;
+      DinoMLModelContainerGetInputDtype(handle, i, &dtype);
+      size_t dtype_size = DinoMLDtypeSizeBytes(dtype);
+      DinoMLParamShape shape;
+      DinoMLModelContainerGetMaximumInputShape(handle, i, &shape);
 
       input_name_to_index.insert({name, i});
       std::cout << "Loading input: " << name << ", at idx: " << i;
@@ -373,7 +373,7 @@ struct HoneyStandaloneTestcase {
       read_element(fh, read_ndims);
       std::cout << ", ndims=" << read_ndims;
 
-      if (static_cast<HoneyDtype>(read_dtype) != dtype) {
+      if (static_cast<DinoMLDtype>(read_dtype) != dtype) {
         throw std::runtime_error(
             "Mismatch between dtype of input in testcase data and in model");
       }
@@ -412,7 +412,7 @@ struct HoneyStandaloneTestcase {
       read_element(fh, read_total_tensor_bytes);
 
       size_t numel = shape.Numel();
-      size_t num_bytes = numel * HoneyDtypeSizeBytes(dtype);
+      size_t num_bytes = numel * DinoMLDtypeSizeBytes(dtype);
       std::cout << ", total_tensor_bytes=" << read_total_tensor_bytes
                 << " - model expects " << num_bytes << "\n";
       if (num_bytes != read_total_tensor_bytes) {
@@ -431,7 +431,7 @@ struct HoneyStandaloneTestcase {
       // free host memory for tensor
       DEVICE_CHECK(FreeDeviceHostMemory(h_data));
 
-      inputs.push_back(HoneyData(gpu_data_owner.back().get(), shape, dtype));
+      inputs.push_back(DinoMLData(gpu_data_owner.back().get(), shape, dtype));
     }
     std::cout << "Finished loading testcase inputs." << "\n";
     if (fh.peek() == std::ifstream::traits_type::eof()) {
@@ -445,21 +445,21 @@ struct HoneyStandaloneTestcase {
     for (unsigned i = 0; i < num_outputs; i++) {
       // for each input tensor
       const char* name;
-      HoneyModelContainerGetOutputName(handle, i, &name);
-      HoneyDtype dtype;
-      HoneyModelContainerGetOutputDtype(handle, i, &dtype);
-      size_t dtype_size = HoneyDtypeSizeBytes(dtype);
-      HoneyParamShape shape;
-      HoneyModelContainerGetMaximumOutputShape(handle, i, &shape);
-      HoneyParamShape max_shape;
-      HoneyModelContainerGetMaximumOutputShape(handle, i, &max_shape);
+      DinoMLModelContainerGetOutputName(handle, i, &name);
+      DinoMLDtype dtype;
+      DinoMLModelContainerGetOutputDtype(handle, i, &dtype);
+      size_t dtype_size = DinoMLDtypeSizeBytes(dtype);
+      DinoMLParamShape shape;
+      DinoMLModelContainerGetMaximumOutputShape(handle, i, &shape);
+      DinoMLParamShape max_shape;
+      DinoMLModelContainerGetMaximumOutputShape(handle, i, &max_shape);
 
       size_t max_numel = shape.Numel();
-      size_t max_num_bytes = max_numel * HoneyDtypeSizeBytes(dtype);
+      size_t max_num_bytes = max_numel * DinoMLDtypeSizeBytes(dtype);
 
       gpu_data_owner.emplace_back(RAII_DeviceMalloc(max_num_bytes, allocator));
       gpu_outputs.push_back(
-          HoneyData(gpu_data_owner.back().get(), max_shape, dtype));
+          DinoMLData(gpu_data_owner.back().get(), max_shape, dtype));
 
       std::cout << "Loading expected output: " << name << ", at idx: " << i;
 
@@ -475,7 +475,7 @@ struct HoneyStandaloneTestcase {
       read_element(fh, read_ndims);
       std::cout << ", ndims=" << read_ndims;
 
-      if (static_cast<HoneyDtype>(read_dtype) != dtype) {
+      if (static_cast<DinoMLDtype>(read_dtype) != dtype) {
         throw std::runtime_error(
             "Mismatch between dtype of input in testcase data and in model");
       }
@@ -514,7 +514,7 @@ struct HoneyStandaloneTestcase {
       read_element(fh, read_total_tensor_bytes);
 
       size_t numel = shape.Numel();
-      size_t num_bytes = numel * HoneyDtypeSizeBytes(dtype);
+      size_t num_bytes = numel * DinoMLDtypeSizeBytes(dtype);
       std::cout << ", total_tensor_bytes=" << read_total_tensor_bytes
                 << " - model expects " << num_bytes << "\n";
       if (num_bytes != read_total_tensor_bytes) {
@@ -534,51 +534,51 @@ struct HoneyStandaloneTestcase {
       // ---
       // Memory to place output tensors on host
       host_outputs.emplace_back(h_data, shape, dtype);
-      honey_output_shapes_out.push_back(shape_data_owner.data());
+      dinoml_output_shapes_out.push_back(shape_data_owner.data());
       shape_offset += read_ndims;
       expected_outputs.emplace_back(h_data_expected, shape, dtype);
     }
   }
 
-  HoneyError run(
-      HoneyModelHandle handle,
-      HoneyAllocator& allocator) {
+  DinoMLError run(
+      DinoMLModelHandle handle,
+      DinoMLAllocator& allocator) {
     bool graph_mode = false;
     auto stream = RAII_StreamCreate(/*non_blocking=*/true);
 
-    return HoneyModelContainerRunWithOutputsOnHost(
+    return DinoMLModelContainerRunWithOutputsOnHost(
         handle,
         inputs.data(),
         inputs.size(),
         host_outputs.data(),
         host_outputs.size(),
-        reinterpret_cast<HoneyStreamHandle>(stream.get()),
+        reinterpret_cast<DinoMLStreamHandle>(stream.get()),
         graph_mode,
-        honey_output_shapes_out.data());
+        dinoml_output_shapes_out.data());
   }
 
   float benchmark(
-      HoneyModelHandle handle,
-      HoneyAllocator& allocator,
+      DinoMLModelHandle handle,
+      DinoMLAllocator& allocator,
       size_t count,
       size_t num_threads) {
     bool graph_mode = false;
     auto stream = RAII_StreamCreate(/*non_blocking=*/true);
     float runtime_ms = -999.0f;
-    HoneyError err = HoneyModelContainerBenchmark(
+    DinoMLError err = DinoMLModelContainerBenchmark(
         handle,
         inputs.data(),
         inputs.size(),
         gpu_outputs.data(),
         gpu_outputs.size(),
-        reinterpret_cast<HoneyStreamHandle>(stream.get()),
+        reinterpret_cast<DinoMLStreamHandle>(stream.get()),
         graph_mode,
         count,
         num_threads,
         true,
         &runtime_ms,
-        honey_output_shapes_out.data());
-    if (err != HoneyError::HoneySuccess) {
+        dinoml_output_shapes_out.data());
+    if (err != DinoMLError::DinoMLSuccess) {
       std::cout << "Benchmark failed with error " << static_cast<int>(err)
                 << std::endl;
       return -1.0f;
@@ -589,26 +589,26 @@ struct HoneyStandaloneTestcase {
   bool compare_results_to_expected() {
     bool passed = true;
     size_t num_outputs = 0;
-    HoneyModelContainerGetNumOutputs(handle, &num_outputs);
+    DinoMLModelContainerGetNumOutputs(handle, &num_outputs);
     for (unsigned output_idx = 0; output_idx < num_outputs; ++output_idx) {
       switch (expected_outputs[output_idx].dtype) {
-        case HoneyDtype::kInt:
+        case DinoMLDtype::kInt:
           passed = passed and _compare_results_to_expected<int32_t>(output_idx);
           break;
-        case HoneyDtype::kLong:
+        case DinoMLDtype::kLong:
           passed = passed and _compare_results_to_expected<int64_t>(output_idx);
           break;
-        case HoneyDtype::kFloat:
+        case DinoMLDtype::kFloat:
           passed = passed and _compare_results_to_expected<float>(output_idx);
           break;
-        case HoneyDtype::kBFloat16:
+        case DinoMLDtype::kBFloat16:
           passed =
               passed and _compare_results_to_expected<bfloat16>(output_idx);
           break;
-        case HoneyDtype::kHalf:
+        case DinoMLDtype::kHalf:
           passed = passed and _compare_results_to_expected<half>(output_idx);
           break;
-        case HoneyDtype::kBool:
+        case DinoMLDtype::kBool:
           passed = passed and _compare_results_to_expected<bool>(output_idx);
           break;
         default:
@@ -627,12 +627,12 @@ struct HoneyStandaloneTestcase {
     // check the actual output shape
     for (unsigned i = 0; i < ndims; ++i) {
       if (expected_outputs[output_idx].shape.shape_data[i] !=
-          honey_output_shapes_out[output_idx][i]) {
+          dinoml_output_shapes_out[output_idx][i]) {
         std::cout
             << "Mismatch between expected output shape and actual shape after inference of output #"
             << i << " at dimension " << i << " expected shape[i]=="
             << host_outputs[output_idx].shape.shape_data[i]
-            << " actual shape[i]==" << honey_output_shapes_out[output_idx][i]
+            << " actual shape[i]==" << dinoml_output_shapes_out[output_idx][i]
             << std::endl;
         return false;
       }
@@ -672,16 +672,16 @@ struct HoneyStandaloneTestcase {
 int run_testcase(const char* input_file, bool benchmark) {
   std::cout << "Starting single test run with input " << input_file << "\n";
   {
-    HoneyModelHandle handle;
-    HoneyModelContainerCreate(&handle, /*num_runtimes*/ 1);
-    HoneyAllocator* allocator;
-    Honey_ERROR_CHECK(HoneyAllocatorCreate(
-        &allocator, HoneyAllocatorType::kDefault));
+    DinoMLModelHandle handle;
+    DinoMLModelContainerCreate(&handle, /*num_runtimes*/ 1);
+    DinoMLAllocator* allocator;
+    DINOML_ERROR_CHECK(DinoMLAllocatorCreate(
+        &allocator, DinoMLAllocatorType::kDefault));
 
     auto deleter = [](void* data) { FreeDeviceHostMemory(data); };
-    HoneyStandaloneTestcase test(input_file, handle, *allocator);
+    DinoMLStandaloneTestcase test(input_file, handle, *allocator);
 
-    Honey_ERROR_CHECK(test.run(handle, *allocator));
+    DINOML_ERROR_CHECK(test.run(handle, *allocator));
     std::cout << "Finished test run with input " << input_file << "\n";
     int retval = -1;
     if (!test.compare_results_to_expected()) {
@@ -692,14 +692,14 @@ int run_testcase(const char* input_file, bool benchmark) {
   }
   if (benchmark) {
     std::cout << "Benchmarking with testcase " << input_file << "\n";
-    HoneyModelHandle handle;
-    HoneyModelContainerCreate(&handle, /*num_runtimes*/ 1);
-    HoneyAllocator* allocator;
-    Honey_ERROR_CHECK(HoneyAllocatorCreate(
-        &allocator, HoneyAllocatorType::kDefault));
+    DinoMLModelHandle handle;
+    DinoMLModelContainerCreate(&handle, /*num_runtimes*/ 1);
+    DinoMLAllocator* allocator;
+    DINOML_ERROR_CHECK(DinoMLAllocatorCreate(
+        &allocator, DinoMLAllocatorType::kDefault));
 
     auto deleter = [](void* data) { FreeDeviceHostMemory(data); };
-    HoneyStandaloneTestcase benchmarker(input_file, handle, *allocator);
+    DinoMLStandaloneTestcase benchmarker(input_file, handle, *allocator);
     float runtime_ms = benchmarker.benchmark(handle, *allocator, 10, 1);
     if (runtime_ms >= 0.0) {
       std::cout << "Benchmark result: " << input_file
@@ -711,16 +711,16 @@ int run_testcase(const char* input_file, bool benchmark) {
 }
 
 int run_with_random_inputs() {
-  HoneyModelHandle handle;
-  HoneyModelContainerCreate(&handle, /*num_runtimes*/ 1);
-  HoneyAllocator* allocator;
-  Honey_ERROR_CHECK(
-      HoneyAllocatorCreate(&allocator, HoneyAllocatorType::kDefault));
+  DinoMLModelHandle handle;
+  DinoMLModelContainerCreate(&handle, /*num_runtimes*/ 1);
+  DinoMLAllocator* allocator;
+  DINOML_ERROR_CHECK(
+      DinoMLAllocatorCreate(&allocator, DinoMLAllocatorType::kDefault));
 
   auto deleter = [](void* data) { FreeDeviceHostMemory(data); };
 
   std::vector<OutputData> outputs;
-  Honey_ERROR_CHECK(run(handle, *allocator, outputs));
+  DINOML_ERROR_CHECK(run(handle, *allocator, outputs));
 
   // print out something
   for (const auto& output : outputs) {
@@ -732,9 +732,9 @@ int run_with_random_inputs() {
     std::cout << "\n";
   }
 
-  Honey_ERROR_CHECK(HoneyAllocatorDelete(allocator));
+  DINOML_ERROR_CHECK(DinoMLAllocatorDelete(allocator));
   // We are done and delete the handle.
-  HoneyModelContainerDelete(handle);
+  DinoMLModelContainerDelete(handle);
   return 0;
 }
 
@@ -749,7 +749,7 @@ int main(int argc, char* argv[]) {
     }
     std::string action(argv[1]);
     if ((action == "--help") or (action == "help")) {
-      std::cout << "Honey standalone test runner usage:" << std::endl
+      std::cout << "DinoML standalone test runner usage:" << std::endl
                 << " run with random input:   " << argv[0] << std::endl
                 << " run single tests:        " << argv[0]
                 << " test <testcase-file-1> ... <testcase-file-N>" << std::endl

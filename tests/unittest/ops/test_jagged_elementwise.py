@@ -20,14 +20,14 @@ from typing import List
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import JaggedDim
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import IntImm, IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.jagged_utils import add_jagged_dense_ref, generate_offsets
-from honey.testing.test_utils import get_random_torch_tensor
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import JaggedDim
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import IntImm, IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.jagged_utils import add_jagged_dense_ref, generate_offsets
+from dinoml.testing.test_utils import get_random_torch_tensor
+from dinoml.utils.torch_utils import string_to_torch_dtype
 from parameterized import param, parameterized
 
 

@@ -15,7 +15,7 @@
 
 import unittest
 
-from honey.compiler.public import *  # noqa: F403
+from dinoml.compiler.public import *  # noqa: F403
 
 
 class PublicImportTestCase(unittest.TestCase):

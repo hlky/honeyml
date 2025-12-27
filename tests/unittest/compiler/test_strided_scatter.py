@@ -18,16 +18,16 @@ import unittest
 import numpy as np
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import IntImm, IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import IntImm, IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import graph_utils
-from honey.utils.shape_utils import gen_int_var_min_max as gen_IntVar
+from dinoml.utils import graph_utils
+from dinoml.utils.shape_utils import gen_int_var_min_max as gen_IntVar
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -146,7 +146,7 @@ class StridedScatterTestCase(unittest.TestCase):
             slice_outputs_pt.append(slice_output_pt)
         y_pt = torch.cat(slice_outputs_pt, scatter_dim)
 
-        # run honey
+        # run dinoml
         input_name_to_index = module.get_input_name_to_index_map()
         inputs = [0 for i in range(len(xs_pt))]
         for i, x_pt in enumerate(xs_pt):
@@ -263,7 +263,7 @@ class StridedScatterTestCase(unittest.TestCase):
                 slice_outputs_pt.append(slice_output_pt)
             y_pt = torch.cat(slice_outputs_pt, scatter_dim)
 
-            # run honey
+            # run dinoml
             input_name_to_index = module.get_input_name_to_index_map()
             inputs = [0 for i in range(len(xs_pt))]
             for i, x_pt in enumerate(xs_pt):
@@ -551,7 +551,7 @@ class StridedScatterTestCase(unittest.TestCase):
             cat_inputs_pt = [gemm_output_pt] + slice_outputs_pt + [add_output_pt]
             y_pt = torch.cat(cat_inputs_pt, scatter_dim)
 
-            # run honey
+            # run dinoml
             input_name_to_index = module.get_input_name_to_index_map()
             inputs = [0 for i in range(len(xs_pt) + num_extra_inputs)]
             for i, x_pt in enumerate(xs_pt):
@@ -651,7 +651,7 @@ class StridedScatterTestCase(unittest.TestCase):
             slice_outputs_pt.append(slice_output_pt)
         y_pt = torch.cat(slice_outputs_pt, scatter_dim)
 
-        # run honey
+        # run dinoml
         inputs = {"input_0": x0_pt, "input_2": x2_pt}
         y = get_torch_empty_tensor(y_pt.size(), dtype)
         module.run_with_tensors(inputs, [y])
@@ -766,7 +766,7 @@ class StridedScatterTestCase(unittest.TestCase):
                 slice_outputs_pt.append(slice_output_pt)
             y_pt = torch.cat(slice_outputs_pt, scatter_dim)
 
-            # run honey
+            # run dinoml
             inputs = {
                 add_0_input_name_0: add_0_0_pt,
                 add_0_input_name_1: add_0_1_pt,
@@ -894,7 +894,7 @@ class StridedScatterTestCase(unittest.TestCase):
         for i, x_pt in enumerate(xs_pt):
             inputs[f"input_{i}"] = x_pt
 
-        # run honey
+        # run dinoml
         y = get_torch_empty_tensor(y_pt.size(), dtype)
         module.run_with_tensors(inputs, [y])
         self.assertTrue(torch.allclose(y_pt, y, atol=1e-2, rtol=1e-2))

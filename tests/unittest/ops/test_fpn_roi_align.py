@@ -17,10 +17,10 @@ import unittest
 from unittest import skipIf
 
 import torch
-from honey.compiler import compile_model, Model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.compiler import compile_model, Model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 try:
     from detectron2.modeling.poolers import ROIPooler
@@ -101,7 +101,7 @@ class RoiAlignTestCase(unittest.TestCase):
             module = Model(os.path.join("./tmp", test_name, "test.so"))
 
         def fpn_roialign_pt(boxes, features, device="cuda"):
-            from honey.testing.benchmark_pt import benchmark_torch_function
+            from dinoml.testing.benchmark_pt import benchmark_torch_function
 
             from detectron2.structures import Boxes
 

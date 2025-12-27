@@ -22,14 +22,14 @@ from typing import List
 
 import torch
 
-from honey.compiler import compile_model, ops, transform
-from honey.compiler.base import IntImm
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.compiler.stable_set import StableSet
-from honey.compiler.transform.fuse_ops import _get_inputs_outputs
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops, transform
+from dinoml.compiler.base import IntImm
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.compiler.stable_set import StableSet
+from dinoml.compiler.transform.fuse_ops import _get_inputs_outputs
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
@@ -37,11 +37,11 @@ from honey.testing.test_utils import (
     get_torch_full_tensor,
     TestEnv,
 )
-from honey.utils import shape_utils
+from dinoml.utils import shape_utils
 from parameterized import parameterized
 
 
-_Honey_DTYPE_TO_PYTORCH_DTYPE = {
+_DINOML_DTYPE_TO_PYTORCH_DTYPE = {
     "float16": torch.float16,
     "float32": torch.float32,
     "bfloat16": torch.bfloat16,
@@ -53,7 +53,7 @@ class FusedElementwiseTestCase(unittest.TestCase):
     def setUpClass(cls) -> None:
         torch.manual_seed(0)
 
-    def _test_fused_elementwise_constructor(self, honey_dtype):
+    def _test_fused_elementwise_constructor(self, dinoml_dtype):
         BATCH_SIZE = 1024
         M = 256
         K = 128
@@ -64,13 +64,13 @@ class FusedElementwiseTestCase(unittest.TestCase):
         op2._attrs["name"] = "e2"
         X1 = Tensor(
             shape=[BATCH_SIZE, M, K],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input0",
             is_input=True,
         )
         X2 = Tensor(
             shape=[],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="X2",
             value=3.0,
         )
@@ -116,8 +116,8 @@ class FusedElementwiseTestCase(unittest.TestCase):
             }
         )
     )
-    def test_fused_elementwise_constructor(self, honey_dtype):
-        self._test_fused_elementwise_constructor(honey_dtype)
+    def test_fused_elementwise_constructor(self, dinoml_dtype):
+        self._test_fused_elementwise_constructor(dinoml_dtype)
 
     def _test_fused_elementwise_e2e(
         self,
@@ -125,23 +125,23 @@ class FusedElementwiseTestCase(unittest.TestCase):
         ms,
         ks,
         test_name,
-        honey_dtype,
+        dinoml_dtype,
         use_fp32_acc=False,
     ):
-        torch_dtype = _Honey_DTYPE_TO_PYTORCH_DTYPE[honey_dtype]
+        torch_dtype = _DINOML_DTYPE_TO_PYTORCH_DTYPE[dinoml_dtype]
         X1 = Tensor(
             shape=[
                 shape_utils.gen_int_var_min_max(batch_sizes),
                 shape_utils.gen_int_var_min_max(ms),
                 shape_utils.gen_int_var_min_max(ks),
             ],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input0",
             is_input=True,
         )
         X2 = Tensor(
             shape=[],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="X2",
             value=3.0,
         )
@@ -178,67 +178,67 @@ class FusedElementwiseTestCase(unittest.TestCase):
             }
         )
     )
-    def test_fused_elementwise_e2e(self, honey_dtype):
+    def test_fused_elementwise_e2e(self, dinoml_dtype):
         self._test_fused_elementwise_e2e(
             batch_sizes=[1024],
             ms=[256],
             ks=[128],
-            test_name=f"static_shapes_{honey_dtype}",
-            honey_dtype=honey_dtype,
+            test_name=f"static_shapes_{dinoml_dtype}",
+            dinoml_dtype=dinoml_dtype,
         )
         self._test_fused_elementwise_e2e(
             batch_sizes=[1, 99, 998, 1024],
             ms=[256],
             ks=[128],
-            test_name=f"dynamic_batch_size_{honey_dtype}",
-            honey_dtype=honey_dtype,
+            test_name=f"dynamic_batch_size_{dinoml_dtype}",
+            dinoml_dtype=dinoml_dtype,
         )
         self._test_fused_elementwise_e2e(
             batch_sizes=[1024],
             ms=[1, 128, 256],
             ks=[128],
-            test_name=f"dynamic_m_{honey_dtype}",
-            honey_dtype=honey_dtype,
+            test_name=f"dynamic_m_{dinoml_dtype}",
+            dinoml_dtype=dinoml_dtype,
         )
         self._test_fused_elementwise_e2e(
             batch_sizes=[1024],
             ms=[256],
             ks=[1, 3, 8, 128],
-            test_name=f"dynamic_k_{honey_dtype}",
-            honey_dtype=honey_dtype,
+            test_name=f"dynamic_k_{dinoml_dtype}",
+            dinoml_dtype=dinoml_dtype,
         )
         for use_fp32_acc in (False, True):
             self._test_fused_elementwise_e2e(
                 batch_sizes=[700, 80, 1024],
                 ms=[23, 78, 256],
                 ks=[10, 30, 128],
-                test_name=f"dynamic_all_{honey_dtype}",
-                honey_dtype=honey_dtype,
+                test_name=f"dynamic_all_{dinoml_dtype}",
+                dinoml_dtype=dinoml_dtype,
                 use_fp32_acc=use_fp32_acc,
             )
 
     def _test_fused_elementwise_kernel1(
         self,
-        honey_dtype,
+        dinoml_dtype,
         use_fp32_acc=False,
     ):
         BATCH_SIZE = 1024
         M = 1496
         X1 = Tensor(
             shape=[IntImm(BATCH_SIZE), IntImm(2), IntImm(M)],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input0",
             is_input=True,
         )
         X2 = Tensor(
             shape=[],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="constant_number",
             value=2.0,
         )
         X3 = Tensor(
             shape=[IntImm(2), IntImm(M)],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="constant_matrix",
             is_input=True,
         )
@@ -256,15 +256,15 @@ class FusedElementwiseTestCase(unittest.TestCase):
             X9,
             target,
             "./tmp",
-            f"fused_elementwise_kernel1_{honey_dtype}_{use_fp32_acc}",
+            f"fused_elementwise_kernel1_{dinoml_dtype}_{use_fp32_acc}",
         )
 
-        x1_pt = get_random_torch_tensor((BATCH_SIZE, 2, M), honey_dtype)
-        x3_pt = get_random_torch_tensor((2, M), honey_dtype)
+        x1_pt = get_random_torch_tensor((BATCH_SIZE, 2, M), dinoml_dtype)
+        x3_pt = get_random_torch_tensor((2, M), dinoml_dtype)
         x9_pt = torch.sign(x1_pt) * torch.log1p(torch.abs(x1_pt) + 1) * x3_pt
 
         inputs = {"input0": x1_pt, "constant_matrix": x3_pt}
-        x9 = get_torch_empty_tensor([BATCH_SIZE, 2, M], honey_dtype)
+        x9 = get_torch_empty_tensor([BATCH_SIZE, 2, M], dinoml_dtype)
         module.run_with_tensors(inputs, [x9])
         torch.testing.assert_close(x9, x9_pt, atol=1e-2, rtol=1e-2)
 
@@ -277,18 +277,18 @@ class FusedElementwiseTestCase(unittest.TestCase):
             }
         )
     )
-    def test_fused_elementwise_kernel1(self, honey_dtype):
+    def test_fused_elementwise_kernel1(self, dinoml_dtype):
         for use_fp32_acc in (False, True):
             self._test_fused_elementwise_kernel1(
-                honey_dtype=honey_dtype,
+                dinoml_dtype=dinoml_dtype,
                 use_fp32_acc=use_fp32_acc,
             )
 
-    def _test_sigmoid(self, input_size, test_name, honey_dtype, use_fast_math=True):
-        torch_dtype = _Honey_DTYPE_TO_PYTORCH_DTYPE[honey_dtype]
+    def _test_sigmoid(self, input_size, test_name, dinoml_dtype, use_fast_math=True):
+        torch_dtype = _DINOML_DTYPE_TO_PYTORCH_DTYPE[dinoml_dtype]
         X1 = Tensor(
             shape=[IntImm(input_size[0]), IntImm(input_size[1])],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input0",
             is_input=True,
         )
@@ -323,24 +323,24 @@ class FusedElementwiseTestCase(unittest.TestCase):
             }
         )
     )
-    def test_sigmoid(self, honey_dtype):
-        self._test_sigmoid([1024, 2 * 1496], f"sigmoid_1_{honey_dtype}", honey_dtype)
-        self._test_sigmoid([1024, 23744], f"sigmoid_2_{honey_dtype}", honey_dtype)
-        self._test_sigmoid([1024, 70144], f"sigmoid_3_{honey_dtype}", honey_dtype)
+    def test_sigmoid(self, dinoml_dtype):
+        self._test_sigmoid([1024, 2 * 1496], f"sigmoid_1_{dinoml_dtype}", dinoml_dtype)
+        self._test_sigmoid([1024, 23744], f"sigmoid_2_{dinoml_dtype}", dinoml_dtype)
+        self._test_sigmoid([1024, 70144], f"sigmoid_3_{dinoml_dtype}", dinoml_dtype)
         # use_fast_math = False
         self._test_sigmoid(
             [1024, 70144],
-            f"sigmoid_no_fast_math_{honey_dtype}",
-            honey_dtype,
+            f"sigmoid_no_fast_math_{dinoml_dtype}",
+            dinoml_dtype,
             use_fast_math=False,
         )
 
-    def _test_tanh(self, input_size, test_name, honey_dtype, use_fast_math=True):
+    def _test_tanh(self, input_size, test_name, dinoml_dtype, use_fast_math=True):
         assert len(input_size) == 2
-        torch_dtype = _Honey_DTYPE_TO_PYTORCH_DTYPE[honey_dtype]
+        torch_dtype = _DINOML_DTYPE_TO_PYTORCH_DTYPE[dinoml_dtype]
         X1 = Tensor(
             shape=[IntImm(input_size[0]), IntImm(input_size[1])],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input0",
             is_input=True,
         )
@@ -371,24 +371,24 @@ class FusedElementwiseTestCase(unittest.TestCase):
             }
         )
     )
-    def test_tanh(self, honey_dtype):
-        self._test_tanh([1024, 22400], f"tanh_1_{honey_dtype}", honey_dtype)
-        self._test_tanh([1024, 70144], f"tanh_2_{honey_dtype}", honey_dtype)
-        self._test_tanh([1024, 23744], f"tanh_3_{honey_dtype}", honey_dtype)
+    def test_tanh(self, dinoml_dtype):
+        self._test_tanh([1024, 22400], f"tanh_1_{dinoml_dtype}", dinoml_dtype)
+        self._test_tanh([1024, 70144], f"tanh_2_{dinoml_dtype}", dinoml_dtype)
+        self._test_tanh([1024, 23744], f"tanh_3_{dinoml_dtype}", dinoml_dtype)
         # use_fast_math = False
         self._test_tanh(
             [1024, 23744],
-            f"tanh_no_fast_math_{honey_dtype}",
-            honey_dtype,
+            f"tanh_no_fast_math_{dinoml_dtype}",
+            dinoml_dtype,
             use_fast_math=False,
         )
 
-    def _test_gelu(self, input_size, test_name, honey_dtype, fast_gelu=False):
+    def _test_gelu(self, input_size, test_name, dinoml_dtype, fast_gelu=False):
         assert len(input_size) == 2
-        torch_dtype = _Honey_DTYPE_TO_PYTORCH_DTYPE[honey_dtype]
+        torch_dtype = _DINOML_DTYPE_TO_PYTORCH_DTYPE[dinoml_dtype]
         X1 = Tensor(
             shape=[IntImm(input_size[0]), IntImm(input_size[1])],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input0",
             is_input=True,
         )
@@ -418,9 +418,9 @@ class FusedElementwiseTestCase(unittest.TestCase):
             }
         )
     )
-    def test_gelu(self, honey_dtype):
-        self._test_gelu([1024, 22400], f"gelu_1_{honey_dtype}", honey_dtype)
-        self._test_gelu([1024, 70144], f"fast_gelu_1_{honey_dtype}", honey_dtype, True)
+    def test_gelu(self, dinoml_dtype):
+        self._test_gelu([1024, 22400], f"gelu_1_{dinoml_dtype}", dinoml_dtype)
+        self._test_gelu([1024, 70144], f"fast_gelu_1_{dinoml_dtype}", dinoml_dtype, True)
 
     def _test_min_max(
         self,
@@ -428,18 +428,18 @@ class FusedElementwiseTestCase(unittest.TestCase):
         test_name: str,
         is_min: bool,
         add_nans: bool,
-        honey_dtype,
+        dinoml_dtype,
     ) -> None:
         assert len(input_size) == 2
         X0 = Tensor(
             shape=[IntImm(input_size[0]), IntImm(input_size[1])],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input0",
             is_input=True,
         )
         X1 = Tensor(
             shape=[IntImm(input_size[0]), IntImm(input_size[1])],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input1",
             is_input=True,
         )
@@ -454,8 +454,8 @@ class FusedElementwiseTestCase(unittest.TestCase):
         target = detect_target()
         module = compile_model(result, target, "./tmp", test_name)
 
-        x0_pt = get_random_torch_tensor(input_size, honey_dtype)
-        x1_pt = get_random_torch_tensor(input_size, honey_dtype)
+        x0_pt = get_random_torch_tensor(input_size, dinoml_dtype)
+        x1_pt = get_random_torch_tensor(input_size, dinoml_dtype)
         if add_nans:
             x1_pt[0].fill_(float("nan"))
 
@@ -465,11 +465,11 @@ class FusedElementwiseTestCase(unittest.TestCase):
             x2_pt = torch.max(x0_pt, x1_pt)
 
         inputs = {"input0": x0_pt, "input1": x1_pt}
-        x2 = get_torch_empty_tensor(input_size, honey_dtype)
+        x2 = get_torch_empty_tensor(input_size, dinoml_dtype)
         module.run_with_tensors(inputs, [x2])
 
         if add_nans:
-            nans = get_torch_full_tensor(x2_pt[0].shape, float("nan"), honey_dtype)
+            nans = get_torch_full_tensor(x2_pt[0].shape, float("nan"), dinoml_dtype)
             torch.testing.assert_close(nans, x2_pt[0], equal_nan=True)
             torch.testing.assert_close(nans, x2[0], equal_nan=True)
 
@@ -484,20 +484,20 @@ class FusedElementwiseTestCase(unittest.TestCase):
             }
         )
     )
-    def test_min(self, honey_dtype):
+    def test_min(self, dinoml_dtype):
         self._test_min_max(
             [512, 512],
-            test_name=f"min_nonan_{honey_dtype}",
+            test_name=f"min_nonan_{dinoml_dtype}",
             is_min=True,
             add_nans=False,
-            honey_dtype=honey_dtype,
+            dinoml_dtype=dinoml_dtype,
         )
         self._test_min_max(
             [512, 512],
-            test_name=f"min_nan_{honey_dtype}",
+            test_name=f"min_nan_{dinoml_dtype}",
             is_min=True,
             add_nans=True,
-            honey_dtype=honey_dtype,
+            dinoml_dtype=dinoml_dtype,
         )
 
     @parameterized.expand(
@@ -509,20 +509,20 @@ class FusedElementwiseTestCase(unittest.TestCase):
             }
         )
     )
-    def test_max(self, honey_dtype):
+    def test_max(self, dinoml_dtype):
         self._test_min_max(
             [512, 512],
-            test_name=f"max_nonan_{honey_dtype}",
+            test_name=f"max_nonan_{dinoml_dtype}",
             is_min=False,
             add_nans=False,
-            honey_dtype=honey_dtype,
+            dinoml_dtype=dinoml_dtype,
         )
         self._test_min_max(
             [512, 512],
-            test_name=f"max_nan_{honey_dtype}",
+            test_name=f"max_nan_{dinoml_dtype}",
             is_min=False,
             add_nans=True,
-            honey_dtype=honey_dtype,
+            dinoml_dtype=dinoml_dtype,
         )
 
     def _test_clamp(
@@ -531,13 +531,13 @@ class FusedElementwiseTestCase(unittest.TestCase):
         min_val: int,
         max_val: int,
         test_name: str,
-        honey_dtype,
+        dinoml_dtype,
     ) -> None:
         assert len(input_size) == 2 or len(input_size) == 0
-        torch_dtype = _Honey_DTYPE_TO_PYTORCH_DTYPE[honey_dtype]
+        torch_dtype = _DINOML_DTYPE_TO_PYTORCH_DTYPE[dinoml_dtype]
         X0 = Tensor(
             shape=[IntImm(input_size[0]), IntImm(input_size[1])] if input_size else [],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input0",
             is_input=True,
         )
@@ -566,25 +566,25 @@ class FusedElementwiseTestCase(unittest.TestCase):
             }
         )
     )
-    def test_clamp(self, honey_dtype):
-        self._test_clamp([512, 106], -1, 1, f"clamp_0_{honey_dtype}", honey_dtype)
-        self._test_clamp([128, 46], None, 1, f"clamp_1_{honey_dtype}", honey_dtype)
-        self._test_clamp([56, 265], -1, None, f"clamp_2_{honey_dtype}", honey_dtype)
-        self._test_clamp([17, 123], 1, -1, f"clamp_3_{honey_dtype}", honey_dtype)
-        self._test_clamp([], 1, -1, f"clamp_4_{honey_dtype}", honey_dtype)
+    def test_clamp(self, dinoml_dtype):
+        self._test_clamp([512, 106], -1, 1, f"clamp_0_{dinoml_dtype}", dinoml_dtype)
+        self._test_clamp([128, 46], None, 1, f"clamp_1_{dinoml_dtype}", dinoml_dtype)
+        self._test_clamp([56, 265], -1, None, f"clamp_2_{dinoml_dtype}", dinoml_dtype)
+        self._test_clamp([17, 123], 1, -1, f"clamp_3_{dinoml_dtype}", dinoml_dtype)
+        self._test_clamp([], 1, -1, f"clamp_4_{dinoml_dtype}", dinoml_dtype)
 
-    def _test_operator_overload(self, honey_dtype):
+    def _test_operator_overload(self, dinoml_dtype):
         input_size = [4, 2]
-        torch_dtype = _Honey_DTYPE_TO_PYTORCH_DTYPE[honey_dtype]
+        torch_dtype = _DINOML_DTYPE_TO_PYTORCH_DTYPE[dinoml_dtype]
         X1 = Tensor(
             shape=input_size,
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input0",
             is_input=True,
         )
         X2 = Tensor(
             shape=input_size,
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input1",
             is_input=True,
         )
@@ -594,7 +594,7 @@ class FusedElementwiseTestCase(unittest.TestCase):
 
         target = detect_target()
         module = compile_model(
-            OUTPUT, target, "./tmp", f"test_op_overload_{honey_dtype}"
+            OUTPUT, target, "./tmp", f"test_op_overload_{dinoml_dtype}"
         )
 
         x1_pt = torch.randn(input_size).cuda().to(dtype=torch_dtype)
@@ -614,15 +614,15 @@ class FusedElementwiseTestCase(unittest.TestCase):
             }
         )
     )
-    def test_operator_overload(self, honey_dtype):
-        self._test_operator_overload(honey_dtype)
+    def test_operator_overload(self, dinoml_dtype):
+        self._test_operator_overload(dinoml_dtype)
 
-    def _test_operator_overload_with_constant_number(self, honey_dtype):
+    def _test_operator_overload_with_constant_number(self, dinoml_dtype):
         input_size = [4, 2]
-        torch_dtype = _Honey_DTYPE_TO_PYTORCH_DTYPE[honey_dtype]
+        torch_dtype = _DINOML_DTYPE_TO_PYTORCH_DTYPE[dinoml_dtype]
         X1 = Tensor(
             shape=input_size,
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input0",
             is_input=True,
         )
@@ -632,7 +632,7 @@ class FusedElementwiseTestCase(unittest.TestCase):
 
         target = detect_target()
         module = compile_model(
-            OUTPUT, target, "./tmp", f"test_op_overload_{honey_dtype}"
+            OUTPUT, target, "./tmp", f"test_op_overload_{dinoml_dtype}"
         )
 
         x1_pt = torch.randn(input_size).cuda().to(dtype=torch_dtype)
@@ -650,8 +650,8 @@ class FusedElementwiseTestCase(unittest.TestCase):
             }
         )
     )
-    def test_operator_overload_with_constant_number(self, honey_dtype):
-        self._test_operator_overload_with_constant_number(honey_dtype)
+    def test_operator_overload_with_constant_number(self, dinoml_dtype):
+        self._test_operator_overload_with_constant_number(dinoml_dtype)
 
 
 class FusedElementwisePowerTestCase(unittest.TestCase):
@@ -659,13 +659,13 @@ class FusedElementwisePowerTestCase(unittest.TestCase):
     def setUpClass(cls) -> None:
         torch.manual_seed(0)
 
-    def _test_power(self, input_size, exp, test_name, honey_dtype):
+    def _test_power(self, input_size, exp, test_name, dinoml_dtype):
         print(f"Running test {test_name} with exp = {exp}")
         assert len(input_size) == 2
-        torch_dtype = _Honey_DTYPE_TO_PYTORCH_DTYPE[honey_dtype]
+        torch_dtype = _DINOML_DTYPE_TO_PYTORCH_DTYPE[dinoml_dtype]
         X1 = Tensor(
             shape=[IntImm(input_size[0]), IntImm(input_size[1])],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="input0",
             is_input=True,
         )

@@ -15,12 +15,12 @@
 import unittest
 
 import torch
-from honey.compiler import compile_model
+from dinoml.compiler import compile_model
 
-from honey.frontend import Tensor
-from honey.frontend.nn import batch_norm
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.frontend import Tensor
+from dinoml.frontend.nn import batch_norm
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
@@ -44,50 +44,50 @@ class BatchnormTestCase(unittest.TestCase):
         test_name="batch_norm",
     ):
         pt_op = getattr(torch.nn, bn_op)(num_features).cuda().half().eval()
-        honey_op = getattr(batch_norm, bn_op)(
+        dinoml_op = getattr(batch_norm, bn_op)(
             num_features, eps=pt_op.eps, permute_input_output=True
         )
-        honey_op.name_parameter_tensor()
+        dinoml_op.name_parameter_tensor()
 
         pt_params = dict(pt_op.named_parameters())
         pt_buffers = dict(pt_op.named_buffers())
-        params_honey = {}
+        params_dinoml = {}
         for key, arr in pt_params.items():
             print(key, arr.shape)
-            params_honey[key] = arr
+            params_dinoml[key] = arr
         for key, arr in pt_buffers.items():
             print(key, arr.shape)
-            params_honey[key] = arr
+            params_dinoml[key] = arr
 
         X_pt = get_random_torch_tensor(input_shape, input_type)
         Y_pt = pt_op(X_pt)
-        X_honey = Tensor(
+        X_dinoml = Tensor(
             shape=input_shape, dtype=input_type, name="input0", is_input=True
         )
-        Y_honey = honey_op(X_honey)
+        Y_dinoml = dinoml_op(X_dinoml)
 
-        Ys_honey = [var._attrs["values"][0] for var in Y_honey._attrs["shape"]]
-        self.assertEqual(list(Y_pt.shape), Ys_honey)
+        Ys_dinoml = [var._attrs["values"][0] for var in Y_dinoml._attrs["shape"]]
+        self.assertEqual(list(Y_pt.shape), Ys_dinoml)
 
-        Y_honey._attrs["is_output"] = True
-        Y_honey._attrs["name"] = "output"
+        Y_dinoml._attrs["is_output"] = True
+        Y_dinoml._attrs["name"] = "output"
 
         target = detect_target()
         module = compile_model(
-            Y_honey,
+            Y_dinoml,
             target,
             "./tmp",
             f"{test_name}_{self.test_id}",
-            constants=params_honey,
+            constants=params_dinoml,
         )
         self.test_id += 1
 
-        y = get_torch_empty_tensor(Ys_honey, dtype=input_type)
+        y = get_torch_empty_tensor(Ys_dinoml, dtype=input_type)
         inputs = {"input0": X_pt}
         module.run_with_tensors(inputs, [y])
 
         print(f"PT output: {Y_pt=}")
-        print(f"Honey output: {y=}")
+        print(f"DinoML output: {y=}")
         self.assertTrue(torch.allclose(Y_pt, y, atol=1e-5, rtol=1e-5))
 
     def test_batch_norm(self):

@@ -17,12 +17,12 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from honey.backend.profiler_cache import ProfileCacheDB
+from dinoml.backend.profiler_cache import ProfileCacheDB
 
-from honey.compiler import compile_model, ops
-from honey.frontend import IntImm, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import env_variables
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntImm, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import env_variables
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ class GemmProfilerCacheTestCase(unittest.TestCase):
     def test_gemm_profiler_cache(self):
         first_dim = IntImm(4)
         test_name = "gemm_rcr_profiler_cache"
-        logger = "honey.compiler.transform.profile"
+        logger = "dinoml.compiler.transform.profile"
 
         _LOGGER.info(f"running {test_name=}")
         with tempfile.TemporaryDirectory() as tmp_dirname:
@@ -113,7 +113,7 @@ class GemmProfilerCacheTestCase(unittest.TestCase):
     def test_gemm_profiler_cache_versioning(self):
         first_dim = IntImm(4)
         test_name = "gemm_rcr_profiler_cache_versioning"
-        logger = "honey.backend.profiler_cache"
+        logger = "dinoml.backend.profiler_cache"
         cache_version_property = "gemm_cache_version"
         target_name = detect_target().name()
 
@@ -179,7 +179,7 @@ class GemmProfilerCacheTestCase(unittest.TestCase):
         test_name = "gemm_rcr_profiler_force_cache"
         cache_version_property = "gemm_cache_version"
 
-        logger = "honey.backend.profiler_cache"
+        logger = "dinoml.backend.profiler_cache"
         _LOGGER.info(f"running {test_name=}")
         with tempfile.TemporaryDirectory() as tmp_dirname:
             _LOGGER.info(f"{tmp_dirname=}")
@@ -189,7 +189,7 @@ class GemmProfilerCacheTestCase(unittest.TestCase):
                 new=1,  # version
             ):
                 _LOGGER.info("force cache with no cache 1")
-                with env_variables(Honey_FORCE_PROFILER_CACHE="1"):
+                with env_variables(DINOML_FORCE_PROFILER_CACHE="1"):
                     with self.assertRaisesRegex(
                         RuntimeError, "force_cache is enabled but we could not find"
                     ):
@@ -201,7 +201,7 @@ class GemmProfilerCacheTestCase(unittest.TestCase):
                         )
 
                 _LOGGER.info("make cache 1")
-                with env_variables(Honey_FORCE_PROFILER_CACHE=None):
+                with env_variables(DINOML_FORCE_PROFILER_CACHE=None):
                     self._run_test(
                         first_dim=first_dim,
                         test_name=test_name,
@@ -210,7 +210,7 @@ class GemmProfilerCacheTestCase(unittest.TestCase):
                     )
 
                 _LOGGER.info("force cache with no cache 1")
-                with env_variables(Honey_FORCE_PROFILER_CACHE="1"):
+                with env_variables(DINOML_FORCE_PROFILER_CACHE="1"):
                     self._run_test(
                         first_dim=first_dim,
                         test_name=test_name,

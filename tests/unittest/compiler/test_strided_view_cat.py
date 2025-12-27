@@ -17,17 +17,17 @@ from typing import List
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm, IntVar, Tensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.testing import detect_target, test_utils
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm, IntVar, Tensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.testing import detect_target, test_utils
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     get_torch_empty_tensor,
     TestEnv,
 )
-from honey.utils import graph_utils
+from dinoml.utils import graph_utils
 from parameterized import param, parameterized
 
 
@@ -257,7 +257,7 @@ class StridedViewCatOpTestCase(unittest.TestCase):
             z_pt = torch.cat(ys_pt, dim=cat_dim)
             z = get_torch_empty_tensor(z_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors(
                 {
                     "input0": input0_pt,
@@ -362,7 +362,7 @@ class StridedViewCatOpTestCase(unittest.TestCase):
             z_pt = torch.cat(ys_pt, dim=cat_dim)
             z = get_torch_empty_tensor(z_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors(
                 {
                     "input0": input0_pt,

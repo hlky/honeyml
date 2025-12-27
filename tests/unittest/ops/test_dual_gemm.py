@@ -19,12 +19,12 @@ import unittest
 import numpy as np
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.frontend import nn, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
-from honey.utils import shape_utils
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import nn, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
+from dinoml.utils import shape_utils
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -152,15 +152,15 @@ class DUALGEMMTestCase(unittest.TestCase):
             # Warm up.
             for _ in range(5):
                 module.run_with_tensors(inputs, [y])
-            # Benchmark Honey
+            # Benchmark DinoML
             time_per_iter_ms, time_std, _ = module.benchmark_with_tensors(
                 inputs,
                 [y],
                 count=100,
             )
-            _LOGGER.info(f"Honey GEMMxGEMM time: {time_per_iter_ms:.5f}ms")
+            _LOGGER.info(f"DinoML GEMMxGEMM time: {time_per_iter_ms:.5f}ms")
             # Benchmark PT
-            from honey.testing.benchmark_pt import benchmark_torch_function
+            from dinoml.testing.benchmark_pt import benchmark_torch_function
 
             func = pt_func
             args = (X_pt, W_pt, B_pt)
@@ -311,31 +311,31 @@ class DUALGEMMTestCase(unittest.TestCase):
         pt_mod = pt_mod.eval()
 
         pt_params = dict(pt_mod.named_parameters())
-        params_honey = {}
+        params_dinoml = {}
         for key, arr in pt_params.items():
             print(key, arr.shape)
-            params_honey[key.replace(".", "_").replace("out_proj", "proj")] = arr
+            params_dinoml[key.replace(".", "_").replace("out_proj", "proj")] = arr
 
-        honey_mod = nn.T5DenseGatedGeluDense(
+        dinoml_mod = nn.T5DenseGatedGeluDense(
             in_channels=d_model,
             out_channels=d_ff,
             dtype=dtype,
         )
-        honey_mod.name_parameter_tensor()
+        dinoml_mod.name_parameter_tensor()
 
         M_dim = shape_utils.gen_int_var_min_max(Ms, name="Mdim")
-        inputs_honey = Tensor(
+        inputs_dinoml = Tensor(
             [M_dim, d_model],
             name="input0",
             is_input=True,
             dtype=dtype,
         )
-        Y = honey_mod(inputs_honey)
+        Y = dinoml_mod(inputs_dinoml)
         mark_output(Y)
         target = detect_target(use_fp16_acc=False)
         exe_module = compile_model(Y, target, "./tmp", f"{test_name}_{self._test_id}")
         self._test_id += 1
-        for name, weight in params_honey.items():
+        for name, weight in params_dinoml.items():
             exe_module.set_constant_with_tensor(name, weight)
 
         for m in Ms:

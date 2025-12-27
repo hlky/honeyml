@@ -16,10 +16,10 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import filter_test_cases_by_test_env
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import filter_test_cases_by_test_env
 
 
 @unittest.skipIf(detect_target().name() == "rocm", "Not supported by ROCM.")
@@ -42,14 +42,14 @@ class GEMMNoTF32TestCase(unittest.TestCase):
             result_cuda = torch.matmul(A, B)
 
             target = detect_target(no_tf32=True)  # Disable tf32 for accuracy
-            A_honey = Tensor(
+            A_dinoml = Tensor(
                 shape=[64, 64], dtype=test_dtype_str, name="input_0", is_input=True
             )
-            B_honey = Tensor(
+            B_dinoml = Tensor(
                 shape=[64, 64], dtype=test_dtype_str, name="input_1", is_input=True
             )
             OP = ops.gemm_rrr()
-            Y = OP(A_honey, B_honey)
+            Y = OP(A_dinoml, B_dinoml)
             Y._attrs["name"] = "output_0"
             Y._attrs["is_output"] = True
             module = compile_model(Y, target, "./tmp", "gemm_rrr_no_tf32")
@@ -57,9 +57,9 @@ class GEMMNoTF32TestCase(unittest.TestCase):
                 "input_0": A.clone().detach().cuda(),
                 "input_1": B.clone().detach().cuda(),
             }
-            result_honey = torch.empty([64, 64], dtype=test_dtype, device="cuda")
-            module.run_with_tensors(inputs, [result_honey])
-            torch.testing.assert_close(result_cuda, result_honey)
+            result_dinoml = torch.empty([64, 64], dtype=test_dtype, device="cuda")
+            module.run_with_tensors(inputs, [result_dinoml])
+            torch.testing.assert_close(result_cuda, result_dinoml)
         finally:
             torch.backends.cuda.matmul.allow_tf32 = allow_tf32_bak
 

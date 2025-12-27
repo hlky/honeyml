@@ -17,10 +17,10 @@ from typing import List
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.ops.tensor.dynamic_slice import MAX_INT32
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.ops.tensor.dynamic_slice import MAX_INT32
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     gen_input_tensor,
     get_random_torch_tensor,
     graph_has_op,
@@ -135,7 +135,7 @@ class TestRemoveNoOpDynamicSlices(unittest.TestCase):
         X_sliced_pt = X_pt[slices]
         c_pt = get_random_torch_tensor(shape=[1])
         Y_pt = (X_sliced_pt * c_pt) + (X_sliced_pt / c_pt)
-        Y_honey = torch.empty_like(Y_pt)
+        Y_dinoml = torch.empty_like(Y_pt)
 
         # NOTE: We don't run every optimization pass to avoid fusion between
         # dynamic_slice and elementwise.
@@ -143,11 +143,11 @@ class TestRemoveNoOpDynamicSlices(unittest.TestCase):
             model_output, detect_target(), "/tmp", test_name, do_optimize_graph=False
         ) as module:
             module.run_with_tensors(
-                {"input_0": X_pt, "input_const": c_pt}, {"output_0": Y_honey}
+                {"input_0": X_pt, "input_const": c_pt}, {"output_0": Y_dinoml}
             )
 
             self.assertEqual(
                 graph_has_op(module.debug_sorted_graph, "dynamic_slice"),
                 should_keep_dynamic_slice,
             )
-            self.assertTrue(torch.allclose(Y_pt, Y_honey, atol=1e-2, rtol=1e-3))
+            self.assertTrue(torch.allclose(Y_pt, Y_dinoml, atol=1e-2, rtol=1e-3))

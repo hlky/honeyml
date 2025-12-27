@@ -18,15 +18,15 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import graph_utils
+from dinoml.utils import graph_utils
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ class SplitLargeConcatTestCase(unittest.TestCase):
         ]
         y_pt = torch.cat(inputs_pt, cat_dim)
 
-        # run honey
+        # run dinoml
         input_name_to_index = module.get_input_name_to_index_map()
         inputs = [0 for i in range(len(inputs_pt))]
         input_names = [x._attrs["name"] for x in input_tensors]
@@ -143,7 +143,7 @@ class SplitLargeConcatTestCase(unittest.TestCase):
         inputs_pt.append(x_n_pt)
         y_pt = y1_pt + x_n_pt
 
-        # run honey
+        # run dinoml
         input_name_to_index = module.get_input_name_to_index_map()
         inputs = [0 for i in range(len(inputs_pt))]
         input_names = [x._attrs["name"] for x in input_tensors + [X_n]]
@@ -200,7 +200,7 @@ class SplitLargeConcatTestCase(unittest.TestCase):
 
         input_tensors = add_input_tensors + concat_input_tensors + [X_n]
         inputs_pt = add_inputs_pt + concat_inputs_pt + [x_n_pt]
-        # run honey
+        # run dinoml
         input_name_to_index = module.get_input_name_to_index_map()
         inputs = [0 for i in range(len(inputs_pt))]
         input_names = [x._attrs["name"] for x in input_tensors]
@@ -270,7 +270,7 @@ class SplitLargeConcatTestCase(unittest.TestCase):
 
         input_tensors = add_input_tensors + other_input_tensors
         inputs_pt = add_inputs_pt + other_inputs_pt
-        # run honey
+        # run dinoml
         input_name_to_index = module.get_input_name_to_index_map()
         inputs = [0 for i in range(len(inputs_pt))]
         input_names = [x._attrs["name"] for x in input_tensors]
@@ -349,7 +349,7 @@ class SplitLargeConcatTestCase(unittest.TestCase):
 
         input_tensors = add_input_tensors + other_input_tensors
         inputs_pt = add_inputs_pt + other_inputs_pt
-        # run honey
+        # run dinoml
         input_name_to_index = module.get_input_name_to_index_map()
         inputs = [0 for i in range(len(inputs_pt))]
         input_names = [x._attrs["name"] for x in input_tensors]
@@ -441,7 +441,7 @@ class SplitLargeConcatTestCase(unittest.TestCase):
 
         input_tensors = slice_input_tensors + add_input_tensors
         inputs_pt = slice_inputs_pt + add_inputs_pt
-        # run honey
+        # run dinoml
         input_name_to_index = module.get_input_name_to_index_map()
         inputs = [0 for i in range(len(inputs_pt))]
         input_names = [x._attrs["name"] for x in input_tensors]
@@ -508,7 +508,7 @@ class SplitLargeConcatTestCase(unittest.TestCase):
         concat_inputs_pt = [reshape_output_pt] + normal_inputs_pt
         y_pt = torch.cat(concat_inputs_pt, cat_dim)
 
-        # run honey
+        # run dinoml
         input_name_to_index = module.get_input_name_to_index_map()
         inputs = [0 for i in range(len(concat_inputs_pt))]
         input_names = [X._attrs["name"]] + [

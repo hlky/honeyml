@@ -2,10 +2,10 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     TestEnv,
@@ -55,7 +55,7 @@ class StackTestCase(unittest.TestCase):
                 Y_pt.to(y.dtype),
                 rtol=1e-3,
                 atol=1e-3,
-                msg=lambda msg: f"{msg}\n\n{test_name}\npt ({Y_pt.shape}):\n{Y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+                msg=lambda msg: f"{msg}\n\n{test_name}\npt ({Y_pt.shape}):\n{Y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
             )
 
     @parameterized.expand(
@@ -67,25 +67,25 @@ class StackTestCase(unittest.TestCase):
             }
         )
     )
-    def test_stack(self, honey_dtype):
+    def test_stack(self, dinoml_dtype):
         # shape excludes batch
         self._test_stack(
             shape=[],
             dim=1,
-            test_name=f"stack_{honey_dtype}",
-            dtype=honey_dtype,
+            test_name=f"stack_{dinoml_dtype}",
+            dtype=dinoml_dtype,
         )
         self._test_stack(
             shape=[3],
             dim=1,
-            test_name=f"stack_{honey_dtype}",
-            dtype=honey_dtype,
+            test_name=f"stack_{dinoml_dtype}",
+            dtype=dinoml_dtype,
         )
         self._test_stack(
             shape=[2, 3],
             dim=-1,
-            test_name=f"stack_{honey_dtype}",
-            dtype=honey_dtype,
+            test_name=f"stack_{dinoml_dtype}",
+            dtype=dinoml_dtype,
         )
 
 

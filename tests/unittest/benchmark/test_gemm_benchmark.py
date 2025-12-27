@@ -20,15 +20,15 @@ import uuid
 
 import torch
 
-from honey.compiler import ops
-from honey.compiler.base import Tensor
-from honey.compiler.compiler import compile_model
+from dinoml.compiler import ops
+from dinoml.compiler.base import Tensor
+from dinoml.compiler.compiler import compile_model
 
-from honey.testing import detect_target
-from honey.testing.benchmark_honey import make_input_output_pools, run_benchmark
-from honey.testing.benchmark_pt import benchmark_torch_function
-from honey.testing.benchmark_trt import make_trt_module
-from honey.utils import shape_utils
+from dinoml.testing import detect_target
+from dinoml.testing.benchmark_dinoml import make_input_output_pools, run_benchmark
+from dinoml.testing.benchmark_pt import benchmark_torch_function
+from dinoml.testing.benchmark_trt import make_trt_module
+from dinoml.utils import shape_utils
 
 NK_SHAPES = ((8314, 3072), (6912, 8314))
 INPUT_POOL_SIZE = 20
@@ -76,7 +76,7 @@ class GemmRCRTRTFunction(GemmRCRFunction):
         self._module(a, b)
 
 
-def build_honey_module_gemm_rcr(*, ms, n, k, split_k, test_name):
+def build_dinoml_module_gemm_rcr(*, ms, n, k, split_k, test_name):
     target = detect_target(use_fp16_acc=True)
     input_params = {
         "dtype": "float16",
@@ -140,7 +140,7 @@ class BmmRRRTRTFunction(BmmRRRFunction):
         self._module(batch_as, batch_bs)
 
 
-def build_honey_module_bmm_rrr(*, bs, m, n, k, split_k, test_name):
+def build_dinoml_module_bmm_rrr(*, bs, m, n, k, split_k, test_name):
     target = detect_target(use_fp16_acc=True)
     input_params = {
         "dtype": "float16",
@@ -189,7 +189,7 @@ class TestGemmRCRBenchmark(unittest.TestCase):
         for split_k, (n, k) in itertools.product(split_ks, NK_SHAPES):
             NUM_ITERS = 100000
             NUM_WARMUP_ITERS = 1000
-            honey_module = build_honey_module_gemm_rcr(
+            dinoml_module = build_dinoml_module_gemm_rcr(
                 ms=BATCH_SIZES,
                 n=n,
                 k=k,
@@ -211,16 +211,16 @@ class TestGemmRCRBenchmark(unittest.TestCase):
                 )
 
                 pt_outputs = eval_pt_gemm_rcr(**mnk)
-                honey_outputs = {"output": torch.empty_like(pt_outputs["output"])}
-                honey_module.run_with_tensors(
+                dinoml_outputs = {"output": torch.empty_like(pt_outputs["output"])}
+                dinoml_module.run_with_tensors(
                     {k: v for k, v in pt_outputs.items() if k != "output"},
-                    honey_outputs,
+                    dinoml_outputs,
                 )
                 torch.testing.assert_close(
-                    honey_outputs["output"], pt_outputs["output"], rtol=1, atol=1
+                    dinoml_outputs["output"], pt_outputs["output"], rtol=1, atol=1
                 )
-                mean_runtime_honey = run_benchmark(
-                    honey_module=honey_module,
+                mean_runtime_dinoml = run_benchmark(
+                    dinoml_module=dinoml_module,
                     inputs_pool=inputs_pool,
                     outputs_pool=outputs_pool,
                     num_iters=NUM_ITERS,
@@ -237,7 +237,7 @@ class TestGemmRCRBenchmark(unittest.TestCase):
 
                 benchmark_results = {
                     "function": "gemm_rcr_bias",
-                    "mean_runtime_honey_ms": round(mean_runtime_honey, 5),
+                    "mean_runtime_dinoml_ms": round(mean_runtime_dinoml, 5),
                     "mean_runtime_pt_ms": round(mean_runtime_pt, 5),
                     "mean_runtime_trt_ms": round(mean_runtime_trt, 5),
                     "split_k": split_k,
@@ -259,7 +259,7 @@ class TestBmmRRRBenchmark(unittest.TestCase):
         for split_k, (m, n, k) in itertools.product(split_ks, MNK_SHAPES):
             NUM_ITERS = 100000
             NUM_WARMUP_ITERS = 1000
-            honey_module = build_honey_module_bmm_rrr(
+            dinoml_module = build_dinoml_module_bmm_rrr(
                 bs=BATCH_SIZES,
                 m=m,
                 n=n,
@@ -281,17 +281,17 @@ class TestBmmRRRBenchmark(unittest.TestCase):
                 bmm_rrr_trt_function = BmmRRRTRTFunction(inputs_pool, max_batch_size=b)
 
                 pt_outputs = eval_pt_bmm_rrr(**bmnk)
-                honey_outputs = {"output": torch.empty_like(pt_outputs["output"])}
-                honey_module.run_with_tensors(
+                dinoml_outputs = {"output": torch.empty_like(pt_outputs["output"])}
+                dinoml_module.run_with_tensors(
                     {k: v for k, v in pt_outputs.items() if k != "output"},
-                    honey_outputs,
+                    dinoml_outputs,
                 )
                 torch.testing.assert_close(
-                    honey_outputs["output"], pt_outputs["output"], rtol=1, atol=1
+                    dinoml_outputs["output"], pt_outputs["output"], rtol=1, atol=1
                 )
 
-                mean_runtime_honey = run_benchmark(
-                    honey_module=honey_module,
+                mean_runtime_dinoml = run_benchmark(
+                    dinoml_module=dinoml_module,
                     inputs_pool=inputs_pool,
                     outputs_pool=outputs_pool,
                     num_iters=NUM_ITERS,
@@ -308,7 +308,7 @@ class TestBmmRRRBenchmark(unittest.TestCase):
 
                 benchmark_results = {
                     "function": "bmm_rrr",
-                    "mean_runtime_honey_ms": round(mean_runtime_honey, 5),
+                    "mean_runtime_dinoml_ms": round(mean_runtime_dinoml, 5),
                     "mean_runtime_pt_ms": round(mean_runtime_pt, 5),
                     "mean_runtime_trt_ms": round(mean_runtime_trt, 5),
                     "split_k": split_k,

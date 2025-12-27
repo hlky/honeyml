@@ -21,15 +21,15 @@ import pytest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm, IntVarTensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
-from honey.utils import shape_utils
-from honey.utils.debug_settings import HoneyDebugSettings
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm, IntVarTensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
+from dinoml.utils import shape_utils
+from dinoml.utils.debug_settings import DinoMLDebugSettings
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 
 def _test_inf_and_nan(
@@ -48,7 +48,7 @@ def _test_inf_and_nan(
     X2._attrs["check_nan_and_inf"] = check_tensor
 
     target = detect_target()
-    debug_settings = HoneyDebugSettings(check_all_nan_and_inf=check_all)
+    debug_settings = DinoMLDebugSettings(check_all_nan_and_inf=check_all)
     module = compile_model(
         X2, target, "./tmp", test_name, debug_settings=debug_settings
     )
@@ -84,7 +84,7 @@ def _test_outputs(
     X2._attrs["check_outputs"] = check_tensor
 
     target = detect_target()
-    debug_settings = HoneyDebugSettings(check_all_outputs=check_all)
+    debug_settings = DinoMLDebugSettings(check_all_outputs=check_all)
     module = compile_model(
         X2, target, "./tmp", test_name, debug_settings=debug_settings
     )
@@ -153,7 +153,7 @@ def _test_with_int_var_tensor(test_name, dtype):
     Y = ops.reshape()(X, [Y2 * Y3 * f1 / f2, f2])
     Y._attrs["name"] = "output_0"
     Y._attrs["is_output"] = True
-    debug_settings = HoneyDebugSettings(
+    debug_settings = DinoMLDebugSettings(
         check_all_outputs=True, check_all_nan_and_inf=True
     )
     module = compile_model(Y, target, "./tmp", test_name, debug_settings=debug_settings)
@@ -191,7 +191,7 @@ def _test_special_outputs(
     X2._attrs["check_outputs"] = check_tensor
 
     target = detect_target()
-    debug_settings = HoneyDebugSettings(check_all_outputs=check_all)
+    debug_settings = DinoMLDebugSettings(check_all_outputs=check_all)
     module = compile_model(
         X2, target, "./tmp", test_name, debug_settings=debug_settings
     )

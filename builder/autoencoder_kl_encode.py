@@ -1,8 +1,8 @@
-from honey.compiler import compile_model
-from honey.frontend import IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.benchmark_honey import benchmark_module
-from honey.utils.build_utils import get_device_name, get_sm
+from dinoml.compiler import compile_model
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.benchmark_dinoml import benchmark_module
+from dinoml.utils.build_utils import get_device_name, get_sm
 
 from config import load_config, mark_output
 
@@ -34,7 +34,7 @@ def map_vae(pt_module, device="cuda", dtype="float16", encoder=True):
         pt_params = dict(pt_module.named_parameters())
     else:
         pt_params = pt_module
-    params_honey = {}
+    params_dinoml = {}
     quant_key = "post_quant" if encoder else "quant"
     vae_key = "decoder" if encoder else "encoder"
     for key, arr in pt_params.items():
@@ -50,15 +50,15 @@ def map_vae(pt_module, device="cuda", dtype="float16", encoder=True):
             and key.endswith("_weight")
             and len(arr.shape) == 4
         ):
-            params_honey[key] = torch.permute(arr, [0, 2, 3, 1]).contiguous()
+            params_dinoml[key] = torch.permute(arr, [0, 2, 3, 1]).contiguous()
         else:
-            params_honey[key] = arr
+            params_dinoml[key] = arr
     if encoder:
-        params_honey["encoder_conv_in_weight"] = torch.functional.F.pad(
-            params_honey["encoder_conv_in_weight"], (0, 1, 0, 0, 0, 0, 0, 0)
+        params_dinoml["encoder_conv_in_weight"] = torch.functional.F.pad(
+            params_dinoml["encoder_conv_in_weight"], (0, 1, 0, 0, 0, 0, 0, 0)
         )
 
-    return params_honey
+    return params_dinoml
 
 
 device_name = get_device_name()
@@ -74,10 +74,10 @@ hf_hub = args.hf_hub
 label = args.label
 model_name = f"autoencoder_kl.encoder.{label}.{resolution[1]}.{device_name}.sm{sm}"
 
-config, honey_cls, pt_cls = load_config(hf_hub, subfolder=args.subfolder)
+config, dinoml_cls, pt_cls = load_config(hf_hub, subfolder=args.subfolder)
 
-honey_module = honey_cls(**config)
-honey_module.name_parameter_tensor()
+dinoml_module = dinoml_cls(**config)
+dinoml_module.name_parameter_tensor()
 
 x = Tensor(
     [
@@ -102,7 +102,7 @@ sample = Tensor(
     dtype=args.dtype,
 )
 
-latents = honey_module.encode(x=x).latent_dist.sample(sample)
+latents = dinoml_module.encode(x=x).latent_dist.sample(sample)
 latents = mark_output(latents, "latents")
 
 pt = pt_cls.from_pretrained(hf_hub, subfolder=args.subfolder)

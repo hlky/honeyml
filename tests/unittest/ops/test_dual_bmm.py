@@ -16,10 +16,10 @@ import logging
 import unittest
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -92,17 +92,17 @@ class DUALBMMTestCase(unittest.TestCase):
             # Warm up.
             for _ in range(5):
                 module.run_with_tensors(inputs, [y])
-            # Benchmark Honey
+            # Benchmark DinoML
             time_per_iter_ms, time_std, _ = module.benchmark_with_tensors(
                 inputs,
                 [y],
                 count=100,
             )
             _LOGGER.info(
-                f"[{M}, {N}, {K}] Honey BMMxBMM time: {time_per_iter_ms:.5f}ms"
+                f"[{M}, {N}, {K}] DinoML BMMxBMM time: {time_per_iter_ms:.5f}ms"
             )
             # Benchmark PT
-            from honey.testing.benchmark_pt import benchmark_torch_function
+            from dinoml.testing.benchmark_pt import benchmark_torch_function
 
             func = pt_func
             args = (X_pt, B0_pt, B1_pt)

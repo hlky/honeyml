@@ -5,13 +5,13 @@ from typing import cast, List, Optional, Tuple, Union
 import diffusers.models.resnet as resnet_torch
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
-import honey.modeling.diffusers.resnet as resnet
-from honey.builder.config import mark_output
+import dinoml.modeling.diffusers.resnet as resnet
+from dinoml.builder.config import mark_output
 
 
 class ResnetTestCase(unittest.TestCase):
@@ -48,10 +48,10 @@ class ResnetTestCase(unittest.TestCase):
             ),
             dtype=dtype,
         )
-        x_honey = x.clone().permute(0, 2, 3, 1).contiguous().to(x.device, x.dtype)
-        temb_honey = temb.clone().to(temb.device, temb.dtype)
+        x_dinoml = x.clone().permute(0, 2, 3, 1).contiguous().to(x.device, x.dtype)
+        temb_dinoml = temb.clone().to(temb.device, temb.dtype)
         if time_embedding_norm == "spatial":
-            temb_honey = temb_honey.permute(0, 2, 3, 1).contiguous()
+            temb_dinoml = temb_dinoml.permute(0, 2, 3, 1).contiguous()
 
         op = (
             resnet_torch.ResnetBlockCondNorm2D(
@@ -77,13 +77,13 @@ class ResnetTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if value.ndim == 4 and "weight" in key:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt = op.forward(x, temb)
@@ -109,7 +109,7 @@ class ResnetTestCase(unittest.TestCase):
             is_input=True,
         )
 
-        op_honey = resnet.ResnetBlockCondNorm2D(
+        op_dinoml = resnet.ResnetBlockCondNorm2D(
             in_channels=in_channels,
             out_channels=out_channels,
             conv_shortcut=conv_shortcut,
@@ -128,8 +128,8 @@ class ResnetTestCase(unittest.TestCase):
             conv_2d_out_channels=conv_2d_out_channels,
             dtype=dtype,
         )
-        op_honey.name_parameter_tensor()
-        Y = op_honey.forward(X, Temb)
+        op_dinoml.name_parameter_tensor()
+        Y = op_dinoml.forward(X, Temb)
         Y = mark_output(Y, "Y")
 
         target = detect_target()
@@ -143,13 +143,13 @@ class ResnetTestCase(unittest.TestCase):
         if down:
             test_name += "_down"
 
-        x = {"X": x_honey, "Temb": temb_honey}
+        x = {"X": x_dinoml, "Temb": temb_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(x, [y])
         y = y.permute(0, 3, 1, 2).contiguous()
@@ -158,7 +158,7 @@ class ResnetTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_resnet_block_2d(
@@ -192,8 +192,8 @@ class ResnetTestCase(unittest.TestCase):
             if temb_shape is not None
             else None
         )
-        x_honey = x.clone().permute(0, 2, 3, 1).contiguous().to(x.device, x.dtype)
-        temb_honey = (
+        x_dinoml = x.clone().permute(0, 2, 3, 1).contiguous().to(x.device, x.dtype)
+        temb_dinoml = (
             temb.clone().to(temb.device, temb.dtype) if temb is not None else None
         )
 
@@ -222,13 +222,13 @@ class ResnetTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if value.ndim == 4 and "weight" in key:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt = op.forward(x, temb)
@@ -253,7 +253,7 @@ class ResnetTestCase(unittest.TestCase):
         else:
             Temb = None
 
-        op_honey = resnet.ResnetBlock2D(
+        op_dinoml = resnet.ResnetBlock2D(
             in_channels=in_channels,
             out_channels=out_channels,
             conv_shortcut=conv_shortcut,
@@ -273,8 +273,8 @@ class ResnetTestCase(unittest.TestCase):
             conv_2d_out_channels=conv_2d_out_channels,
             dtype=dtype,
         )
-        op_honey.name_parameter_tensor()
-        Y = op_honey.forward(X, Temb)
+        op_dinoml.name_parameter_tensor()
+        Y = op_dinoml.forward(X, Temb)
         Y = mark_output(Y, "Y")
 
         target = detect_target()
@@ -287,15 +287,15 @@ class ResnetTestCase(unittest.TestCase):
             test_name += "_up"
         if down:
             test_name += "_down"
-        x = {"X": x_honey}
+        x = {"X": x_dinoml}
         if Temb is not None:
-            x["Temb"] = temb_honey
+            x["Temb"] = temb_dinoml
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(x, [y])
         y = y.permute(0, 3, 1, 2).contiguous()
@@ -304,7 +304,7 @@ class ResnetTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_conv1d_block(
@@ -321,7 +321,7 @@ class ResnetTestCase(unittest.TestCase):
         batch, channels, seq_len = shape
 
         x = get_random_torch_tensor(shape, dtype=dtype)
-        x_honey = x.clone().permute(0, 2, 1).contiguous().to(x.device, x.dtype)
+        x_dinoml = x.clone().permute(0, 2, 1).contiguous().to(x.device, x.dtype)
 
         op = (
             resnet_torch.Conv1dBlock(
@@ -336,13 +336,13 @@ class ResnetTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if "conv" in key.lower() and "weight" in key:
                 value = value.permute(0, 2, 1).contiguous()
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt = op.forward(x)
@@ -356,7 +356,7 @@ class ResnetTestCase(unittest.TestCase):
             is_input=True,
         )
 
-        op_honey = resnet.Conv1dBlock(
+        op_dinoml = resnet.Conv1dBlock(
             inp_channels=in_channels,
             out_channels=out_channels,
             kernel_size=kernel_size,
@@ -364,19 +364,19 @@ class ResnetTestCase(unittest.TestCase):
             activation=activation,
             dtype=dtype,
         )
-        op_honey.name_parameter_tensor()
-        Y = op_honey.forward(X)
+        op_dinoml.name_parameter_tensor()
+        Y = op_dinoml.forward(X)
         Y = mark_output(Y, "Y")
 
         target = detect_target()
         test_name = f"test_conv1d_block_{dtype}_in_channels{in_channels}_out_channels{out_channels}"
-        x = {"X": x_honey}
+        x = {"X": x_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(x, [y])
         y = y.permute(0, 2, 1).contiguous()
@@ -385,7 +385,7 @@ class ResnetTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_residual_temporal_block_1d(
@@ -402,9 +402,9 @@ class ResnetTestCase(unittest.TestCase):
         batch, channels, seq_len = shape
 
         x = get_random_torch_tensor(shape, dtype=dtype)
-        x_honey = x.clone().permute(0, 2, 1).contiguous().to(x.device, x.dtype)
+        x_dinoml = x.clone().permute(0, 2, 1).contiguous().to(x.device, x.dtype)
         temb = get_random_torch_tensor([1, embed_dim], dtype=dtype)
-        temb_honey = temb.clone()
+        temb_dinoml = temb.clone()
 
         op = (
             resnet_torch.ResidualTemporalBlock1D(
@@ -419,13 +419,13 @@ class ResnetTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if "conv" in key.lower() and "weight" in key and value.ndim == 3:
                 value = value.permute(0, 2, 1).contiguous()
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt = op.forward(x, temb)
@@ -445,7 +445,7 @@ class ResnetTestCase(unittest.TestCase):
             is_input=True,
         )
 
-        op_honey = resnet.ResidualTemporalBlock1D(
+        op_dinoml = resnet.ResidualTemporalBlock1D(
             inp_channels=in_channels,
             out_channels=out_channels,
             embed_dim=embed_dim,
@@ -453,19 +453,19 @@ class ResnetTestCase(unittest.TestCase):
             activation=activation,
             dtype=dtype,
         )
-        op_honey.name_parameter_tensor()
-        Y = op_honey.forward(X, Temb)
+        op_dinoml.name_parameter_tensor()
+        Y = op_dinoml.forward(X, Temb)
         Y = mark_output(Y, "Y")
 
         target = detect_target()
         test_name = f"test_residual_temporal_block_1d_{dtype}_in_channels{in_channels}_out_channels{out_channels}_dim{embed_dim}"
-        x = {"X": x_honey, "Temb": temb_honey}
+        x = {"X": x_dinoml, "Temb": temb_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(x, [y])
         y = y.permute(0, 2, 1).contiguous()
@@ -474,7 +474,7 @@ class ResnetTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_temporal_conv_layer(
@@ -490,7 +490,7 @@ class ResnetTestCase(unittest.TestCase):
     ):
         batch, channels, height, width = shape
         x = get_random_torch_tensor(shape, dtype=dtype)
-        x_honey = x.clone().permute(0, 2, 3, 1).contiguous().to(x.device, x.dtype)
+        x_dinoml = x.clone().permute(0, 2, 3, 1).contiguous().to(x.device, x.dtype)
 
         op = (
             resnet_torch.TemporalConvLayer(
@@ -504,13 +504,13 @@ class ResnetTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if "conv" in key.lower() and "weight" in key and value.ndim == 4:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt = op.forward(x, num_frames)
@@ -526,28 +526,28 @@ class ResnetTestCase(unittest.TestCase):
             is_input=True,
         )
 
-        op_honey = resnet.TemporalConvLayer(
+        op_dinoml = resnet.TemporalConvLayer(
             in_dim=in_dim,
             out_dim=out_dim,
             dropout=dropout,
             norm_num_groups=norm_num_groups,
             dtype=dtype,
         )
-        op_honey.name_parameter_tensor()
-        Y = op_honey.forward(X, num_frames)
+        op_dinoml.name_parameter_tensor()
+        Y = op_dinoml.forward(X, num_frames)
         Y = mark_output(Y, "Y")
 
         target = detect_target()
         test_name = (
             f"test_temporal_conv_layer_{dtype}_in_dim{in_dim}_frames{num_frames}"
         )
-        inputs_dict = {"X": x_honey}
+        inputs_dict = {"X": x_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs_dict, [y])
         y = y.permute(0, 3, 1, 2).contiguous()
@@ -556,7 +556,7 @@ class ResnetTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_temporal_resnet_block(
@@ -573,8 +573,8 @@ class ResnetTestCase(unittest.TestCase):
         batch, channels, frames, height, width = shape
         x = get_random_torch_tensor(shape, dtype=dtype)
         temb = get_random_torch_tensor(temb_shape, dtype=dtype)
-        x_honey = x.clone().permute(0, 2, 3, 4, 1).contiguous().to(x.device, x.dtype)
-        temb_honey = temb.clone().to(temb.device, temb.dtype)
+        x_dinoml = x.clone().permute(0, 2, 3, 4, 1).contiguous().to(x.device, x.dtype)
+        temb_dinoml = temb.clone().to(temb.device, temb.dtype)
 
         op = (
             resnet_torch.TemporalResnetBlock(
@@ -588,13 +588,13 @@ class ResnetTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if "weight" in key and value.ndim == 5:
                 value = value.permute(0, 2, 3, 4, 1).contiguous()
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt = op.forward(x, temb)
@@ -616,28 +616,28 @@ class ResnetTestCase(unittest.TestCase):
             is_input=True,
         )
 
-        op_honey = resnet.TemporalResnetBlock(
+        op_dinoml = resnet.TemporalResnetBlock(
             in_channels=in_channels,
             out_channels=out_channels,
             temb_channels=temb_channels,
             eps=eps,
             dtype=dtype,
         )
-        op_honey.name_parameter_tensor()
-        Y = op_honey.forward(X, Temb)
+        op_dinoml.name_parameter_tensor()
+        Y = op_dinoml.forward(X, Temb)
         Y = mark_output(Y, "Y")
 
         target = detect_target()
         test_name = (
             f"test_temporal_resnet_block_{dtype}_in_dim{in_channels}_frames{frames}"
         )
-        inputs_dict = {"X": x_honey, "Temb": temb_honey}
+        inputs_dict = {"X": x_dinoml, "Temb": temb_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs_dict, [y])
         y = y.permute(0, 4, 1, 2, 3).contiguous()
@@ -646,7 +646,7 @@ class ResnetTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_alpha_blender(
@@ -673,12 +673,12 @@ class ResnetTestCase(unittest.TestCase):
             if merge_strategy == "learned_with_images"
             else None
         )
-        x_spatial_honey = x_spatial.clone().to(x_spatial.device, x_spatial.dtype)
-        x_temporal_honey = x_temporal.clone().to(x_temporal.device, x_temporal.dtype)
+        x_spatial_dinoml = x_spatial.clone().to(x_spatial.device, x_spatial.dtype)
+        x_temporal_dinoml = x_temporal.clone().to(x_temporal.device, x_temporal.dtype)
         if len(shape) == 5:
-            x_spatial_honey = x_spatial_honey.permute(0, 2, 3, 4, 1).contiguous()
-            x_temporal_honey = x_temporal_honey.permute(0, 2, 3, 4, 1).contiguous()
-        image_only_indicator_honey = (
+            x_spatial_dinoml = x_spatial_dinoml.permute(0, 2, 3, 4, 1).contiguous()
+            x_temporal_dinoml = x_temporal_dinoml.permute(0, 2, 3, 4, 1).contiguous()
+        image_only_indicator_dinoml = (
             image_only_indicator.clone().to(
                 image_only_indicator.device, image_only_indicator.dtype
             )
@@ -697,16 +697,16 @@ class ResnetTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if "weight" in key and value.ndim == 5:
                 value = value.permute(0, 2, 3, 4, 1).contiguous()
             value = value.to(x_spatial.device, x_spatial.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         if merge_strategy == "fixed":
-            state_dict_honey["mix_factor"] = torch.tensor(
+            state_dict_dinoml["mix_factor"] = torch.tensor(
                 [alpha], dtype=x_spatial.dtype, device=x_spatial.device
             )
 
@@ -742,27 +742,27 @@ class ResnetTestCase(unittest.TestCase):
             else None
         )
 
-        op_honey = resnet.AlphaBlender(
+        op_dinoml = resnet.AlphaBlender(
             alpha=alpha,
             merge_strategy=merge_strategy,
             switch_spatial_to_temporal_mix=switch_spatial_to_temporal_mix,
             dtype=dtype,
         )
-        op_honey.name_parameter_tensor()
-        Y = op_honey.forward(X_spatial, X_temporal, Image_only_indicator)
+        op_dinoml.name_parameter_tensor()
+        Y = op_dinoml.forward(X_spatial, X_temporal, Image_only_indicator)
         Y = mark_output(Y, "Y")
 
         target = detect_target()
         test_name = f"test_alpha_blender_{dtype}_merge_strategy_{merge_strategy}"
-        inputs_dict = {"X_spatial": x_spatial_honey, "X_temporal": x_temporal_honey}
+        inputs_dict = {"X_spatial": x_spatial_dinoml, "X_temporal": x_temporal_dinoml}
         if Image_only_indicator is not None:
-            inputs_dict["Image_only_indicator"] = image_only_indicator_honey
+            inputs_dict["Image_only_indicator"] = image_only_indicator_dinoml
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs_dict, [y])
         if len(shape) == 5:
@@ -772,7 +772,7 @@ class ResnetTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_spatiotemporal_res_block(
@@ -802,9 +802,9 @@ class ResnetTestCase(unittest.TestCase):
             dtype=torch.bool,
             device=x.device,
         )
-        x_honey = x.clone().permute(0, 2, 3, 1).contiguous().to(x.device, x.dtype)
-        # temb_honey = temb.clone().to(temb.device, temb.dtype)
-        image_only_indicator_honey = image_only_indicator.clone().to(
+        x_dinoml = x.clone().permute(0, 2, 3, 1).contiguous().to(x.device, x.dtype)
+        # temb_dinoml = temb.clone().to(temb.device, temb.dtype)
+        image_only_indicator_dinoml = image_only_indicator.clone().to(
             image_only_indicator.device, image_only_indicator.dtype
         )
 
@@ -824,18 +824,18 @@ class ResnetTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if "weight" in key and value.ndim == 4:
                 value = value.permute(0, 2, 3, 1).contiguous()
             if "weight" in key and value.ndim == 5:
                 value = value.permute(0, 2, 3, 4, 1).contiguous()
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         if merge_strategy == "fixed":
-            state_dict_honey["mix_factor"] = torch.tensor(
+            state_dict_dinoml["mix_factor"] = torch.tensor(
                 [merge_factor], dtype=x.dtype, device=x.device
             )
 
@@ -866,7 +866,7 @@ class ResnetTestCase(unittest.TestCase):
             is_input=True,
         )
 
-        op_honey = resnet.SpatioTemporalResBlock(
+        op_dinoml = resnet.SpatioTemporalResBlock(
             in_channels=in_channels,
             out_channels=out_channels,
             temb_channels=temb_channels,
@@ -877,21 +877,21 @@ class ResnetTestCase(unittest.TestCase):
             switch_spatial_to_temporal_mix=switch_spatial_to_temporal_mix,
             dtype=dtype,
         )
-        op_honey.name_parameter_tensor()
-        Y = op_honey.forward(X, None, Image_only_indicator)
+        op_dinoml.name_parameter_tensor()
+        Y = op_dinoml.forward(X, None, Image_only_indicator)
         Y = mark_output(Y, "Y")
 
         target = detect_target()
         test_name = (
             f"test_spatiotemporal_res_block_{dtype}_merge_strategy_{merge_strategy}"
         )
-        inputs_dict = {"X": x_honey}
+        inputs_dict = {"X": x_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs_dict, [y])
         if y.ndim == 4:
@@ -901,7 +901,7 @@ class ResnetTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def test_resnet_block_cond_norm_2d(self):

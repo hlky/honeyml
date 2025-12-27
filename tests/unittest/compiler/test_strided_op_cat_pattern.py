@@ -22,17 +22,17 @@ from typing import List, Optional
 import numpy as np
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntVar
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import IntImm, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntVar
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import IntImm, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import graph_utils, shape_utils
+from dinoml.utils import graph_utils, shape_utils
 
 
 class StridedOpCatPatternTestCase(unittest.TestCase):
@@ -111,7 +111,7 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
                 x7_pt = torch.cat([x5_pt, x6_pt, x9_pt], dim=2)
                 x8_pt = torch.reshape(x7_pt, [-1, (m1 + m2 + m3) * k])
 
-                # Run Honey module.
+                # Run DinoML module.
                 inputs = [x1_pt, x3_pt, x9_pt]
                 x8 = get_torch_empty_tensor(
                     [sizes[0] * sizes[1], (m1 + m2 + m3) * k], dtype
@@ -310,7 +310,7 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
             x4_pt = x1_pt * x3_pt  # Mul
             x5_pt = torch.cat([x4_pt, float_features], dim=1)  # Concat
 
-            # Run Honey module.
+            # Run DinoML module.
             x6 = get_torch_empty_tensor(x5_pt.size(), dtype)
             module.run_with_tensors([float_features], [x6])
 
@@ -360,7 +360,7 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
             x4_pt = x1_pt * x3_pt  # Mul
             x5_pt = torch.cat([x4_pt, float_features], dim=1)  # Concat
 
-            # Run Honey module.
+            # Run DinoML module.
             x6 = get_torch_empty_tensor(x5_pt.size())
             x5 = get_torch_empty_tensor(x4_pt.size())
             module.run_with_tensors(
@@ -510,7 +510,7 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
 
             x9_pt = torch.cat([x5_pt, x6_pt, x7_pt, x8_pt], dim=cat_dim)
 
-            # Run Honey module.
+            # Run DinoML module.
             inputs = [0] * 8
             name_to_idx = module.get_input_name_to_index_map()
             inputs[name_to_idx["X1"]] = x1_pt
@@ -648,7 +648,7 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
 
             y_pt = torch.cat([input_pt, y1_pt], dim=1)
 
-            # Run Honey module.
+            # Run DinoML module.
             inputs = [0] * num_inputs
             name_to_idx = module.get_input_name_to_index_map()
             inputs[name_to_idx["Input1"]] = input_pt
@@ -772,12 +772,12 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
             f"gamma_is_none={gamma_is_none}, beta_is_none={beta_is_none}"
         )
 
-        def _maybe_add_batch_size_honey(shape: List[IntVar]) -> List[IntVar]:
+        def _maybe_add_batch_size_dinoml(shape: List[IntVar]) -> List[IntVar]:
             return shape if batch_size is None else [batch_size] + shape
 
         # Construct one graph with 2 layernorms + 1 cat.
         X1 = Tensor(
-            shape=_maybe_add_batch_size_honey([IntImm(m), IntImm(n1)]),
+            shape=_maybe_add_batch_size_dinoml([IntImm(m), IntImm(n1)]),
             dtype=dtype,
             name="X1",
             is_input=True,
@@ -801,7 +801,7 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
                 is_input=True,
             )
         X2 = Tensor(
-            shape=_maybe_add_batch_size_honey([IntImm(m), IntImm(n2)]),
+            shape=_maybe_add_batch_size_dinoml([IntImm(m), IntImm(n2)]),
             dtype=dtype,
             name="X2",
             is_input=True,
@@ -885,7 +885,7 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
             )
             x7_pt = torch.cat([x5_pt, x6_pt], dim=cat_dim)
 
-            # Run Honey module.
+            # Run DinoML module.
             inputs = [x1_pt]
             if not gamma_is_none:
                 inputs.append(gamma1_pt)
@@ -1836,8 +1836,8 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
         y_shape = [dim._attrs["values"][0] for dim in Y._attrs["shape"]]
         y_dtype = Y._attrs["dtype"]
 
-        logging.info("Honey output_shape: {}".format(y_shape))
-        logging.info("Honey output_type: {}".format(y_dtype))
+        logging.info("DinoML output_shape: {}".format(y_shape))
+        logging.info("DinoML output_type: {}".format(y_dtype))
 
         with compile_model(Y, target, "./tmp", test_name) as module:
             Y_src_ops = list(Y._attrs["src_ops"])
@@ -1945,8 +1945,8 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
         y_shape = [dim._attrs["values"][0] for dim in Y._attrs["shape"]]
         y_dtype = Y._attrs["dtype"]
 
-        logging.info("Honey output_shape: {}".format(y_shape))
-        logging.info("Honey output_type: {}".format(y_dtype))
+        logging.info("DinoML output_shape: {}".format(y_shape))
+        logging.info("DinoML output_type: {}".format(y_dtype))
 
         with compile_model(Y, target, "./tmp", test_name) as module:
             Y_src_ops = list(Y._attrs["src_ops"])
@@ -2063,8 +2063,8 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
         y_shape = [dim._attrs["values"][0] for dim in Y._attrs["shape"]]
         y_dtype = Y._attrs["dtype"]
 
-        logging.info("Honey output_shape: {}".format(y_shape))
-        logging.info("Honey output_type: {}".format(y_dtype))
+        logging.info("DinoML output_shape: {}".format(y_shape))
+        logging.info("DinoML output_type: {}".format(y_dtype))
 
         with compile_model(Y, target, "./tmp", test_name) as module:
             Y_src_ops = list(Y._attrs["src_ops"])
@@ -2168,7 +2168,7 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
         Y._attrs["is_output"] = True
         y_dtype = Y._attrs["dtype"]
 
-        logging.info("Honey output_type: {}".format(y_dtype))
+        logging.info("DinoML output_type: {}".format(y_dtype))
 
         with compile_model(Y, target, "./tmp", test_name) as module:
             Y_src_ops = list(Y._attrs["src_ops"])

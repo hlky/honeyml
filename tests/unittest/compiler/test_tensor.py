@@ -17,10 +17,10 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model
+from dinoml.compiler import compile_model
 
-from honey.compiler.base import Tensor
-from honey.testing import detect_target
+from dinoml.compiler.base import Tensor
+from dinoml.testing import detect_target
 from parameterized import parameterized
 
 

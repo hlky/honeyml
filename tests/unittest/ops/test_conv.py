@@ -16,10 +16,10 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import IntImm, nn, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntImm, nn, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     TestEnv,

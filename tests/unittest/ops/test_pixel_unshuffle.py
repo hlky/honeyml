@@ -2,10 +2,10 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     TestEnv,
@@ -51,7 +51,7 @@ class PixelUnshuffleTestCase(unittest.TestCase):
                 Y_pt.to(y.dtype),
                 rtol=1e-3,
                 atol=1e-3,
-                msg=lambda msg: f"{msg}\n\n{test_name}\npt ({Y_pt.shape}):\n{Y_pt}\n\nhoney ({y_transpose.shape}):\n{y_transpose}\n\n",
+                msg=lambda msg: f"{msg}\n\n{test_name}\npt ({Y_pt.shape}):\n{Y_pt}\n\ndinoml ({y_transpose.shape}):\n{y_transpose}\n\n",
             )
 
     @parameterized.expand(
@@ -63,11 +63,11 @@ class PixelUnshuffleTestCase(unittest.TestCase):
             }
         )
     )
-    def test_pixel_unshuffle(self, honey_dtype):
+    def test_pixel_unshuffle(self, dinoml_dtype):
         self._test_single_op(
             downscale_factor=2,
-            test_name=f"pixel_unshuffle_{honey_dtype}",
-            dtype=honey_dtype,
+            test_name=f"pixel_unshuffle_{dinoml_dtype}",
+            dtype=dinoml_dtype,
         )
 
 

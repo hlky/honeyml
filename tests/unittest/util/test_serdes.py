@@ -21,13 +21,13 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm, IntVar
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import filter_test_cases_by_test_env
-from honey.utils.serialization.serdes_code import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm, IntVar
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import filter_test_cases_by_test_env
+from dinoml.utils.serialization.serdes_code import (
     dump_program,
     get_inputs_from_graph,
     get_program,
@@ -181,9 +181,9 @@ class SerDesSpecialOpTestCase(unittest.TestCase):
         target = detect_target()
         module = compile_model(outputs, target, "./tmp", "serdes_concat")
 
-        input_tensors_honey = {f"input_{idx}": X_pts[idx] for idx in range(5)}
+        input_tensors_dinoml = {f"input_{idx}": X_pts[idx] for idx in range(5)}
         y = torch.empty_like(Y_pt)
-        module.run_with_tensors(input_tensors_honey, [y])
+        module.run_with_tensors(input_tensors_dinoml, [y])
         self.assertTrue(torch.allclose(Y_pt, y, atol=1e-2, rtol=1e-2))
 
     def test_reshape(self):

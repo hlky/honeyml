@@ -16,11 +16,11 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.public import FuncEnum
-from honey.frontend import IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.public import FuncEnum
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     gen_input_tensor,
     get_random_torch_tensor,
@@ -29,7 +29,7 @@ from honey.testing.test_utils import (
 )
 from parameterized import param, parameterized
 
-honey_to_torch_map = {
+dinoml_to_torch_map = {
     ops.ge: torch.ge,
     ops.le: torch.le,
     ops.gt: torch.gt,
@@ -91,7 +91,7 @@ class TestRelational(unittest.TestCase):
             x2_pt = get_random_torch_tensor([batch, M], dtype)
             x3_pt = get_random_torch_tensor([batch, M], dtype)
             add_pt = x1_pt + x2_pt
-            y_pt = honey_to_torch_map[operator](add_pt, x3_pt)
+            y_pt = dinoml_to_torch_map[operator](add_pt, x3_pt)
             y = get_torch_empty_tensor(y_pt.size(), dtype="bool")
             inputs = {"X1": x1_pt, "X2": x2_pt, "X3": x3_pt}
             model.run_with_tensors(inputs, [y])
@@ -127,7 +127,7 @@ class TestRelational(unittest.TestCase):
 
         x1_pt = get_random_torch_tensor([128, 10], dtype="float16")
         inputs = {"X1": x1_pt}
-        y_pt = honey_to_torch_map[ops.ge](x1_pt, 2)
+        y_pt = dinoml_to_torch_map[ops.ge](x1_pt, 2)
         y = get_torch_empty_tensor(y_pt.size(), dtype="bool")
         model.run_with_tensors(inputs, [y])
         self.assertEqual(y_pt.tolist(), y.tolist())
@@ -158,7 +158,7 @@ class TestRelational(unittest.TestCase):
             x2_pt = get_random_torch_tensor([batch, M], "float32").to(
                 torch.int32 if dtype == "int32" else torch.int64
             )
-            y_pt = honey_to_torch_map[ops.ge](x1_pt, x2_pt)
+            y_pt = dinoml_to_torch_map[ops.ge](x1_pt, x2_pt)
             y = get_torch_empty_tensor(y_pt.size(), dtype="bool")
             inputs = {"X1": x1_pt, "X2": x2_pt}
             model.run_with_tensors(inputs, [y])

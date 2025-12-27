@@ -158,17 +158,17 @@ __global__ void layernorm_sigmoid_mul_stored_locally(
   __syncthreads();
 
   if (tid < n) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
-    const float gamma_val = Honey_LAYERNORM_CONST_GAMMA;
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
+    const float gamma_val = DINOML_LAYERNORM_CONST_GAMMA;
 #else
     const float gamma_val = static_cast<float>(gamma[tid]);
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
-    const float beta_val = Honey_LAYERNORM_CONST_BETA;
+#ifdef DINOML_LAYERNORM_CONST_BETA
+    const float beta_val = DINOML_LAYERNORM_CONST_BETA;
 #else
     const float beta_val = static_cast<float>(beta[tid]);
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
     if (FuseSigmoidMul) {
       local_val *= sigmoid(
@@ -243,25 +243,25 @@ __global__ void layernorm_sigmoid_mul_stored_locally(
   __syncthreads();
 
   if (tid < quarter_n) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
     const float4 gamma_val = {
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA};
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA};
 #else
     const float4 gamma_val = gamma[tid];
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
+#ifdef DINOML_LAYERNORM_CONST_BETA
     const float4 beta_val = {
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA};
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA};
 #else
     const float4 beta_val = beta[tid];
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
     if (FuseSigmoidMul) {
       local_val.x *= sigmoid(
@@ -357,12 +357,12 @@ __global__ void layernorm_sigmoid_mul_stored_locally(
   __syncthreads();
 
   if (tid < quarter_n) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
     const float4 gamma_val = {
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA};
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA};
 #else
     const half4 gamma_val_half = gamma[tid];
     const float4 gamma_val = {
@@ -370,14 +370,14 @@ __global__ void layernorm_sigmoid_mul_stored_locally(
         static_cast<float>(gamma_val_half.y),
         static_cast<float>(gamma_val_half.z),
         static_cast<float>(gamma_val_half.w)};
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
+#ifdef DINOML_LAYERNORM_CONST_BETA
     const float4 beta_val = {
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA};
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA};
 #else
     const half4 beta_val_half = beta[tid];
     const float4 beta_val = {
@@ -385,7 +385,7 @@ __global__ void layernorm_sigmoid_mul_stored_locally(
         static_cast<float>(beta_val_half.y),
         static_cast<float>(beta_val_half.z),
         static_cast<float>(beta_val_half.w)};
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
     if (FuseSigmoidMul) {
       local_val.x *= sigmoid(
@@ -486,12 +486,12 @@ __global__ void layernorm_sigmoid_mul_stored_locally(
   __syncthreads();
 
   if (tid < quarter_n) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
     const float4 gamma_val = {
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA};
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA};
 #else
     const bfloat16_4 gamma_val_half = gamma[tid];
     const float4 gamma_val = {
@@ -499,14 +499,14 @@ __global__ void layernorm_sigmoid_mul_stored_locally(
         static_cast<float>(gamma_val_half.y),
         static_cast<float>(gamma_val_half.z),
         static_cast<float>(gamma_val_half.w)};
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
+#ifdef DINOML_LAYERNORM_CONST_BETA
     const float4 beta_val = {
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA};
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA};
 #else
     const bfloat16_4 beta_val_half = beta[tid];
     const float4 beta_val = {
@@ -514,7 +514,7 @@ __global__ void layernorm_sigmoid_mul_stored_locally(
         static_cast<float>(beta_val_half.y),
         static_cast<float>(beta_val_half.z),
         static_cast<float>(beta_val_half.w)};
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
     if (FuseSigmoidMul) {
       local_val.x *= sigmoid(
@@ -605,16 +605,16 @@ __global__ void layernorm_sigmoid_mul(
   __syncthreads();
 
   for (int i = tid; i < n; i += blockDim.x) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
-    const float gamma_val = Honey_LAYERNORM_CONST_GAMMA;
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
+    const float gamma_val = DINOML_LAYERNORM_CONST_GAMMA;
 #else
     const float gamma_val = static_cast<float>(gamma[i]);
-#endif // Honey_LAYERNORM_CONST_GAMMA
-#ifdef Honey_LAYERNORM_CONST_BETA
-    const float beta_val = Honey_LAYERNORM_CONST_BETA;
+#endif // DINOML_LAYERNORM_CONST_GAMMA
+#ifdef DINOML_LAYERNORM_CONST_BETA
+    const float beta_val = DINOML_LAYERNORM_CONST_BETA;
 #else
     const float beta_val = static_cast<float>(beta[i]);
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
     float local_val = static_cast<float>(
         *input_accessor.get<const T, const T>(input, offset + i));
 
@@ -683,16 +683,16 @@ __global__ void layernorm_sigmoid_mul(
   __syncthreads();
 
   for (int i = tid; i < n; i += blockDim.x) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
-    const float gamma_val = Honey_LAYERNORM_CONST_GAMMA;
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
+    const float gamma_val = DINOML_LAYERNORM_CONST_GAMMA;
 #else
     const float gamma_val = __half2float(gamma[i]);
-#endif // Honey_LAYERNORM_CONST_GAMMA
-#ifdef Honey_LAYERNORM_CONST_BETA
-    const float beta_val = Honey_LAYERNORM_CONST_BETA;
+#endif // DINOML_LAYERNORM_CONST_GAMMA
+#ifdef DINOML_LAYERNORM_CONST_BETA
+    const float beta_val = DINOML_LAYERNORM_CONST_BETA;
 #else
     const float beta_val = __half2float(beta[i]);
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
     float local_val = __half2float(
         *input_accessor.get<const half, const half>(input, offset + i));
 
@@ -876,17 +876,17 @@ __global__ void batch_layernorm_sigmoid_mul_stored_locally(
   __syncthreads();
 
   if (tid < n) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
-    const float gamma_val = Honey_LAYERNORM_CONST_GAMMA;
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
+    const float gamma_val = DINOML_LAYERNORM_CONST_GAMMA;
 #else
     const float gamma_val = static_cast<float>(gamma[tid]);
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
-    const float beta_val = Honey_LAYERNORM_CONST_BETA;
+#ifdef DINOML_LAYERNORM_CONST_BETA
+    const float beta_val = DINOML_LAYERNORM_CONST_BETA;
 #else
     const float beta_val = static_cast<float>(beta[tid]);
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
     if (FuseSigmoidMul) {
       local_val *= sigmoid(
@@ -974,12 +974,12 @@ __global__ void batch_layernorm_sigmoid_mul_stored_locally(
   __syncthreads();
 
   if (tid < quarter_n) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
     const float4 gamma_val = {
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA};
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA};
 #else
     const half4 gamma_val_half = gamma[tid];
     const float4 gamma_val = {
@@ -987,14 +987,14 @@ __global__ void batch_layernorm_sigmoid_mul_stored_locally(
         static_cast<float>(gamma_val_half.y),
         static_cast<float>(gamma_val_half.z),
         static_cast<float>(gamma_val_half.w)};
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
+#ifdef DINOML_LAYERNORM_CONST_BETA
     const float4 beta_val = {
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA};
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA};
 #else
     const half4 beta_val_half = beta[tid];
     const float4 beta_val = {
@@ -1002,7 +1002,7 @@ __global__ void batch_layernorm_sigmoid_mul_stored_locally(
         static_cast<float>(beta_val_half.y),
         static_cast<float>(beta_val_half.z),
         static_cast<float>(beta_val_half.w)};
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
     if (FuseSigmoidMul) {
       local_val.x *= sigmoid(
@@ -1108,12 +1108,12 @@ __global__ void batch_layernorm_sigmoid_mul_stored_locally(
   __syncthreads();
 
   if (tid < quarter_n) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
     const float4 gamma_val = {
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA};
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA};
 #else
     const bfloat16_4 gamma_val_half = gamma[tid];
     const float4 gamma_val = {
@@ -1121,14 +1121,14 @@ __global__ void batch_layernorm_sigmoid_mul_stored_locally(
         static_cast<float>(gamma_val_half.y),
         static_cast<float>(gamma_val_half.z),
         static_cast<float>(gamma_val_half.w)};
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
+#ifdef DINOML_LAYERNORM_CONST_BETA
     const float4 beta_val = {
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA};
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA};
 #else
     const bfloat16_4 beta_val_half = beta[tid];
     const float4 beta_val = {
@@ -1136,7 +1136,7 @@ __global__ void batch_layernorm_sigmoid_mul_stored_locally(
         static_cast<float>(beta_val_half.y),
         static_cast<float>(beta_val_half.z),
         static_cast<float>(beta_val_half.w)};
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
     if (FuseSigmoidMul) {
       local_val.x *= sigmoid(
@@ -1195,17 +1195,17 @@ __global__ void batch_layernorm_sigmoid_mul_stored_locally(
   input += offset;
   output += offset;
 
-#if !defined(Honey_LAYERNORM_CONST_GAMMA) || !defined(Honey_LAYERNORM_CONST_BETA)
+#if !defined(DINOML_LAYERNORM_CONST_GAMMA) || !defined(DINOML_LAYERNORM_CONST_BETA)
   const int gamma_beta_offset = b_idx * quarter_n;
-#endif // !Honey_LAYERNORM_CONST_GAMMA || !Honey_LAYERNORM_CONST_BETA
+#endif // !DINOML_LAYERNORM_CONST_GAMMA || !DINOML_LAYERNORM_CONST_BETA
 
-#ifndef Honey_LAYERNORM_CONST_GAMMA
+#ifndef DINOML_LAYERNORM_CONST_GAMMA
   gamma += gamma_beta_offset;
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifndef Honey_LAYERNORM_CONST_BETA
+#ifndef DINOML_LAYERNORM_CONST_BETA
   beta += gamma_beta_offset;
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
   float4 local_val{0.0f, 0.0f, 0.0f, 0.0f};
   float local_sums[1] = {0.0f};
@@ -1243,25 +1243,25 @@ __global__ void batch_layernorm_sigmoid_mul_stored_locally(
   __syncthreads();
 
   if (tid < quarter_n) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
     const float4 gamma_val = {
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA,
-        Honey_LAYERNORM_CONST_GAMMA};
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA,
+        DINOML_LAYERNORM_CONST_GAMMA};
 #else
     const float4 gamma_val = gamma[tid];
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
+#ifdef DINOML_LAYERNORM_CONST_BETA
     const float4 beta_val = {
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA,
-        Honey_LAYERNORM_CONST_BETA};
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA,
+        DINOML_LAYERNORM_CONST_BETA};
 #else
     const float4 beta_val = beta[tid];
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
     if (FuseSigmoidMul) {
       local_val.x *= sigmoid(
@@ -1309,20 +1309,20 @@ __global__ void batch_layernorm_sigmoid_mul(
   __shared__ float s_mean, s_variance;
 
   const int offset = (m_idx + b_idx * m) * n;
-#if !defined(Honey_LAYERNORM_CONST_GAMMA) || !defined(Honey_LAYERNORM_CONST_BETA)
+#if !defined(DINOML_LAYERNORM_CONST_GAMMA) || !defined(DINOML_LAYERNORM_CONST_BETA)
   const int gamma_beta_offset = b_idx * n;
-#endif // !Honey_LAYERNORM_CONST_GAMMA || !Honey_LAYERNORM_CONST_BETA
+#endif // !DINOML_LAYERNORM_CONST_GAMMA || !DINOML_LAYERNORM_CONST_BETA
 
   input += offset;
   output += offset;
 
-#ifndef Honey_LAYERNORM_CONST_GAMMA
+#ifndef DINOML_LAYERNORM_CONST_GAMMA
   gamma += gamma_beta_offset;
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifndef Honey_LAYERNORM_CONST_BETA
+#ifndef DINOML_LAYERNORM_CONST_BETA
   beta += gamma_beta_offset;
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
   float local_sums[1] = {0.0f};
   for (int i = tid; i < n; i += blockDim.x) {
@@ -1357,17 +1357,17 @@ __global__ void batch_layernorm_sigmoid_mul(
   __syncthreads();
 
   for (int i = tid; i < n; i += blockDim.x) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
-    const float gamma_val = Honey_LAYERNORM_CONST_GAMMA;
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
+    const float gamma_val = DINOML_LAYERNORM_CONST_GAMMA;
 #else
     const float gamma_val = static_cast<float>(gamma[i]);
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
-    const float beta_val = Honey_LAYERNORM_CONST_BETA;
+#ifdef DINOML_LAYERNORM_CONST_BETA
+    const float beta_val = DINOML_LAYERNORM_CONST_BETA;
 #else
     const float beta_val = static_cast<float>(beta[i]);
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
     float local_val = static_cast<float>(input[i]);
     if (FuseSigmoidMul) {
@@ -1397,20 +1397,20 @@ __global__ void batch_layernorm_sigmoid_mul(
   __shared__ float s_mean, s_variance;
 
   const int offset = (m_idx + b_idx * m) * n;
-#if !defined(Honey_LAYERNORM_CONST_GAMMA) || !defined(Honey_LAYERNORM_CONST_BETA)
+#if !defined(DINOML_LAYERNORM_CONST_GAMMA) || !defined(DINOML_LAYERNORM_CONST_BETA)
   const int gamma_beta_offset = b_idx * n;
-#endif // !Honey_LAYERNORM_CONST_GAMMA || !Honey_LAYERNORM_CONST_BETA
+#endif // !DINOML_LAYERNORM_CONST_GAMMA || !DINOML_LAYERNORM_CONST_BETA
 
   input += offset;
   output += offset;
 
-#ifndef Honey_LAYERNORM_CONST_GAMMA
+#ifndef DINOML_LAYERNORM_CONST_GAMMA
   gamma += gamma_beta_offset;
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifndef Honey_LAYERNORM_CONST_BETA
+#ifndef DINOML_LAYERNORM_CONST_BETA
   beta += gamma_beta_offset;
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
   float local_sums[1] = {0.0f};
   for (int i = tid; i < n; i += blockDim.x) {
@@ -1445,17 +1445,17 @@ __global__ void batch_layernorm_sigmoid_mul(
   __syncthreads();
 
   for (int i = tid; i < n; i += blockDim.x) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
-    const float gamma_val = Honey_LAYERNORM_CONST_GAMMA;
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
+    const float gamma_val = DINOML_LAYERNORM_CONST_GAMMA;
 #else
     const float gamma_val = __half2float(gamma[i]);
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
-    const float beta_val = Honey_LAYERNORM_CONST_BETA;
+#ifdef DINOML_LAYERNORM_CONST_BETA
+    const float beta_val = DINOML_LAYERNORM_CONST_BETA;
 #else
     const float beta_val = __half2float(beta[i]);
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
     float local_val = __half2float(input[i]);
     if (FuseSigmoidMul) {
       local_val *= sigmoid(
@@ -1653,12 +1653,12 @@ __device__ void group_layernorm_sigmoid_mul_stored_locally_impl(
           static_cast<float>(local_val_half.y),
           static_cast<float>(local_val_half.z),
           static_cast<float>(local_val_half.w)};
-#ifdef Honey_LAYERNORM_CONST_GAMMA
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
       const float4 gamma_val = {
-          Honey_LAYERNORM_CONST_GAMMA,
-          Honey_LAYERNORM_CONST_GAMMA,
-          Honey_LAYERNORM_CONST_GAMMA,
-          Honey_LAYERNORM_CONST_GAMMA};
+          DINOML_LAYERNORM_CONST_GAMMA,
+          DINOML_LAYERNORM_CONST_GAMMA,
+          DINOML_LAYERNORM_CONST_GAMMA,
+          DINOML_LAYERNORM_CONST_GAMMA};
 #else
       const half4 gamma_val_half = gamma[elem_no];
       const float4 gamma_val = {
@@ -1666,14 +1666,14 @@ __device__ void group_layernorm_sigmoid_mul_stored_locally_impl(
           static_cast<float>(gamma_val_half.y),
           static_cast<float>(gamma_val_half.z),
           static_cast<float>(gamma_val_half.w)};
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
+#ifdef DINOML_LAYERNORM_CONST_BETA
       const float4 beta_val = {
-          Honey_LAYERNORM_CONST_BETA,
-          Honey_LAYERNORM_CONST_BETA,
-          Honey_LAYERNORM_CONST_BETA,
-          Honey_LAYERNORM_CONST_BETA};
+          DINOML_LAYERNORM_CONST_BETA,
+          DINOML_LAYERNORM_CONST_BETA,
+          DINOML_LAYERNORM_CONST_BETA,
+          DINOML_LAYERNORM_CONST_BETA};
 #else
       const half4 beta_val_half = beta[elem_no];
       const float4 beta_val = {
@@ -1681,7 +1681,7 @@ __device__ void group_layernorm_sigmoid_mul_stored_locally_impl(
           static_cast<float>(beta_val_half.y),
           static_cast<float>(beta_val_half.z),
           static_cast<float>(beta_val_half.w)};
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
       if constexpr (FuseSigmoidMul) {
         local_val.x *= sigmoid(normalize(
@@ -1809,12 +1809,12 @@ __device__ void group_layernorm_sigmoid_mul_stored_locally_impl(
           static_cast<float>(local_val_half.y),
           static_cast<float>(local_val_half.z),
           static_cast<float>(local_val_half.w)};
-#ifdef Honey_LAYERNORM_CONST_GAMMA
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
       const float4 gamma_val = {
-          Honey_LAYERNORM_CONST_GAMMA,
-          Honey_LAYERNORM_CONST_GAMMA,
-          Honey_LAYERNORM_CONST_GAMMA,
-          Honey_LAYERNORM_CONST_GAMMA};
+          DINOML_LAYERNORM_CONST_GAMMA,
+          DINOML_LAYERNORM_CONST_GAMMA,
+          DINOML_LAYERNORM_CONST_GAMMA,
+          DINOML_LAYERNORM_CONST_GAMMA};
 #else
       const bfloat16_4 gamma_val_half = gamma[elem_no];
       const float4 gamma_val = {
@@ -1822,14 +1822,14 @@ __device__ void group_layernorm_sigmoid_mul_stored_locally_impl(
           static_cast<float>(gamma_val_half.y),
           static_cast<float>(gamma_val_half.z),
           static_cast<float>(gamma_val_half.w)};
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
+#ifdef DINOML_LAYERNORM_CONST_BETA
       const float4 beta_val = {
-          Honey_LAYERNORM_CONST_BETA,
-          Honey_LAYERNORM_CONST_BETA,
-          Honey_LAYERNORM_CONST_BETA,
-          Honey_LAYERNORM_CONST_BETA};
+          DINOML_LAYERNORM_CONST_BETA,
+          DINOML_LAYERNORM_CONST_BETA,
+          DINOML_LAYERNORM_CONST_BETA,
+          DINOML_LAYERNORM_CONST_BETA};
 #else
       const bfloat16_4 beta_val_half = beta[elem_no];
       const float4 beta_val = {
@@ -1837,7 +1837,7 @@ __device__ void group_layernorm_sigmoid_mul_stored_locally_impl(
           static_cast<float>(beta_val_half.y),
           static_cast<float>(beta_val_half.z),
           static_cast<float>(beta_val_half.w)};
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
       if constexpr (FuseSigmoidMul) {
         local_val.x *= sigmoid(normalize(
@@ -1974,17 +1974,17 @@ __device__ void group_layernorm_sigmoid_mul_stored_locally_impl(
   __syncthreads();
 
   if (tid < n) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
-    const float gamma_val = Honey_LAYERNORM_CONST_GAMMA;
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
+    const float gamma_val = DINOML_LAYERNORM_CONST_GAMMA;
 #else
     const float gamma_val = static_cast<float>(gamma[tid]);
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
-    const float beta_val = Honey_LAYERNORM_CONST_BETA;
+#ifdef DINOML_LAYERNORM_CONST_BETA
+    const float beta_val = DINOML_LAYERNORM_CONST_BETA;
 #else
     const float beta_val = static_cast<float>(beta[tid]);
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
     if constexpr (FuseSigmoidMul) {
       local_val *= sigmoid(
@@ -2089,16 +2089,16 @@ __device__ void group_layernorm_sigmoid_mul_impl(
   __syncthreads();
 
   for (int i = tid; i < n; i += blockDim.x) {
-#ifdef Honey_LAYERNORM_CONST_GAMMA
-    const float gamma_val = Honey_LAYERNORM_CONST_GAMMA;
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
+    const float gamma_val = DINOML_LAYERNORM_CONST_GAMMA;
 #else
     const float gamma_val = static_cast<float>(gamma[i]);
-#endif // Honey_LAYERNORM_CONST_GAMMA
-#ifdef Honey_LAYERNORM_CONST_BETA
-    const float beta_val = Honey_LAYERNORM_CONST_BETA;
+#endif // DINOML_LAYERNORM_CONST_GAMMA
+#ifdef DINOML_LAYERNORM_CONST_BETA
+    const float beta_val = DINOML_LAYERNORM_CONST_BETA;
 #else
     const float beta_val = static_cast<float>(beta[i]);
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
     float local_val = static_cast<float>(
         *input_accessor.get<const T, const T>(input, offset + i));
     if (FuseSigmoidMul) {

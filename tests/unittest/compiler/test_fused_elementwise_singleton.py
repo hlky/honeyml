@@ -14,17 +14,17 @@
 #
 import unittest
 
-from honey import compiler
+from dinoml import compiler
 
-from honey.compiler import ops
+from dinoml.compiler import ops
 
-from honey.compiler.base import Tensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.compiler.transform.fuse_ops import (
+from dinoml.compiler.base import Tensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.compiler.transform.fuse_ops import (
     fuse_elementwise,
     process_singleton_elementwise,
 )
-from honey.testing import detect_target
+from dinoml.testing import detect_target
 
 
 def _make_graph():

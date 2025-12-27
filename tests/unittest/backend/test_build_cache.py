@@ -22,18 +22,18 @@ from unittest.mock import patch
 
 import torch
 
-from honey.backend.build_cache_base import (
+from dinoml.backend.build_cache_base import (
     create_dir_hash,
     FileBasedBuildCache,
     is_source,
     SkipBuildCache,
 )
 
-from honey.compiler import compile_model, ops
-from honey.frontend import IntImm, Tensor
-from honey.testing import detect_target
-from honey.utils.debug_settings import HoneyDebugSettings
-from honey.utils.io import file_age
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntImm, Tensor
+from dinoml.testing import detect_target
+from dinoml.utils.debug_settings import DinoMLDebugSettings
+from dinoml.utils.io import file_age
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ class BuildCacheTestCase(unittest.TestCase):
 
     def test_file_build_cache(self):
         with patch(
-            "honey.backend.build_cache_base.should_skip_build_cache"
+            "dinoml.backend.build_cache_base.should_skip_build_cache"
         ) as should_skip_build_cache_mock:
             should_skip_build_cache_mock.return_value = False
             with tempfile.TemporaryDirectory() as parent_dir:
@@ -151,7 +151,7 @@ class BuildCacheTestCase(unittest.TestCase):
 
             Y = self._create_model_graph()
             target = detect_target()
-            debug_settings = HoneyDebugSettings(gen_standalone=False)
+            debug_settings = DinoMLDebugSettings(gen_standalone=False)
             dll_name = "test.so"
             build_dir = os.path.join("./tmp", test_name)
             compile_model(
@@ -257,7 +257,7 @@ class BuildCacheTestCase(unittest.TestCase):
 
             Y = self._create_model_graph()
             target = detect_target()
-            debug_settings = HoneyDebugSettings(gen_standalone=True)
+            debug_settings = DinoMLDebugSettings(gen_standalone=True)
             compile_model(
                 Y,
                 target,
@@ -278,7 +278,7 @@ class BuildCacheTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             Y = self._create_model_graph()
             target = detect_target()
-            debug_settings = HoneyDebugSettings(gen_standalone=False)
+            debug_settings = DinoMLDebugSettings(gen_standalone=False)
             dll_name = "test.so"
             build_dir = Path(tempdir) / "build_dir"
             compile_model(
@@ -295,7 +295,7 @@ class BuildCacheTestCase(unittest.TestCase):
 
             # Compile a slightly different model into the same directory
             Y2 = self._create_model_graph2()
-            debug_settings = HoneyDebugSettings(gen_standalone=False)
+            debug_settings = DinoMLDebugSettings(gen_standalone=False)
             compile_model(
                 Y2,
                 target,

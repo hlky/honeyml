@@ -1,8 +1,8 @@
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
 
 
 def verify_repeat_interleave_rank2():
@@ -33,7 +33,7 @@ def verify_repeat_interleave_rank2():
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
 
@@ -65,7 +65,7 @@ def verify_repeat_interleave_rank3():
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
 
@@ -74,9 +74,9 @@ def verify_repeat_interleave_rank4():
     b, c, h, w = shapes
     repeats = 2
     repeat_dim = 2  # h
-    repeat_dim_honey = 1
+    repeat_dim_dinoml = 1
     x = torch.randn(shapes).cuda().half()
-    x_honey = x.clone().permute(0, 2, 3, 1).contiguous()
+    x_dinoml = x.clone().permute(0, 2, 3, 1).contiguous()
     y_pt = x.repeat_interleave(repeats, dim=repeat_dim)
     y = torch.empty_like(y_pt.permute(0, 2, 3, 1).contiguous())
     X = Tensor(
@@ -85,13 +85,13 @@ def verify_repeat_interleave_rank4():
         name="X",
         is_input=True,
     )
-    Y = ops.repeat_interleave(repeats, repeat_dim_honey)(X)
+    Y = ops.repeat_interleave(repeats, repeat_dim_dinoml)(X)
     print(Y.shape())
     Y._attrs["is_output"] = True
     Y._attrs["name"] = "Y"
     target = detect_target()
     with compile_model(Y, target, "./tmp", "repeat_interleave") as module:
-        inputs = {"X": x_honey}
+        inputs = {"X": x_dinoml}
         outputs = {"Y": y}
         module.run_with_tensors(inputs, outputs)
         tolerance = 0.0
@@ -101,7 +101,7 @@ def verify_repeat_interleave_rank4():
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
 

@@ -17,13 +17,13 @@ from typing import List
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntVar, Tensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.compiler.transform.fuse_utils import is_elementwise_type
-from honey.testing import detect_target
-from honey.testing.test_utils import gen_input_tensor, get_random_torch_tensor
-from honey.utils.graph_utils import get_sorted_ops
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntVar, Tensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.compiler.transform.fuse_utils import is_elementwise_type
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import gen_input_tensor, get_random_torch_tensor
+from dinoml.utils.graph_utils import get_sorted_ops
 
 
 class TestFuseDuplicateFusedElementwise(unittest.TestCase):
@@ -79,7 +79,7 @@ class TestFuseDuplicateFusedElementwise(unittest.TestCase):
         softmax1_pt = torch.nn.functional.softmax(sigmoid1_pt, dim=0)
         softmax2_pt = torch.nn.functional.softmax(sigmoid2_pt, dim=0)
         y_pt = softmax1_pt + softmax2_pt
-        y_honey = torch.empty_like(y_pt)
+        y_dinoml = torch.empty_like(y_pt)
 
         with compile_model(
             model_output,
@@ -87,12 +87,12 @@ class TestFuseDuplicateFusedElementwise(unittest.TestCase):
             "/tmp",
             "fuse_duplicate_fused_elementwise_dups",
         ) as module:
-            module.run_with_tensors({"input_x": x_pt}, {"output": y_honey})
+            module.run_with_tensors({"input_x": x_pt}, {"output": y_dinoml})
             nsigmoid = self._count_fused_elementwise_ops(
                 module.debug_sorted_graph, [FuncEnum.SIGMOID]
             )
             self.assertEqual(nsigmoid, 1)
-            self.assertTrue(torch.allclose(y_pt, y_honey, atol=1e-2, rtol=1e-2))
+            self.assertTrue(torch.allclose(y_pt, y_dinoml, atol=1e-2, rtol=1e-2))
 
     def test_fuse_duplicates_with_concat_output_accessor(self):
         """Fused_elementwise ops' that have the same input and elementwise ops
@@ -108,7 +108,7 @@ class TestFuseDuplicateFusedElementwise(unittest.TestCase):
         sigmoid1_pt = torch.sigmoid(x_pt)
         sigmoid2_pt = torch.sigmoid(x_pt)
         y_pt = torch.concat([sigmoid1_pt, sigmoid2_pt])
-        y_honey = torch.empty_like(y_pt)
+        y_dinoml = torch.empty_like(y_pt)
 
         with compile_model(
             model_output,
@@ -116,12 +116,12 @@ class TestFuseDuplicateFusedElementwise(unittest.TestCase):
             "/tmp",
             "fuse_duplicate_fused_elementwise_dups_with_accessors",
         ) as module:
-            module.run_with_tensors({"input_x": x_pt}, {"output": y_honey})
+            module.run_with_tensors({"input_x": x_pt}, {"output": y_dinoml})
             nsigmoid = self._count_fused_elementwise_ops(
                 module.debug_sorted_graph, [FuncEnum.SIGMOID]
             )
             self.assertEqual(nsigmoid, 1)
-            self.assertTrue(torch.allclose(y_pt, y_honey, atol=1e-2, rtol=1e-2))
+            self.assertTrue(torch.allclose(y_pt, y_dinoml, atol=1e-2, rtol=1e-2))
 
     def test_dont_fuse_non_duplicates(self):
         """Fused-elementwise ops that have different inputs or different
@@ -149,7 +149,7 @@ class TestFuseDuplicateFusedElementwise(unittest.TestCase):
         softmax3_pt = torch.nn.functional.softmax(gelu_z_pt, dim=0)
 
         y_pt = softmax1_pt + softmax2_pt + softmax3_pt
-        y_honey = torch.empty_like(y_pt)
+        y_dinoml = torch.empty_like(y_pt)
 
         with compile_model(
             model_output,
@@ -158,14 +158,14 @@ class TestFuseDuplicateFusedElementwise(unittest.TestCase):
             "fuse_duplicate_fused_elementwise_non_dups",
         ) as module:
             module.run_with_tensors(
-                {"input_x": x_pt, "input_z": z_pt}, {"output": y_honey}
+                {"input_x": x_pt, "input_z": z_pt}, {"output": y_dinoml}
             )
             graph = module.debug_sorted_graph
             nrelu = self._count_fused_elementwise_ops(graph, [FuncEnum.RELU])
             ngelu = self._count_fused_elementwise_ops(graph, [FuncEnum.GELU])
             self.assertEqual(nrelu, 1)
             self.assertEqual(ngelu, 2)
-            self.assertTrue(torch.allclose(y_pt, y_honey, atol=1e-2, rtol=1e-2))
+            self.assertTrue(torch.allclose(y_pt, y_dinoml, atol=1e-2, rtol=1e-2))
 
     def test_all_interactions(self):
         """Test all interactions:
@@ -222,7 +222,7 @@ class TestFuseDuplicateFusedElementwise(unittest.TestCase):
         concat4_pt = torch.concat([relu4_pt, gelu_pt])
 
         y_pt = concat1_pt + concat2_pt + concat3_pt + concat4_pt
-        y_honey = torch.empty_like(y_pt)
+        y_dinoml = torch.empty_like(y_pt)
 
         with compile_model(
             model_output,
@@ -236,14 +236,14 @@ class TestFuseDuplicateFusedElementwise(unittest.TestCase):
                     "input_z": z_pt,
                     "input_p": p_pt,
                 },
-                outputs={"output": y_honey},
+                outputs={"output": y_dinoml},
             )
             graph = module.debug_sorted_graph
             nrelu = self._count_fused_elementwise_ops(graph, [FuncEnum.RELU])
             ngelu = self._count_fused_elementwise_ops(graph, [FuncEnum.GELU])
             self.assertEqual(nrelu, 2)
             self.assertEqual(ngelu, 1)
-            self.assertTrue(torch.allclose(y_pt, y_honey, atol=1e-2, rtol=1e-2))
+            self.assertTrue(torch.allclose(y_pt, y_dinoml, atol=1e-2, rtol=1e-2))
 
     def test_same_and_different_input_accessors(self):
         """
@@ -297,7 +297,7 @@ class TestFuseDuplicateFusedElementwise(unittest.TestCase):
         softmax1_pt = torch.nn.functional.softmax(sigmoid1_pt, dim=0)
         softmax2_pt = torch.nn.functional.softmax(sigmoid2_pt, dim=0)
         y_pt = softmax1_pt + softmax2_pt
-        y_honey = torch.empty_like(y_pt)
+        y_dinoml = torch.empty_like(y_pt)
 
         with compile_model(
             model_output,
@@ -305,9 +305,9 @@ class TestFuseDuplicateFusedElementwise(unittest.TestCase):
             "/tmp",
             "fuse_duplicate_fused_elementwise_same_input_different_input_accessors",
         ) as module:
-            module.run_with_tensors({"input_x": x_pt}, {"output": y_honey})
+            module.run_with_tensors({"input_x": x_pt}, {"output": y_dinoml})
             nsigmoid = self._count_fused_elementwise_ops(
                 module.debug_sorted_graph, [FuncEnum.SIGMOID]
             )
             self.assertEqual(nsigmoid, 1 if should_fuse else 2)
-            self.assertTrue(torch.allclose(y_pt, y_honey, atol=1e-2, rtol=1e-2))
+            self.assertTrue(torch.allclose(y_pt, y_dinoml, atol=1e-2, rtol=1e-2))

@@ -18,15 +18,15 @@ import unittest
 import numpy as np
 import torch
 
-from honey.compiler import compile_model, ops, transform
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops, transform
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import graph_utils
+from dinoml.utils import graph_utils
 
 
 class SliceScatterPatternTestCase(unittest.TestCase):
@@ -149,7 +149,7 @@ class SliceScatterPatternTestCase(unittest.TestCase):
         )
         y_shape = [var._attrs["values"][0] for var in Y._attrs["shape"]]
         logging.info(
-            "Honey output_0 shape: {}, pt shape: {}".format(y_shape, Y_pt.size())
+            "DinoML output_0 shape: {}, pt shape: {}".format(y_shape, Y_pt.size())
         )
         np.testing.assert_equal(y_shape, Y_pt.size())
 

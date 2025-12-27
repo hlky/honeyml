@@ -17,10 +17,10 @@ import unittest
 
 import sympy
 
-from honey.compiler import ops, symbolic, transform
-from honey.compiler.base import IntImm, IntVar, IntVarTensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
+from dinoml.compiler import ops, symbolic, transform
+from dinoml.compiler.base import IntImm, IntVar, IntVarTensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
 
 
 class SymbolTestCase(unittest.TestCase):

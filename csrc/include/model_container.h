@@ -13,7 +13,7 @@
 //  limitations under the License.
 //
 #pragma once
-#include <honey/device.h>
+#include <dinoml/device.h>
 #include "constant_folder-generated.h"
 #include "model-generated.h"
 #include "model_interface.h"
@@ -28,7 +28,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace honey {
+namespace dinoml {
 
 enum class BufferState {
   CLEAN = 0,
@@ -48,7 +48,7 @@ class ModelContainerBase {
       size_t num_bound_constants,
       size_t num_unbound_constants,
       size_t params_size,
-      HoneyAllocator& allocator);
+      DinoMLAllocator& allocator);
 
  protected:
   // The set of bounded constants/weights/parameters. These are constants which
@@ -95,11 +95,11 @@ class ModelContainerBase {
   // inputs first, then outputs, then constants.
   std::vector<const char*> param_names_;
   std::vector<std::vector<int64_t>> max_param_shapes_;
-  std::vector<HoneyDtype> param_dtypes_;
+  std::vector<DinoMLDtype> param_dtypes_;
 
   // These are entries used for bound constants.
   std::vector<size_t> bound_constant_size_;
-  std::vector<HoneyDtype> bound_constant_dtypes_;
+  std::vector<DinoMLDtype> bound_constant_dtypes_;
 
   // NB: technically these could be derived from both the max shape and
   // the dytpe, but it's easier to just cache them.
@@ -107,7 +107,7 @@ class ModelContainerBase {
   std::vector<size_t> max_param_numel_;
 
   // Mapping of constant names to their original names, i.e. before making
-  // constant names Honey friendly.
+  // constant names DinoML friendly.
   std::unordered_map<std::string, std::string> constant_name_to_original_name_;
 };
 
@@ -117,7 +117,7 @@ class ModelContainerBase {
 class ModelContainer;
 ModelContainer* CreateModelContainer(
     size_t num_runtimes,
-    HoneyAllocator& allocator);
+    DinoMLAllocator& allocator);
 
 // Each ModelContainer contains num_models Models. Inference runs
 // can be started by invoking Run() with lists of pre-allocated
@@ -162,12 +162,12 @@ class ModelContainer : ModelContainerBase {
       size_t params_size,
       size_t blob_size,
       size_t workspace_size,
-      HoneyAllocator& allocator);
+      DinoMLAllocator& allocator);
 
   void Run(
-      const HoneyData* inputs,
+      const DinoMLData* inputs,
       size_t num_inputs,
-      HoneyData* outputs,
+      DinoMLData* outputs,
       size_t num_outputs,
       StreamType stream,
       bool sync,
@@ -175,27 +175,27 @@ class ModelContainer : ModelContainerBase {
       int64_t** output_shapes_out);
 
   void RunWithOutputsOnHost(
-      const HoneyData* inputs,
+      const DinoMLData* inputs,
       size_t num_inputs,
-      HoneyData* outputs,
+      DinoMLData* outputs,
       size_t num_outputs,
       StreamType stream,
       bool graph_mode,
       int64_t** output_shapes_out);
 
   void Profile(
-      const HoneyData* inputs,
+      const DinoMLData* inputs,
       size_t num_inputs,
-      HoneyData* outputs,
+      DinoMLData* outputs,
       size_t num_outputs,
       StreamType stream,
       size_t num_iters,
       const char* filename);
 
   float Benchmark(
-      const HoneyData* inputs,
+      const DinoMLData* inputs,
       size_t num_inputs,
-      HoneyData* outputs,
+      DinoMLData* outputs,
       size_t num_outputs,
       StreamType stream,
       bool graph_mode,
@@ -204,20 +204,20 @@ class ModelContainer : ModelContainerBase {
       bool use_unique_stream_per_thread,
       int64_t** output_shapes_out);
 
-  void SetConstant(const char* name, const HoneyData& tensor);
+  void SetConstant(const char* name, const DinoMLData& tensor);
   void SetManyConstants(
       const char** names,
-      const HoneyData* tensors,
+      const DinoMLData* tensors,
       size_t num_tensors);
 
   uint8_t* GetInactiveConstantsBuffer();
   void SetDoubleBufferConstant(
       const char* name,
-      const HoneyData& tensor,
+      const DinoMLData& tensor,
       StreamType stream = 0);
   void SetManyDoubleBufferConstants(
       const char** names,
-      const HoneyData* tensors,
+      const DinoMLData* tensors,
       size_t num_tensors,
       StreamType stream = 0);
 
@@ -229,11 +229,11 @@ class ModelContainer : ModelContainerBase {
   const char* InputName(size_t input_idx) const;
   const char* OutputName(size_t output_idx) const;
 
-  HoneyParamShape MaxInputShape(size_t input_idx) const;
-  HoneyParamShape MaxOutputShape(size_t output_idx) const;
+  DinoMLParamShape MaxInputShape(size_t input_idx) const;
+  DinoMLParamShape MaxOutputShape(size_t output_idx) const;
 
-  HoneyDtype InputDtype(size_t input_idx) const;
-  HoneyDtype OutputDtype(size_t output_idx) const;
+  DinoMLDtype InputDtype(size_t input_idx) const;
+  DinoMLDtype OutputDtype(size_t output_idx) const;
 
   size_t MaxOutputStorageBytes(size_t output_idx) const;
 
@@ -256,7 +256,7 @@ class ModelContainer : ModelContainerBase {
       bool unbound_constants_only,
       bool constant_folding_inputs_only) const;
 
-  HoneyDtype ConstantDtype(const char* name) const;
+  DinoMLDtype ConstantDtype(const char* name) const;
 
   const char* ConstantOriginalName(const char* name) const;
 
@@ -265,34 +265,34 @@ class ModelContainer : ModelContainerBase {
   void FoldConstantsImpl(StreamType stream, bool double_buffer = false);
   void SetConstantImpl(
       const char* name,
-      const HoneyData& tensor,
+      const DinoMLData& tensor,
       bool use_secondary_buffer = false,
       StreamType stream = 0);
   void SwapConstantFolderBuffer();
 
   void PrepareForRun(
       Model* model,
-      const HoneyData* inputs,
+      const DinoMLData* inputs,
       size_t num_inputs,
-      HoneyData* outputs,
+      DinoMLData* outputs,
       size_t num_outputs);
 
   Model* GetAvailableModel();
   void ReclaimFinishedModels(std::unique_lock<std::mutex>& lk);
-  void ValidateParamDtype(HoneyDtype dtype, size_t idx) const;
-  void ValidateBoundConstantDtype(HoneyDtype dtype, size_t idx) const;
+  void ValidateParamDtype(DinoMLDtype dtype, size_t idx) const;
+  void ValidateBoundConstantDtype(DinoMLDtype dtype, size_t idx) const;
 
   float BenchmarkImpl(
-      const HoneyData* inputs,
+      const DinoMLData* inputs,
       size_t num_inputs,
-      HoneyData* outputs,
+      DinoMLData* outputs,
       size_t num_outputs,
       StreamType stream,
       bool graph_mode,
       size_t count,
       int64_t** output_shapes_out);
 
-  HoneyAllocator& allocator_;
+  DinoMLAllocator& allocator_;
 
   std::vector<std::unique_ptr<Model>> models_;
   std::unique_ptr<ConstantFolder> constant_folder_;
@@ -331,4 +331,4 @@ class ModelContainer : ModelContainerBase {
   bool constant_folded_once_ = false;
 };
 
-} // namespace honey
+} // namespace dinoml

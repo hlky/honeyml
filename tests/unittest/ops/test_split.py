@@ -17,15 +17,15 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntVarTensor
-from honey.frontend import IntImm, IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntVarTensor
+from dinoml.frontend import IntImm, IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import shape_utils
+from dinoml.utils import shape_utils
 
 
 class SplitTestCase(unittest.TestCase):
@@ -91,7 +91,7 @@ class SplitTestCase(unittest.TestCase):
             Y._attrs["name"] = f"output_{idx}"
             Y._attrs["is_output"] = True
             y_shape = [d._attrs["values"][0] for d in Y._attrs["shape"]]
-            logging.info(f"Honey output_{idx} shape: {y_shape}")
+            logging.info(f"DinoML output_{idx} shape: {y_shape}")
             y_shapes.append(y_shape)
 
         dll_name = f"test_{self.test_count}.so"

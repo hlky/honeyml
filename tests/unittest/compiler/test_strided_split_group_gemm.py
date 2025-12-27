@@ -18,10 +18,10 @@ import unittest
 import numpy as np
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import IntImm, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntImm, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
@@ -90,7 +90,7 @@ class StridedSplitGroupGemmTestCase(unittest.TestCase):
         Y_np = Y_pt.cpu().numpy()
 
         y_shape = [var._attrs["values"][0] for var in Y._attrs["shape"]]
-        _LOGGER.info("Honey y_shape: {}".format(y_shape))
+        _LOGGER.info("DinoML y_shape: {}".format(y_shape))
         np.testing.assert_equal(y_shape, Y_np.shape)
 
         inputs = [
@@ -168,7 +168,7 @@ class StridedSplitGroupGemmTestCase(unittest.TestCase):
         Y_np = Y_pt.cpu().numpy()
 
         y_shape = [var._attrs["values"][0] for var in Y._attrs["shape"]]
-        _LOGGER.info("Honey y_shape: {}".format(y_shape))
+        _LOGGER.info("DinoML y_shape: {}".format(y_shape))
         np.testing.assert_equal(y_shape, Y_np.shape)
 
         input_name_to_index = module.get_input_name_to_index_map()
@@ -238,7 +238,7 @@ class StridedSplitGroupGemmTestCase(unittest.TestCase):
         Y_np = Y_pt.cpu().numpy()
 
         y_shape = [var._attrs["values"][0] for var in Y._attrs["shape"]]
-        _LOGGER.info("Honey y_shape: {}".format(y_shape))
+        _LOGGER.info("DinoML y_shape: {}".format(y_shape))
         np.testing.assert_equal(y_shape, Y_np.shape)
 
         inputs = [0 for i in range(4)]
@@ -316,7 +316,7 @@ class StridedSplitGroupGemmTestCase(unittest.TestCase):
         Y_np = Y_pt.cpu().numpy()
 
         y_shape = [var._attrs["values"][0] for var in Y._attrs["shape"]]
-        _LOGGER.info("Honey y_shape: {}".format(y_shape))
+        _LOGGER.info("DinoML y_shape: {}".format(y_shape))
         np.testing.assert_equal(y_shape, Y_np.shape)
 
         input_name_to_index = module.get_input_name_to_index_map()

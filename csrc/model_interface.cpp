@@ -34,24 +34,24 @@ thread_local std::string last_error_message;
   } catch (const std::exception& e) {            \
     last_error_message = e.what();               \
     LOG(ERROR) << "Error: " << e.what();         \
-    return HoneyError::HoneyFailure;   \
+    return DinoMLError::DinoMLFailure;   \
   } catch (...) {                                \
     last_error_message = "Unknown exception occurred."; \
     LOG(ERROR) << "Unknown exception occurred."; \
-    return HoneyError::HoneyFailure;   \
+    return DinoMLError::DinoMLFailure;   \
   }                                              \
-  return HoneyError::HoneySuccess;
+  return DinoMLError::DinoMLSuccess;
 
 #define RETURN_ERROR_IF_NULL(var)                          \
   if (var == nullptr) {                                    \
     last_error_message = "Variable " #var " can't be null";\
     LOG(ERROR) << "Variable " << #var << " can't be null"; \
-    return HoneyError::HoneyFailure;             \
+    return DinoMLError::DinoMLFailure;             \
   }
 
-namespace honey {
+namespace dinoml {
 namespace {
-class DefaultAllocator : public HoneyAllocator {
+class DefaultAllocator : public DinoMLAllocator {
  public:
   void* Allocate(size_t n_bytes) override {
     void* result;
@@ -82,7 +82,7 @@ class TrackingAllocator : public DefaultAllocator {
 
 DefaultAllocator default_allocator;
 } // namespace
-} // namespace honey
+} // namespace dinoml
 
 extern "C" {
 
@@ -90,95 +90,95 @@ const char* GetLastErrorMessage() {
   return last_error_message.c_str();
 }
 
-HoneyError HoneyModelContainerCreate(
-    HoneyModelHandle* ret,
+DinoMLError DinoMLModelContainerCreate(
+    DinoMLModelHandle* ret,
     size_t num_runtimes,
-    HoneyAllocator* allocator) {
+    DinoMLAllocator* allocator) {
   if (num_runtimes == 0) {
     last_error_message = "num_runtimes must be positive, but got 0";
     LOG(ERROR) << "num_runtimes must be positive, but got 0";
-    return HoneyError::HoneyFailure;
+    return DinoMLError::DinoMLFailure;
   }
   RETURN_ERROR_IF_NULL(ret)
-  HoneyAllocator& allocator_ref =
-      allocator == nullptr ? honey::default_allocator : *allocator;
+  DinoMLAllocator& allocator_ref =
+      allocator == nullptr ? dinoml::default_allocator : *allocator;
   CONVERT_EXCEPTION_TO_ERROR_CODE({
-    auto* m = honey::CreateModelContainer(num_runtimes, allocator_ref);
-    *ret = reinterpret_cast<HoneyModelHandle>(m);
+    auto* m = dinoml::CreateModelContainer(num_runtimes, allocator_ref);
+    *ret = reinterpret_cast<DinoMLModelHandle>(m);
   })
 }
 
-HoneyError HoneyModelContainerDelete(HoneyModelHandle handle) {
+DinoMLError DinoMLModelContainerDelete(DinoMLModelHandle handle) {
   RETURN_ERROR_IF_NULL(handle)
   CONVERT_EXCEPTION_TO_ERROR_CODE({
-    auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+    auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
     delete m;
   });
 }
 
-HoneyError HoneyStreamCreate(
-  HoneyStreamHandle* handle,
+DinoMLError DinoMLStreamCreate(
+  DinoMLStreamHandle* handle,
   bool non_blocking) {
   RETURN_ERROR_IF_NULL(handle)
-  auto stream = honey::RAII_StreamCreate(non_blocking);
-  CONVERT_EXCEPTION_TO_ERROR_CODE({ *handle = reinterpret_cast<HoneyStreamHandle>(stream.get()); });
+  auto stream = dinoml::RAII_StreamCreate(non_blocking);
+  CONVERT_EXCEPTION_TO_ERROR_CODE({ *handle = reinterpret_cast<DinoMLStreamHandle>(stream.get()); });
 }
 
-HoneyError HoneyModelContainerSetConstant(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerSetConstant(
+    DinoMLModelHandle handle,
     const char* name,
-    const HoneyData* tensor) {
+    const DinoMLData* tensor) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(tensor)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({ m->SetConstant(name, *tensor); })
 }
 
-Honey_EXPORT HoneyError HoneyModelContainerSetManyConstants(
-    HoneyModelHandle handle,
+DINOML_EXPORT DinoMLError DinoMLModelContainerSetManyConstants(
+    DinoMLModelHandle handle,
     const char** names,
-    const HoneyData* tensors,
+    const DinoMLData* tensors,
     size_t num_tensors) {
   RETURN_ERROR_IF_NULL(handle)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE(
       { m->SetManyConstants(names, tensors, num_tensors); })
 }
 
-HoneyError HoneyModelContainerSetDoubleBufferConstant(
-    HoneyModelHandle handle,
-    HoneyStreamHandle stream_handle,
+DinoMLError DinoMLModelContainerSetDoubleBufferConstant(
+    DinoMLModelHandle handle,
+    DinoMLStreamHandle stream_handle,
     const char* name,
-    const HoneyData* tensor) {
+    const DinoMLData* tensor) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(tensor)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
-  auto stream = reinterpret_cast<honey::StreamType>(stream_handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
+  auto stream = reinterpret_cast<dinoml::StreamType>(stream_handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE(
       { m->SetDoubleBufferConstant(name, *tensor, stream); })
 }
 
-Honey_EXPORT HoneyError HoneyModelContainerSetManyDoubleBufferConstants(
-    HoneyModelHandle handle,
-    HoneyStreamHandle stream_handle,
+DINOML_EXPORT DinoMLError DinoMLModelContainerSetManyDoubleBufferConstants(
+    DinoMLModelHandle handle,
+    DinoMLStreamHandle stream_handle,
     const char** names,
-    const HoneyData* tensors,
+    const DinoMLData* tensors,
     size_t num_tensors) {
   RETURN_ERROR_IF_NULL(handle)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
-  auto stream = reinterpret_cast<honey::StreamType>(stream_handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
+  auto stream = reinterpret_cast<dinoml::StreamType>(stream_handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE(
       { m->SetManyDoubleBufferConstants(names, tensors, num_tensors, stream); })
 }
 
-HoneyError HoneyModelContainerGetNumConstants(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetNumConstants(
+    DinoMLModelHandle handle,
     bool unbound_constants_only,
     bool constant_folding_inputs_only,
     size_t* num_constants_out) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(num_constants_out)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({
     if (constant_folding_inputs_only) {
       *num_constants_out =
@@ -189,15 +189,15 @@ HoneyError HoneyModelContainerGetNumConstants(
   })
 }
 
-HoneyError HoneyModelContainerGetConstantNames(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetConstantNames(
+    DinoMLModelHandle handle,
     bool unbound_constants_only,
     bool constant_folding_inputs_only,
     const char** constant_names_out) {
   RETURN_ERROR_IF_NULL(handle)
   // WriteAllConstantNamesTo() will handle nullptr checks on constant_names_out.
   // Passing nullptr is allowed if there are 0 constants!
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({
     m->WriteAllConstantNamesTo(
         constant_names_out,
@@ -206,40 +206,40 @@ HoneyError HoneyModelContainerGetConstantNames(
   })
 }
 
-HoneyError HoneyModelContainerGetConstantDtype(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetConstantDtype(
+    DinoMLModelHandle handle,
     const char* name,
-    HoneyDtype* dtype) {
+    DinoMLDtype* dtype) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(dtype)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({ *dtype = m->ConstantDtype(name); })
 }
 
-HoneyError HoneyModelContainerGetConstantOriginalName(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetConstantOriginalName(
+    DinoMLModelHandle handle,
     const char* name,
     const char** original_name_out) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(original_name_out)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE(
       { *original_name_out = m->ConstantOriginalName(name); })
 }
 
-HoneyError HoneyModelContainerRun(
-    HoneyModelHandle handle,
-    const HoneyData* inputs,
+DinoMLError DinoMLModelContainerRun(
+    DinoMLModelHandle handle,
+    const DinoMLData* inputs,
     size_t num_inputs,
-    HoneyData* outputs,
+    DinoMLData* outputs,
     size_t num_outputs,
-    HoneyStreamHandle stream_handle,
+    DinoMLStreamHandle stream_handle,
     bool sync,
     bool graph_mode,
     int64_t** output_shapes_out) {
   RETURN_ERROR_IF_NULL(handle)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
-  auto stream = reinterpret_cast<honey::StreamType>(stream_handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
+  auto stream = reinterpret_cast<dinoml::StreamType>(stream_handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({
     m->Run(
         inputs,
@@ -253,18 +253,18 @@ HoneyError HoneyModelContainerRun(
   })
 }
 
-HoneyError HoneyModelContainerRunWithOutputsOnHost(
-    HoneyModelHandle handle,
-    const HoneyData* inputs,
+DinoMLError DinoMLModelContainerRunWithOutputsOnHost(
+    DinoMLModelHandle handle,
+    const DinoMLData* inputs,
     size_t num_inputs,
-    HoneyData* outputs,
+    DinoMLData* outputs,
     size_t num_outputs,
-    HoneyStreamHandle stream_handle,
+    DinoMLStreamHandle stream_handle,
     bool graph_mode,
     int64_t** output_shapes_out) {
   RETURN_ERROR_IF_NULL(handle)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
-  auto stream = reinterpret_cast<honey::StreamType>(stream_handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
+  auto stream = reinterpret_cast<dinoml::StreamType>(stream_handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({
     m->RunWithOutputsOnHost(
         inputs,
@@ -277,32 +277,32 @@ HoneyError HoneyModelContainerRunWithOutputsOnHost(
   })
 }
 
-HoneyError HoneyModelContainerProfile(
-    HoneyModelHandle handle,
-    const HoneyData* inputs,
+DinoMLError DinoMLModelContainerProfile(
+    DinoMLModelHandle handle,
+    const DinoMLData* inputs,
     size_t num_inputs,
-    HoneyData* outputs,
+    DinoMLData* outputs,
     size_t num_outputs,
-    HoneyStreamHandle stream_handle,
+    DinoMLStreamHandle stream_handle,
     size_t num_iters,
     const char* filename) {
   RETURN_ERROR_IF_NULL(handle);
   RETURN_ERROR_IF_NULL(filename);
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
-  auto stream = reinterpret_cast<honey::StreamType>(stream_handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
+  auto stream = reinterpret_cast<dinoml::StreamType>(stream_handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({
     m->Profile(
         inputs, num_inputs, outputs, num_outputs, stream, num_iters, filename);
   })
 }
 
-HoneyError HoneyModelContainerBenchmark(
-    HoneyModelHandle handle,
-    const HoneyData* inputs,
+DinoMLError DinoMLModelContainerBenchmark(
+    DinoMLModelHandle handle,
+    const DinoMLData* inputs,
     size_t num_inputs,
-    HoneyData* outputs,
+    DinoMLData* outputs,
     size_t num_outputs,
-    HoneyStreamHandle stream_handle,
+    DinoMLStreamHandle stream_handle,
     bool graph_mode,
     size_t count,
     size_t num_threads,
@@ -311,8 +311,8 @@ HoneyError HoneyModelContainerBenchmark(
     int64_t** output_shapes_out) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(runtime_ms)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
-  auto stream = reinterpret_cast<honey::StreamType>(stream_handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
+  auto stream = reinterpret_cast<dinoml::StreamType>(stream_handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({
     *runtime_ms = m->Benchmark(
         inputs,
@@ -328,142 +328,142 @@ HoneyError HoneyModelContainerBenchmark(
   })
 }
 
-HoneyError HoneyModelContainerGetNumInputs(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetNumInputs(
+    DinoMLModelHandle handle,
     size_t* num_inputs_out) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(num_inputs_out)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({ *num_inputs_out = m->NumInputs(); })
 }
 
-HoneyError HoneyModelContainerGetRequiredMemory(
-  HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetRequiredMemory(
+  DinoMLModelHandle handle,
   size_t* required_memory) {
 RETURN_ERROR_IF_NULL(handle)
 RETURN_ERROR_IF_NULL(required_memory)
-auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
 CONVERT_EXCEPTION_TO_ERROR_CODE({ *required_memory = m->RequiredMemory(); })
 }
 
-HoneyError HoneyModelContainerGetInputName(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetInputName(
+    DinoMLModelHandle handle,
     size_t input_idx,
     const char** input_name_out) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(input_name_out)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE(
       { *input_name_out = m->InputName(input_idx); })
 }
 
-HoneyError HoneyModelContainerGetMaximumInputShape(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetMaximumInputShape(
+    DinoMLModelHandle handle,
     size_t input_idx,
-    HoneyParamShape* shape) {
+    DinoMLParamShape* shape) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(shape)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({ *shape = m->MaxInputShape(input_idx); })
 }
 
-HoneyError HoneyModelContainerGetInputDtype(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetInputDtype(
+    DinoMLModelHandle handle,
     size_t input_idx,
-    HoneyDtype* input_dtype) {
+    DinoMLDtype* input_dtype) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(input_dtype)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({ *input_dtype = m->InputDtype(input_idx); })
 }
 
-HoneyError HoneyModelContainerGetNumOutputs(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetNumOutputs(
+    DinoMLModelHandle handle,
     size_t* num_outputs_out) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(num_outputs_out)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({ *num_outputs_out = m->NumOutputs(); })
 }
 
-HoneyError HoneyModelContainerGetOutputName(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetOutputName(
+    DinoMLModelHandle handle,
     size_t output_idx,
     const char** output_name_out) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(output_name_out)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE(
       { *output_name_out = m->OutputName(output_idx); })
 }
 
-HoneyError HoneyModelContainerGetMaximumOutputShape(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetMaximumOutputShape(
+    DinoMLModelHandle handle,
     size_t output_idx,
-    HoneyParamShape* shape_out) {
+    DinoMLParamShape* shape_out) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(shape_out)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE(
       { *shape_out = m->MaxOutputShape(output_idx); })
 }
 
-HoneyError HoneyModelContainerGetOutputDtype(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetOutputDtype(
+    DinoMLModelHandle handle,
     size_t output_idx,
-    HoneyDtype* dtype_out) {
+    DinoMLDtype* dtype_out) {
   RETURN_ERROR_IF_NULL(handle)
   RETURN_ERROR_IF_NULL(dtype_out)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({ *dtype_out = m->OutputDtype(output_idx); })
 }
 
-HoneyError HoneyModelContainerGetNumRuntimes(
-    HoneyModelHandle handle,
+DinoMLError DinoMLModelContainerGetNumRuntimes(
+    DinoMLModelHandle handle,
     size_t* num_runtimes_out) {
   RETURN_ERROR_IF_NULL(num_runtimes_out)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({ *num_runtimes_out = m->GetNumRuntimes(); })
 }
 
-HoneyError HoneyModelContainerFoldConstants(
-    HoneyModelHandle handle,
-    HoneyStreamHandle stream_handle,
+DinoMLError DinoMLModelContainerFoldConstants(
+    DinoMLModelHandle handle,
+    DinoMLStreamHandle stream_handle,
     bool sync) {
   RETURN_ERROR_IF_NULL(handle)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
-  auto stream = reinterpret_cast<honey::StreamType>(stream_handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
+  auto stream = reinterpret_cast<dinoml::StreamType>(stream_handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({ m->FoldConstants(stream, sync, false); })
 }
 
-HoneyError HoneyModelContainerFoldConstantsInDoubleBuffer(
-    HoneyModelHandle handle,
-    HoneyStreamHandle stream_handle,
+DinoMLError DinoMLModelContainerFoldConstantsInDoubleBuffer(
+    DinoMLModelHandle handle,
+    DinoMLStreamHandle stream_handle,
     bool sync) {
   RETURN_ERROR_IF_NULL(handle)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
-  auto stream = reinterpret_cast<honey::StreamType>(stream_handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
+  auto stream = reinterpret_cast<dinoml::StreamType>(stream_handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({ m->FoldConstants(stream, sync, true); })
 }
 
-HoneyError HoneyModelContainerSwapConstants(
-    HoneyModelHandle handle) {
+DinoMLError DinoMLModelContainerSwapConstants(
+    DinoMLModelHandle handle) {
   RETURN_ERROR_IF_NULL(handle)
-  auto* m = reinterpret_cast<honey::ModelContainer*>(handle);
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
   CONVERT_EXCEPTION_TO_ERROR_CODE({ m->SwapConstants(); })
 }
 
-HoneyError HoneyAllocatorCreate(
-    HoneyAllocator** allocator_out,
-    HoneyAllocatorType allocator_type) {
+DinoMLError DinoMLAllocatorCreate(
+    DinoMLAllocator** allocator_out,
+    DinoMLAllocatorType allocator_type) {
   RETURN_ERROR_IF_NULL(allocator_out);
   CONVERT_EXCEPTION_TO_ERROR_CODE({
     switch (allocator_type) {
-      case HoneyAllocatorType::kDefault:
-        *allocator_out = new honey::DefaultAllocator();
+      case DinoMLAllocatorType::kDefault:
+        *allocator_out = new dinoml::DefaultAllocator();
         break;
-      case HoneyAllocatorType::kTracking:
-        *allocator_out = new honey::TrackingAllocator();
+      case DinoMLAllocatorType::kTracking:
+        *allocator_out = new dinoml::TrackingAllocator();
         break;
       default:
         throw std::runtime_error("Unrecognized allocator type");
@@ -471,19 +471,19 @@ HoneyError HoneyAllocatorCreate(
   });
 }
 
-HoneyError HoneyAllocatorDelete(HoneyAllocator* allocator) {
+DinoMLError DinoMLAllocatorDelete(DinoMLAllocator* allocator) {
   RETURN_ERROR_IF_NULL(allocator);
   delete allocator;
-  return HoneyError::HoneySuccess;
+  return DinoMLError::DinoMLSuccess;
 }
 
-HoneyError HoneyTrackingAllocatorGetNumBytes(
-    HoneyAllocator* allocator,
+DinoMLError DinoMLTrackingAllocatorGetNumBytes(
+    DinoMLAllocator* allocator,
     size_t* num_bytes_out) {
   RETURN_ERROR_IF_NULL(allocator);
   RETURN_ERROR_IF_NULL(num_bytes_out);
   CONVERT_EXCEPTION_TO_ERROR_CODE({
-    auto* tracking_allocator = dynamic_cast<honey::TrackingAllocator*>(allocator);
+    auto* tracking_allocator = dynamic_cast<dinoml::TrackingAllocator*>(allocator);
     if (tracking_allocator == nullptr) {
       throw std::runtime_error("Allocator was not a tracking allocator!");
     }

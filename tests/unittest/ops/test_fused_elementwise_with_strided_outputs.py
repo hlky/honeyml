@@ -22,13 +22,13 @@ from typing import List
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
-from honey.utils import shape_utils
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
+from dinoml.utils import shape_utils
 
 
 class FusedElementwiseWithStridedOutputsTestCase(unittest.TestCase):
@@ -112,7 +112,7 @@ class FusedElementwiseWithStridedOutputsTestCase(unittest.TestCase):
                     x6_pt = torch.tanh(x3_pt)
                     x7_pt = torch.cat([x5_pt, x6_pt], dim=2)
 
-                    # Run Honey module.
+                    # Run DinoML module.
                     inputs = [0, 0]
                     name_to_index_map = module.get_input_name_to_index_map()
                     inputs[name_to_index_map["input0"]] = x1_pt

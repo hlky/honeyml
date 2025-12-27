@@ -1,7 +1,7 @@
 from typing import List
 import click
 
-from honey.builder.autoencoder_kl import AutoencoderKLEncodeBuilder
+from dinoml.builder.autoencoder_kl import AutoencoderKLEncodeBuilder
 
 """
 python scripts/autoencoder_kl_encode_build.py --hf-hub runwayml/stable-diffusion-v1-5 --subfolder vae --label v1 --batch-size 1 --min-res 8 --max-res 512

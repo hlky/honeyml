@@ -4,13 +4,13 @@ from typing import cast, List, Optional
 import diffusers.models.attention_processor as attention_processor_torch
 import torch
 
-from honey.compiler import compile_model
-from honey.frontend import nn, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler import compile_model
+from dinoml.frontend import nn, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
-import honey.modeling.diffusers.attention_processor as attention_processor
-from honey.builder.config import mark_output
+import dinoml.modeling.diffusers.attention_processor as attention_processor
+from dinoml.builder.config import mark_output
 
 
 class AttentionTestCase(unittest.TestCase):
@@ -58,19 +58,19 @@ class AttentionTestCase(unittest.TestCase):
             else None
         )
 
-        hidden_states_honey = hidden_states.clone().to(
+        hidden_states_dinoml = hidden_states.clone().to(
             hidden_states.device, hidden_states.dtype
         )
         if len(hidden_shape) == 4:
-            hidden_states_honey = hidden_states_honey.permute(0, 2, 3, 1).contiguous()
-        encoder_hidden_states_honey = (
+            hidden_states_dinoml = hidden_states_dinoml.permute(0, 2, 3, 1).contiguous()
+        encoder_hidden_states_dinoml = (
             encoder_hidden_states.clone().to(
                 encoder_hidden_states.device, encoder_hidden_states.dtype
             )
             if encoder_hidden_states is not None
             else None
         )
-        attention_mask_honey = (
+        attention_mask_dinoml = (
             attention_mask.clone().to(attention_mask.device, attention_mask.dtype)
             if attention_mask is not None
             else None
@@ -104,13 +104,13 @@ class AttentionTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if value.ndim == 4 and "weight" in key:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(hidden_states.device, hidden_states.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt = op.forward(hidden_states, encoder_hidden_states, attention_mask)
@@ -150,7 +150,7 @@ class AttentionTestCase(unittest.TestCase):
             else None
         )
 
-        op_honey = attention_processor.Attention(
+        op_dinoml = attention_processor.Attention(
             query_dim=query_dim,
             cross_attention_dim=cross_attention_dim,
             heads=heads,
@@ -173,32 +173,32 @@ class AttentionTestCase(unittest.TestCase):
             out_dim=out_dim,
             dtype=dtype,
         )
-        op_honey.name_parameter_tensor()
+        op_dinoml.name_parameter_tensor()
         if Encoder_hidden_states is not None and Attention_mask is not None:
-            Y = op_honey.forward(Hidden_states, Encoder_hidden_states, Attention_mask)
+            Y = op_dinoml.forward(Hidden_states, Encoder_hidden_states, Attention_mask)
         elif Encoder_hidden_states is not None:
-            Y = op_honey.forward(Hidden_states, Encoder_hidden_states)
+            Y = op_dinoml.forward(Hidden_states, Encoder_hidden_states)
         elif Attention_mask is not None:
-            Y = op_honey.forward(Hidden_states, attention_mask=Attention_mask)
+            Y = op_dinoml.forward(Hidden_states, attention_mask=Attention_mask)
         else:
-            Y = op_honey.forward(Hidden_states)
+            Y = op_dinoml.forward(Hidden_states)
         Y = mark_output(Y, "Y")
 
         target = detect_target()
         test_name = (
             f"test_attention_{dtype}_dim{query_dim}_heads{heads}_dim_head{dim_head}"
         )
-        inputs_dict = {"Hidden_states": hidden_states_honey}
+        inputs_dict = {"Hidden_states": hidden_states_dinoml}
         if Encoder_hidden_states is not None:
-            inputs_dict["Encoder_hidden_states"] = encoder_hidden_states_honey
+            inputs_dict["Encoder_hidden_states"] = encoder_hidden_states_dinoml
         if Attention_mask is not None:
-            inputs_dict["Attention_mask"] = attention_mask_honey
+            inputs_dict["Attention_mask"] = attention_mask_dinoml
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs_dict, [y])
         if y.ndim == 4:
@@ -208,7 +208,7 @@ class AttentionTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def test_attention(self):

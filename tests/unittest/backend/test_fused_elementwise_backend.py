@@ -18,14 +18,14 @@ FusedElementwise unittest for backend-agnostic codegen functions.
 
 import unittest
 
-from honey.backend.common.elementwise_common import (
+from dinoml.backend.common.elementwise_common import (
     ElementwiseMetaData,
     FusedElementwiseMetaData,
     gen_function_single_thread,
 )
-from honey.compiler import ops
-from honey.compiler.tensor_accessor import TensorAccessor
-from honey.frontend import Tensor
+from dinoml.compiler import ops
+from dinoml.compiler.tensor_accessor import TensorAccessor
+from dinoml.frontend import Tensor
 
 BATCH_SIZE = 1024
 M = 256

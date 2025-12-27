@@ -17,9 +17,9 @@ from typing import List, Sequence, Union
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     gen_input_tensor,
     get_random_torch_tensor,
     graph_has_op,
@@ -145,7 +145,7 @@ class TestRemoveNoOpSplits(unittest.TestCase):
         Zs_pt = torch.split(X_pt, split_size_or_sections, split_dim)
         outputs_pt = Zs_pt if split_is_output else [Z_pt + c_pt for Z_pt in Zs_pt]
 
-        # Run Honey.
+        # Run DinoML.
         with compile_model(
             model_outputs, detect_target(), "./tmp", test_name
         ) as module:
@@ -154,15 +154,15 @@ class TestRemoveNoOpSplits(unittest.TestCase):
                 if split_is_output
                 else {"input_0": X_pt, "input_1": c_pt}
             )
-            outputs_honey = {
+            outputs_dinoml = {
                 f"output_{i}": torch.empty_like(out_pt)
                 for (i, out_pt) in enumerate(outputs_pt)
             }
-            module.run_with_tensors(inputs_pt, outputs_honey)
+            module.run_with_tensors(inputs_pt, outputs_dinoml)
 
             self.assertNotEqual(
                 graph_has_op(module.debug_sorted_graph, "split"),
                 should_remove_no_op_split,
             )
-            for out_pt, out_honey in zip(outputs_pt, outputs_honey.values()):
-                self.assertTrue(torch.allclose(out_pt, out_honey, atol=1e-2, rtol=1e-3))
+            for out_pt, out_dinoml in zip(outputs_pt, outputs_dinoml.values()):
+                self.assertTrue(torch.allclose(out_pt, out_dinoml, atol=1e-2, rtol=1e-3))

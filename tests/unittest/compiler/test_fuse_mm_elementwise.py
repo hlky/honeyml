@@ -16,18 +16,18 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
     get_torch_empty_tensor,
     TestEnv,
 )
-from honey.utils import shape_utils
+from dinoml.utils import shape_utils
 
 from parameterized import parameterized
 
@@ -888,29 +888,29 @@ class FuseGemmRcrBiasActivationCase(unittest.TestCase):
         return sigmoid_tensor
 
     def _test_gemm_rcr_bias_activation(
-        self, Ms, N, K, activation, target_honey, decomposed, testname, dtype="float16"
+        self, Ms, N, K, activation, target_dinoml, decomposed, testname, dtype="float16"
     ):
         m_dim = shape_utils.gen_int_var_min_max(Ms, name="M_size")
         if activation == "relu":
-            honey_func = FuncEnum.RELU
+            dinoml_func = FuncEnum.RELU
             pt_func = torch.nn.functional.relu
         elif activation == "sigmoid":
-            honey_func = FuncEnum.SIGMOID
+            dinoml_func = FuncEnum.SIGMOID
             pt_func = torch.sigmoid
         elif activation == "tanh":
-            honey_func = FuncEnum.TANH
+            dinoml_func = FuncEnum.TANH
             pt_func = torch.tanh
         elif activation == "gelu":
-            honey_func = FuncEnum.GELU
+            dinoml_func = FuncEnum.GELU
             pt_func = torch.nn.functional.gelu
         elif activation == "fast_gelu":
-            honey_func = FuncEnum.FASTGELU
+            dinoml_func = FuncEnum.FASTGELU
             pt_func = torch.nn.functional.gelu
         else:
             raise AssertionError("Activation not supported")
 
         bias_tensor = self._build_gemm_rcr_bias(m_dim, N, K, decomposed, dtype)
-        act_tensor = ops.elementwise(honey_func)(bias_tensor)
+        act_tensor = ops.elementwise(dinoml_func)(bias_tensor)
         act_tensor._attrs["name"] = "final_tensor"
         output = ops.elementwise(FuncEnum.COS)(act_tensor)
         output._attrs["name"] = "output_0"
@@ -928,7 +928,7 @@ class FuseGemmRcrBiasActivationCase(unittest.TestCase):
         self.assertIsNotNone(check_tensor)
         self.assertEqual(len(check_tensor.src_ops()), 1)
         src_op = list(check_tensor.src_ops())[0]
-        self.assertEqual(src_op._attrs["op"], target_honey)
+        self.assertEqual(src_op._attrs["op"], target_dinoml)
 
         for M in Ms:
             X_pt = get_random_torch_tensor([M, K], dtype)
@@ -1009,7 +1009,7 @@ class FuseGemmRcrBiasActivationCase(unittest.TestCase):
             y = [get_torch_empty_tensor([M, N], dtype)]
 
             if output_in_the_middle:
-                # add another tensor to capture sigmoid output from Honey
+                # add another tensor to capture sigmoid output from DinoML
                 y.append(get_torch_empty_tensor([M, N], dtype))
                 Y_pt.append(sigmoid_pt)
 
@@ -1307,10 +1307,10 @@ class FuseGemmRcrBiasActivationCase(unittest.TestCase):
         testname,
         dtype,
         activation=None,
-        target_honey=None,
+        target_dinoml=None,
     ):
-        if activation and target_honey:
-            func(self, Ms, N, K, activation, target_honey, decomposed, testname, dtype)
+        if activation and target_dinoml:
+            func(self, Ms, N, K, activation, target_dinoml, decomposed, testname, dtype)
         else:
             func(self, Ms, N, K, decomposed, testname, dtype)
 

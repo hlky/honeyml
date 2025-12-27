@@ -16,18 +16,18 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import JaggedDim, JaggedIntVar
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import IntImm, IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.jagged_utils import add_jagged_dense_ref
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import JaggedDim, JaggedIntVar
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import IntImm, IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.jagged_utils import add_jagged_dense_ref
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils.graph_utils import get_sorted_ops
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.utils.graph_utils import get_sorted_ops
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 
 class MakeJaggedTestCase(unittest.TestCase):

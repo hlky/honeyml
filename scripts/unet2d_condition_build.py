@@ -1,4 +1,4 @@
-from honey.builder.unet2d_condition import UNet2DConditionBuilder
+from dinoml.builder.unet2d_condition import UNet2DConditionBuilder
 
 builder = UNet2DConditionBuilder(
     hf_hub="runwayml/stable-diffusion-v1-5",

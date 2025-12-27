@@ -16,13 +16,13 @@ import random
 import unittest
 
 import torch
-from honey import compiler
+from dinoml import compiler
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import Operator
-from honey.frontend import IntImm, nn, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import Operator
+from dinoml.frontend import IntImm, nn, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )

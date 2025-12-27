@@ -17,16 +17,16 @@ import unittest
 import numpy as np
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import graph_utils
+from dinoml.utils import graph_utils
 
 
 @unittest.skipIf(detect_target().name() == "rocm", "Not supported by ROCM.")

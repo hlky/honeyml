@@ -15,15 +15,15 @@
 import unittest
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.compiler.base import Tensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.compiler.transform.toposort import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import Tensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.compiler.transform.toposort import (
     _dfsSort,
     _priSort,
     SizePriTensorHelper,
 )
-from honey.testing import detect_target
+from dinoml.testing import detect_target
 
 
 class TestTopoSort(unittest.TestCase):
@@ -60,10 +60,10 @@ class TestTopoSort(unittest.TestCase):
         x_pt = torch.randn((2, 10)).half().cuda()
         out_pt = torch.relu(x_pt)
 
-        out_honey = torch.empty_like(out_pt)
-        module.run_with_tensors({"x": x_pt}, {"output": out_honey})
+        out_dinoml = torch.empty_like(out_pt)
+        module.run_with_tensors({"x": x_pt}, {"output": out_dinoml})
 
-        self.assertTrue(torch.equal(out_honey, out_pt))
+        self.assertTrue(torch.equal(out_dinoml, out_pt))
 
     def test_size_pri_toposort(self):
         tensor = self._get_diff_size_graph()

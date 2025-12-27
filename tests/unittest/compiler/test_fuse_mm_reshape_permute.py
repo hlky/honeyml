@@ -16,16 +16,16 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
     get_torch_empty_tensor,
     has_op,
 )
-from honey.utils import graph_utils, shape_utils
+from dinoml.utils import graph_utils, shape_utils
 
 
 @unittest.skipIf(detect_target().name() == "rocm", "Not supported by ROCM.")
@@ -102,7 +102,7 @@ class GEMMReshapePermuteTestCase(unittest.TestCase):
             self.assertTrue(torch.allclose(Y_pt, y, atol=1e-1, rtol=1e-1))
 
             # module.benchmark_with_tensors(inputs, [y], count=1000)
-            # from honey.testing.benchmark_pt import benchmark_torch_function
+            # from dinoml.testing.benchmark_pt import benchmark_torch_function
 
             # t = benchmark_torch_function(
             #     1000, torch_f, X_pt, W_pt, B_pt, has_bias, shape

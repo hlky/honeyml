@@ -1,6 +1,6 @@
 # About
 
-This directory contains all of the C++ sources that are static during Honey compilation, including the bulk of the runtime implementation.
+This directory contains all of the C++ sources that are static during DinoML compilation, including the bulk of the runtime implementation.
 
 ## C++ Implementation
 
@@ -27,35 +27,35 @@ Note that many of the headers in this directory rely on generated code and thus 
 
 ## Python `Model`
 
-`Model` is a collection of Python bindings to the C++ Honey runtime. This section describes the API.
+`Model` is a collection of Python bindings to the C++ DinoML runtime. This section describes the API.
 
-### `HoneyData`
+### `DinoMLData`
 
-This class represents a contiguous blob of memory that Honey will use as a tensor. It is simply a named tuple with these fields:
+This class represents a contiguous blob of memory that DinoML will use as a tensor. It is simply a named tuple with these fields:
 
 * `data_ptr: int`: An **unowned** pointer to **GPU** memory. In general, all of the APIs expect that this pointer will be valid for the entire duration of the call.
 * `shape: List[int]`: The shape of the tensor.
 * `dtype: str`: The tensor's dtype; one of `"float32", "float16", "int32", "int64"`. Note that most ops only support float16 at this stage.
 
-If using Honey with PyTorch, `HoneyData`s can be constructed with the `torch_to_honey_data` utility:
+If using DinoML with PyTorch, `DinoMLData`s can be constructed with the `torch_to_dinoml_data` utility:
 
 ```python
 x = torch.randn(3, 3, 3).half().cuda()
-# Equivalent to HoneyData(x.data_ptr(), [3, 3, 3], "float16")
-x_honey = torch_to_honey_data(x)
+# Equivalent to DinoMLData(x.data_ptr(), [3, 3, 3], "float16")
+x_dinoml = torch_to_dinoml_data(x)
 ```
 
 If PyTorch is not available, `Model` provides a set of functions for copying, allocating, and freeing GPU memory. See the docstrings in `compiler/model.py` for more information.
 
 ### `run`
 
-`run` takes a set of inputs and outputs as `HoneyData`s. Both arguments can be passed as either an ordered list or a dictionary (mapping name to tensor).
+`run` takes a set of inputs and outputs as `DinoMLData`s. Both arguments can be passed as either an ordered list or a dictionary (mapping name to tensor).
 
 ```python
 # Arguments as a dictionary
 module.run(
-  {"input0": in0_honey, "input1": in1_honey},
-  {"output0": out0_honey, "output1": out1_honey},
+  {"input0": in0_dinoml, "input1": in1_dinoml},
+  {"output0": out0_dinoml, "output1": out1_dinoml},
 )
 
 # Arguments as an ordered list. Note that you might need to query
@@ -67,10 +67,10 @@ inputs = [None] * len(input_name_to_idx)
 outputs = [None] * len(output_name_to_idx)
 
 for name in input_name_to_idx:
-  inputs[input_name_to_idx[name]] = honey_inputs[name]
+  inputs[input_name_to_idx[name]] = dinoml_inputs[name]
 
 for name in output_name_to_idx:
-  outputs[output_name_to_idx[name]] = honey_outputs[name]
+  outputs[output_name_to_idx[name]] = dinoml_outputs[name]
 
 module.run(inputs, outputs)
 ```
@@ -84,7 +84,7 @@ max_shape = module.get_output_maximum_shape(name_to_idx["output"])
 max_shape = module.get_output_maximum_shape("output")
 ```
 
-`Model.run` returns a dictionary of output `HoneyData`s with (possibly dynamic) shapes that the runtime inferred.
+`Model.run` returns a dictionary of output `DinoMLData`s with (possibly dynamic) shapes that the runtime inferred.
 
 #### Nullptr Inputs/Outputs
 
@@ -100,12 +100,12 @@ This is convenient since torch.data_ptr() returns null for size zero tensors. Th
 
 #### Constants
 
-There are two types of constants in Honey; *bound* and *unbound* constants. A bound constant is known at compile time and may participate in constant folding. Bound constants are copied into GPU memory at model loading time. Values for bound constants may be provided by passing a dictionary (mapping constant name to Honey tensor) to `compile_model`.
+There are two types of constants in DinoML; *bound* and *unbound* constants. A bound constant is known at compile time and may participate in constant folding. Bound constants are copied into GPU memory at model loading time. Values for bound constants may be provided by passing a dictionary (mapping constant name to DinoML tensor) to `compile_model`.
 
 Unbound constants, on the other hand, do not participate in constant folding and must be provided before running the model. These must be set via `Model.set_constant`:
 
 ```python
-module.set_constant("my_constant", HoneyData(...))
+module.set_constant("my_constant", DinoMLData(...))
 # The pointer in the the tensor must live for the entire duration of run()
 module.run(...)
 ```

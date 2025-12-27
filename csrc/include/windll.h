@@ -17,9 +17,9 @@
 
 #include <cstdint>
 
-namespace honey {
+namespace dinoml {
 
 // throws std::runtime_error in case of problems
 void GetConstantsBin(void** address, size_t* size);
 
-} // namespace honey
+} // namespace dinoml

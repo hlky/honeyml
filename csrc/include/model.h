@@ -17,7 +17,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace honey {
+namespace dinoml {
 
 inline void DeviceCheckLastError(const char* file, int line) {
   auto device_error = GetLastError();
@@ -31,7 +31,7 @@ inline void DeviceCheckLastError(const char* file, int line) {
   }
 }
 
-// This serves as a base class for Honey runtime objects, e.g. the compiled
+// This serves as a base class for DinoML runtime objects, e.g. the compiled
 // model and the constant folder. It uses CRTP as a mechanism to call into
 // a few base class methods (dynamic dispatch is not needed in ModelContainer,
 // so there's no need to add a vtable). Inheriting classes should implement
@@ -44,7 +44,7 @@ inline void DeviceCheckLastError(const char* file, int line) {
 //                           inputs/constants to the provided output pointer.
 //
 // In practice, inheriting classes are generated via MODEL_TEMPLATE in
-// python/honey/backend/main_templates.py.
+// python/dinoml/backend/main_templates.py.
 template <typename ModelType>
 class ModelBase {
  protected:
@@ -58,9 +58,9 @@ class ModelBase {
       size_t num_outputs,
       size_t num_unbound_constants,
       uint8_t* constants,
-      HoneyAllocator& allocator,
-      HoneyWorkspaceAllocationMode workspace_type =
-          HoneyWorkspaceAllocationMode::kEager)
+      DinoMLAllocator& allocator,
+      DinoMLWorkspaceAllocationMode workspace_type =
+          DinoMLWorkspaceAllocationMode::kEager)
       : blob_size_(blob_size),
         allocator_(allocator),
         params_(num_inputs + num_outputs + num_unbound_constants),
@@ -70,7 +70,7 @@ class ModelBase {
         num_inputs_(num_inputs),
         num_outputs_(num_outputs),
         constants_(constants) {
-    if (workspace_type_ == HoneyWorkspaceAllocationMode::kEager) {
+    if (workspace_type_ == DinoMLWorkspaceAllocationMode::kEager) {
       blob_ = RAII_DeviceMalloc(blob_size_, allocator_);
       workspace_ = RAII_DeviceMalloc(workspace_size_, allocator_);
       global_workspace_ =
@@ -107,8 +107,8 @@ class ModelBase {
 
   void Run(StreamType stream, bool graph_mode) {
     auto* model = static_cast<ModelType*>(this);
-    if (workspace_type_ == HoneyWorkspaceAllocationMode::kLazy ||
-        workspace_type_ == HoneyWorkspaceAllocationMode::kFau) {
+    if (workspace_type_ == DinoMLWorkspaceAllocationMode::kLazy ||
+        workspace_type_ == DinoMLWorkspaceAllocationMode::kFau) {
       if (!blob_) {
         blob_ = RAII_DeviceMalloc(blob_size_, allocator_);
         model->SetUpWorkspace();
@@ -132,7 +132,7 @@ class ModelBase {
     }
     model->DeviceToDeviceCopies(stream);
     DEVICE_CHECK(EventRecord(run_finished_, stream));
-    if (workspace_type_ == HoneyWorkspaceAllocationMode::kFau) {
+    if (workspace_type_ == DinoMLWorkspaceAllocationMode::kFau) {
       blob_.reset();
       workspace_.reset();
       global_workspace_ = nullptr;
@@ -185,7 +185,7 @@ class ModelBase {
 
   void SetInput(
       const void* src,
-      const HoneyParamShape& shape,
+      const DinoMLParamShape& shape,
       size_t idx) {
     SetInputShape(shape, idx);
     SetParam(src, idx);
@@ -218,7 +218,7 @@ class ModelBase {
   }
 
  private:
-  void SetInputShape(const HoneyParamShape& shape, size_t idx) {
+  void SetInputShape(const DinoMLParamShape& shape, size_t idx) {
     auto& param = params_[idx];
     if (shape.size != param.shape_ptrs.size()) {
       throw std::runtime_error(
@@ -310,8 +310,8 @@ class ModelBase {
   uint8_t* global_workspace_{nullptr};
   uint8_t* unique_workspace_{nullptr};
 
-  HoneyAllocator& allocator_;
-  HoneyWorkspaceAllocationMode workspace_type_;
+  DinoMLAllocator& allocator_;
+  DinoMLWorkspaceAllocationMode workspace_type_;
 
   class ParamDim {
    public:
@@ -357,4 +357,4 @@ class ModelBase {
   std::unordered_map<std::string, const void**> constant_name_to_ptr_;
 };
 
-} // namespace honey
+} // namespace dinoml

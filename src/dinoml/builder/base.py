@@ -1,0 +1,185 @@
+from typing import Any, Dict, List, Optional, cast, Tuple, Union, Callable
+
+import torch
+
+from dinoml.compiler import compile_model
+from dinoml.frontend import IntImm, IntVar, Tensor, nn
+from dinoml.mapping.autoencoder_kl import map_autoencoder_kl
+from dinoml.mapping.unet2d_condition import map_unet2d_condition
+from dinoml.testing import detect_target
+from dinoml.testing.benchmark_dinoml import benchmark_module
+from dinoml.utils.build_utils import (
+    build_tensors_from_annotations,
+    get_device_name,
+    get_sm,
+)
+from dinoml.utils.shape_utils import get_shape
+from dinoml.utils.torch_utils import torch_dtype_to_string
+
+from dinoml.builder.config import load_config, mark_output
+
+
+class Build:
+    model_name: str = "model.{label}.{device_name}.sm{sm}"
+    model_type: Optional[str] = None
+
+    model_forward: str = "forward"
+    model_output: Optional[str] = "sample"
+    model_output_names: List[str] = []
+
+    map_function: Callable = ()
+    map_function_skip_keys: Tuple = ()
+
+    constants: Optional[Dict[str, torch.Tensor]] = None
+    dinoml_dtype: Optional[str] = None
+
+    def __init__(
+        self,
+        hf_hub: str,
+        label: str,
+        dtype: Union[str, torch.dtype],
+        device: Union[str, torch.device],
+        build_kwargs: Dict[str, Any] = {},
+        model_kwargs: Dict[str, Any] = {},
+        forward_kwargs: Dict[str, Any] = {},
+        benchmark_after_compile: bool = True,
+        store_constants_in_module: bool = True,
+        check_outputs: bool = True,
+    ):
+        self.hf_hub = hf_hub
+        self.label = label
+        self.dtype = dtype
+        self.device = device
+        self.build_kwargs = build_kwargs
+        self.model_kwargs = model_kwargs
+        self.forward_kwargs = forward_kwargs
+        self.benchmark_after_compile = benchmark_after_compile
+        self.store_constants_in_module = store_constants_in_module
+        self.check_outputs = check_outputs
+
+    def _model_name(self):
+        return {}
+
+    def create_model_name(self):
+        device_name = get_device_name()
+        sm = get_sm()
+        model_name_args = {
+            "label": self.label,
+            "device_name": device_name,
+            "sm": sm,
+        }
+        if self.model_type is not None:
+            model_name_args["model_type"] = self.model_type
+        model_name_args.update(self._model_name())
+        self.model_name = self.model_name.format(**model_name_args)
+
+    def set_dinoml_dtype(self):
+        if isinstance(self.dtype, torch.dtype):
+            self.dinoml_dtype = torch_dtype_to_string(self.dtype)
+        else:
+            self.dinoml_dtype = self.dtype
+        self.build_kwargs["dtype"] = self.dinoml_dtype
+
+    def create_module(self):
+        self.config, self.dinoml_cls, self.pt_cls = load_config(
+            self.hf_hub, **self.model_kwargs
+        )
+        if self.config is None or self.dinoml_cls is None or self.pt_cls is None:
+            raise ValueError("Got `None` for config, dinoml_cls or pt_cls")
+        if isinstance(self.dinoml_cls, tuple):
+            self.dinoml_cls, config_cls = self.dinoml_cls
+            self.dinoml_module = cast(
+                nn.Module,
+                self.dinoml_cls(config_cls(**self.config), dtype=self.dinoml_dtype),
+            )
+        else:
+            self.dinoml_module = cast(
+                nn.Module, self.dinoml_cls(**self.config, dtype=self.dinoml_dtype)
+            )
+        self.dinoml_module.name_parameter_tensor()
+
+    def create_input_tensors(self):
+        self.input_tensors = build_tensors_from_annotations(
+            getattr(self.dinoml_module, self.model_forward),
+            symbolic_values=self.build_kwargs,
+            config=self.config,
+        )
+        batch = list(self.input_tensors.values())[0]._attrs["shape"][0]
+        for name, tensor in self.input_tensors.items():
+            if isinstance(tensor, dict):
+                for sub_name, sub_tensor in tensor.items():
+                    sub_tensor._attrs["shape"][0] = batch
+                    print(f"{sub_name=}: {get_shape(sub_tensor)}")
+            else:
+                # TODO
+                print(f"{name=}: {get_shape(tensor)}")
+                tensor._attrs["shape"][0] = batch
+
+    def create_output_tensors(self):
+        model_output = getattr(self.dinoml_module, self.model_forward)(
+            **self.input_tensors, **self.forward_kwargs
+        )
+        if self.model_output is not None:
+            output_tensors: Union[Tensor, List[Tensor]] = getattr(
+                model_output, self.model_output
+            )
+        else:
+            output_tensors = model_output
+        if isinstance(output_tensors, Tensor):
+            output_tensors = [output_tensors]
+        for idx, output_tensor in enumerate(output_tensors):
+            output_tensors[idx] = mark_output(
+                output_tensor, self.model_output_names[idx]
+            )
+        self.output_tensors = output_tensors
+
+    def create_constants(self):
+        if self.store_constants_in_module:
+            pt_module = self.pt_cls.from_pretrained(self.hf_hub, **self.model_kwargs)
+            self.constants = self.map_function(
+                pt_module=pt_module,
+                dtype=self.dtype,
+                device=self.device,
+                skip_keys=self.map_function_skip_keys,
+            )
+
+    def compile(self):
+        target = detect_target()
+        module = compile_model(
+            self.output_tensors,
+            target,
+            "./tmp",
+            self.model_name,
+            constants=self.constants,
+            dll_name=f"{self.model_name}.so",
+        )
+        if self.benchmark_after_compile:
+            if not self.store_constants_in_module:
+                print("`benchmark_after_compile` requires `store_constants_in_module`.")
+            else:
+                benchmark_module(
+                    module=module, count=50, repeat=3, check_outputs=self.check_outputs
+                )
+        return module
+
+    def __call__(self):
+        self.create_model_name()
+        self.set_dinoml_dtype()
+        self.create_module()
+        self.create_input_tensors()
+        self.create_output_tensors()
+        self.create_constants()
+        return self.compile()
+
+
+def _model_name_with_resolution(self):
+    if "resolution" not in self.build_kwargs:
+        raise ValueError("Expected `resolution` in `build_kwargs`.")
+    resolution = self.build_kwargs.pop("resolution")
+    if isinstance(resolution, tuple):
+        resolution_label = resolution[-1]
+    else:
+        resolution_label = resolution
+    self.build_kwargs["height"] = resolution
+    self.build_kwargs["width"] = resolution
+    return {"resolution": resolution_label}

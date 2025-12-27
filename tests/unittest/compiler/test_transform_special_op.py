@@ -18,18 +18,18 @@ from typing import List
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     get_torch_empty_tensor,
     TestEnv,
 )
-from honey.utils import shape_utils
-from honey.utils.graph_utils import get_sorted_ops
+from dinoml.utils import shape_utils
+from dinoml.utils.graph_utils import get_sorted_ops
 
 from parameterized import parameterized
 
@@ -363,7 +363,7 @@ class OneByOneConvTestCase(unittest.TestCase):
                 elif activation is not None:
                     raise NotImplementedError(f"Unsupported activation {activation}")
 
-                Y_honey = get_torch_empty_tensor(batch_pt, HH, WW, CO, dtype)
+                Y_dinoml = get_torch_empty_tensor(batch_pt, HH, WW, CO, dtype)
                 inputs = {
                     "input_0": X_pt.permute(0, 2, 3, 1).contiguous(),
                     "input_1": W_pt.permute(0, 2, 3, 1).contiguous(),
@@ -371,10 +371,10 @@ class OneByOneConvTestCase(unittest.TestCase):
                 if with_bias:
                     inputs["bias"] = B_pt
 
-                module.run_with_tensors(inputs, {"output": Y_honey})
+                module.run_with_tensors(inputs, {"output": Y_dinoml})
 
                 torch.testing.assert_close(
-                    Y_pt, Y_honey.permute(0, 3, 1, 2), atol=1e-1, rtol=1e-1
+                    Y_pt, Y_dinoml.permute(0, 3, 1, 2), atol=1e-1, rtol=1e-1
                 )
 
     # !!! SKIPPED TESTS BELOW !!!

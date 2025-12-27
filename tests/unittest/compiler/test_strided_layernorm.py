@@ -16,15 +16,15 @@ import unittest
 from typing import List
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.utils import shape_utils, torch_utils
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.utils import shape_utils, torch_utils
 from parameterized import param, parameterized
 
 
-def build_honey_module(
+def build_dinoml_module(
     *,
     batch_sizes,
     input_nonbatch_shape,
@@ -36,7 +36,7 @@ def build_honey_module(
     fuse_sigmoid_mul,
     eps,
     test_id,
-    honey_dtype="float16",
+    dinoml_dtype="float16",
     workdir="./tmp",
     test_name="strided_layernorm",
     use_welford_algorithm=False,
@@ -49,7 +49,7 @@ def build_honey_module(
             shape_utils.gen_int_var_min_max(values=batch_sizes, name="input_batch"),
             *input_nonbatch_shape,
         ],
-        dtype=honey_dtype,
+        dtype=dinoml_dtype,
         name="input",
         is_input=True,
     )
@@ -60,7 +60,7 @@ def build_honey_module(
     else:
         X2 = Tensor(
             shape=layernorm_weight_shape,
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="gamma",
             is_input=True,
         )
@@ -69,7 +69,7 @@ def build_honey_module(
     else:
         X3 = Tensor(
             shape=layernorm_weight_shape,
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="beta",
             is_input=True,
         )
@@ -175,11 +175,11 @@ class SliceLayerNormTestCase(unittest.TestCase):
             "end_indices": end_indices,
         }
 
-        honey_module = build_honey_module(
+        dinoml_module = build_dinoml_module(
             batch_sizes=batch_sizes,
             **_layernorm_common_params,
             test_id=self._test_id,
-            honey_dtype=dtype,
+            dinoml_dtype=dtype,
             test_name=f"{test_name}_{dtype}",
             use_welford_algorithm=use_welford_algorithm,
         )
@@ -189,13 +189,13 @@ class SliceLayerNormTestCase(unittest.TestCase):
             pt_tensors = eval_pt(
                 batch_size=batch_size, **_layernorm_common_params, dtype=pt_dtype
             )
-            honey_inputs = {
+            dinoml_inputs = {
                 k: v for k, v in pt_tensors.items() if v is not None and k != "output"
             }
-            honey_outputs = {"output": torch.empty_like(pt_tensors["output"])}
-            honey_module.run_with_tensors(honey_inputs, honey_outputs)
+            dinoml_outputs = {"output": torch.empty_like(pt_tensors["output"])}
+            dinoml_module.run_with_tensors(dinoml_inputs, dinoml_outputs)
             torch.testing.assert_close(
-                honey_outputs["output"],
+                dinoml_outputs["output"],
                 pt_tensors["output"],
                 atol=1e-3,
                 rtol=1e-3,

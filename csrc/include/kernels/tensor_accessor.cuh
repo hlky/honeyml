@@ -12,8 +12,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-#ifndef Honey_TENSOR_ACCESSOR_CUH
-#define Honey_TENSOR_ACCESSOR_CUH
+#ifndef DINOML_TENSOR_ACCESSOR_CUH
+#define DINOML_TENSOR_ACCESSOR_CUH
 
 // Returns a strided address based on a base pointer, an index and strided
 // information.

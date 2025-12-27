@@ -25,8 +25,8 @@ import numpy as np
 
 import torch
 
-from honey.compiler import Honey_DEFAULT_NUM_RUNTIMES, compile_model, ops
-from honey.compiler.base import (
+from dinoml.compiler import DINOML_DEFAULT_NUM_RUNTIMES, compile_model, ops
+from dinoml.compiler.base import (
     _ConstantTensorData,
     _create_host_zero_tensor,
     _HostConstantTensorData,
@@ -35,17 +35,17 @@ from honey.compiler.base import (
     get_dtype_size,
     IntVar,
 )
-from honey.compiler.model import (
-    HoneyData,
-    HoneyAllocatorKind,
-    HoneyMemcpyKind,
+from dinoml.compiler.model import (
+    DinoMLData,
+    DinoMLAllocatorKind,
+    DinoMLMemcpyKind,
     Model,
-    torch_to_honey_data,
+    torch_to_dinoml_data,
 )
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
 
 class ModelAPITestCase(unittest.TestCase):
@@ -139,7 +139,7 @@ class ModelAPITestCase(unittest.TestCase):
             "test_error_handling_not_enough_inputs_outputs"
         )
         self.assertRaises(
-            RuntimeError, module.run, [], [torch_to_honey_data(outputs[-1])]
+            RuntimeError, module.run, [], [torch_to_dinoml_data(outputs[-1])]
         )
         self.assertRaises(
             RuntimeError,
@@ -158,23 +158,23 @@ class ModelAPITestCase(unittest.TestCase):
             RuntimeError,
             module.run,
             [
-                HoneyData(0, in0_pt_size, "float16"),
-                HoneyData(0, in1_pt_size, "float16"),
+                DinoMLData(0, in0_pt_size, "float16"),
+                DinoMLData(0, in1_pt_size, "float16"),
             ],
-            [torch_to_honey_data(outputs[-1])],
+            [torch_to_dinoml_data(outputs[-1])],
         )
         self.assertRaises(
             RuntimeError,
             module.run,
             [
-                HoneyData(in0_pt.data_ptr(), in0_pt_size, "float16"),
-                HoneyData(in1_pt.data_ptr(), in1_pt_size, "float16"),
+                DinoMLData(in0_pt.data_ptr(), in0_pt_size, "float16"),
+                DinoMLData(in1_pt.data_ptr(), in1_pt_size, "float16"),
             ],
-            [HoneyData(0, list(outputs[-1].size()), "float16")],
+            [DinoMLData(0, list(outputs[-1].size()), "float16")],
         )
 
     def test_error_handling_wrong_param_dtypes(self):
-        module, (in0_pt, in1_pt), (out_pt, out_honey) = (
+        module, (in0_pt, in1_pt), (out_pt, out_dinoml) = (
             self._get_simple_graph_and_output("test_error_handling")
         )
         in0_pt_size = list(in0_pt.size())
@@ -183,20 +183,20 @@ class ModelAPITestCase(unittest.TestCase):
             RuntimeError,
             module.run,
             [
-                HoneyData(in0_pt.data_ptr(), in0_pt_size, "float32"),
-                HoneyData(in1_pt.data_ptr(), in1_pt_size, "float32"),
+                DinoMLData(in0_pt.data_ptr(), in0_pt_size, "float32"),
+                DinoMLData(in1_pt.data_ptr(), in1_pt_size, "float32"),
             ],
-            [torch_to_honey_data(out_honey)],
+            [torch_to_dinoml_data(out_dinoml)],
         )
 
         self.assertRaises(
             RuntimeError,
             module.run,
             [
-                torch_to_honey_data(in0_pt),
-                torch_to_honey_data(in1_pt),
+                torch_to_dinoml_data(in0_pt),
+                torch_to_dinoml_data(in1_pt),
             ],
-            [HoneyData(out_honey.data_ptr(), list(out_honey.size()), "float32")],
+            [DinoMLData(out_dinoml.data_ptr(), list(out_dinoml.size()), "float32")],
         )
 
         self.assertRaises(
@@ -206,7 +206,7 @@ class ModelAPITestCase(unittest.TestCase):
                 in0_pt,
                 in1_pt.float(),
             ],
-            [out_honey],
+            [out_dinoml],
         )
 
         self.assertRaises(
@@ -216,7 +216,7 @@ class ModelAPITestCase(unittest.TestCase):
                 in0_pt,
                 in1_pt,
             ],
-            [out_honey.float()],
+            [out_dinoml.float()],
         )
 
     def test_one_input_many_constants(self):
@@ -307,11 +307,11 @@ class ModelAPITestCase(unittest.TestCase):
             output_storage = (
                 torch.empty(module.get_output_maximum_shape("output")).cuda().half()
             )
-            outputs_honey = module.run_with_tensors(
+            outputs_dinoml = module.run_with_tensors(
                 [in0_pt, in1_pt],
                 [output_storage],
             )
-            self.assertTrue(torch.allclose(output_pt, outputs_honey["output"]))
+            self.assertTrue(torch.allclose(output_pt, outputs_dinoml["output"]))
 
     def _test_output_is_alias_of_input(self, view_of_view: bool):
         target = detect_target()
@@ -333,10 +333,10 @@ class ModelAPITestCase(unittest.TestCase):
         in0_pt = torch.randn((2, 2)).cuda().half()
         out_shape = (4, 1) if view_of_view else (4,)
         out_pt = in0_pt.reshape(out_shape)
-        out_honey = torch.empty(out_shape).cuda().half()
+        out_dinoml = torch.empty(out_shape).cuda().half()
 
-        module.run_with_tensors([in0_pt], [out_honey])
-        self.assertTrue(torch.equal(out_pt, out_honey))
+        module.run_with_tensors([in0_pt], [out_dinoml])
+        self.assertTrue(torch.equal(out_pt, out_dinoml))
 
     def test_output_is_view_of_input(self):
         self._test_output_is_alias_of_input(False)
@@ -353,9 +353,9 @@ class ModelAPITestCase(unittest.TestCase):
         module = compile_model(input_0, target, "./tmp", "output_is_input")
 
         in0_pt = torch.randn((2, 2)).cuda().half()
-        out_honey = torch.empty((2, 2)).cuda().half()
-        module.run_with_tensors([in0_pt], [out_honey])
-        self.assertTrue(torch.equal(out_honey, in0_pt))
+        out_dinoml = torch.empty((2, 2)).cuda().half()
+        module.run_with_tensors([in0_pt], [out_dinoml])
+        self.assertTrue(torch.equal(out_dinoml, in0_pt))
 
         inputs = module.get_input_name_to_index_map()
         self.assertEqual(inputs, {"input_0": 0})
@@ -382,11 +382,11 @@ class ModelAPITestCase(unittest.TestCase):
         const_pt = torch.randn((2, 2)).cuda().half()
         out_shape = (4, 1) if view_of_view else (4,)
         out_pt = const_pt.reshape(out_shape)
-        out_honey = torch.empty(out_shape).cuda().half()
+        out_dinoml = torch.empty(out_shape).cuda().half()
 
         module.set_constant_with_tensor("constant", const_pt)
-        module.run_with_tensors([], [out_honey])
-        self.assertTrue(torch.equal(out_honey, out_pt))
+        module.run_with_tensors([], [out_dinoml])
+        self.assertTrue(torch.equal(out_dinoml, out_pt))
 
     def test_output_is_view_of_constant(self):
         self._test_output_is_view_of_constant(False)
@@ -400,10 +400,10 @@ class ModelAPITestCase(unittest.TestCase):
         module = compile_model(const, target, "./tmp", "output_is_constant")
 
         const_pt = torch.randn((2, 2)).cuda().half()
-        out_honey = torch.empty((2, 2)).cuda().half()
+        out_dinoml = torch.empty((2, 2)).cuda().half()
         module.set_constant_with_tensor("constant", const_pt)
-        module.run_with_tensors([], [out_honey])
-        self.assertTrue(torch.equal(out_honey, const_pt))
+        module.run_with_tensors([], [out_dinoml])
+        self.assertTrue(torch.equal(out_dinoml, const_pt))
 
     def _test_output_is_view_of_another_output(self, view_of_view: bool):
         target = detect_target()
@@ -438,16 +438,16 @@ class ModelAPITestCase(unittest.TestCase):
         view_pt = out_pt.reshape(out_shape)
         out1_pt = view_pt * view_pt
 
-        out_honey = torch.empty((2, 2)).cuda().half()
-        view_honey = torch.empty(out_shape).cuda().half()
-        out1_honey = torch.empty(out_shape).cuda().half()
+        out_dinoml = torch.empty((2, 2)).cuda().half()
+        view_dinoml = torch.empty(out_shape).cuda().half()
+        out1_dinoml = torch.empty(out_shape).cuda().half()
         module.run_with_tensors(
             [in0_pt],
-            [out_honey, view_honey, out1_honey],
+            [out_dinoml, view_dinoml, out1_dinoml],
         )
-        self.assertTrue(torch.equal(out_pt, out_honey))
-        self.assertTrue(torch.equal(view_pt, view_honey))
-        self.assertTrue(torch.equal(out1_pt, out1_honey))
+        self.assertTrue(torch.equal(out_pt, out_dinoml))
+        self.assertTrue(torch.equal(view_pt, view_dinoml))
+        self.assertTrue(torch.equal(out1_pt, out1_dinoml))
 
     def test_output_is_view_of_another_output(self):
         self._test_output_is_view_of_another_output(False)
@@ -479,44 +479,44 @@ class ModelAPITestCase(unittest.TestCase):
         view1_pt = in0_pt.reshape((1, 4))
         view2_pt = in0_pt.reshape((4,))
 
-        view1_honey = torch.empty((1, 4)).cuda().half()
-        view2_honey = torch.empty((4,)).cuda().half()
+        view1_dinoml = torch.empty((1, 4)).cuda().half()
+        view2_dinoml = torch.empty((4,)).cuda().half()
         module.run_with_tensors(
             [in0_pt],
-            [view1_honey, view2_honey],
+            [view1_dinoml, view2_dinoml],
         )
-        self.assertTrue(torch.equal(view1_pt, view1_honey))
-        self.assertTrue(torch.equal(view2_pt, view2_honey))
+        self.assertTrue(torch.equal(view1_pt, view1_dinoml))
+        self.assertTrue(torch.equal(view2_pt, view2_dinoml))
 
     def test_benchmark(self):
-        module, (in0, in1), (out_pt, out_honey) = self._get_simple_graph_and_output(
+        module, (in0, in1), (out_pt, out_dinoml) = self._get_simple_graph_and_output(
             "test_benchmark"
         )
-        runtime_ms, _, outputs_honey = module.benchmark(
+        runtime_ms, _, outputs_dinoml = module.benchmark(
             [
-                torch_to_honey_data(in0),
-                torch_to_honey_data(in1),
+                torch_to_dinoml_data(in0),
+                torch_to_dinoml_data(in1),
             ],
-            [torch_to_honey_data(out_honey)],
+            [torch_to_dinoml_data(out_dinoml)],
         )
         self.assertGreater(runtime_ms, 0)
-        self.assertTrue(torch.equal(out_pt, out_honey))
+        self.assertTrue(torch.equal(out_pt, out_dinoml))
         self.assertEqual(
-            outputs_honey,
-            {"output": HoneyData(out_honey.data_ptr(), [1], "float16")},
+            outputs_dinoml,
+            {"output": DinoMLData(out_dinoml.data_ptr(), [1], "float16")},
         )
 
         runtime_ms, _, tensors = module.benchmark_with_tensors(
             [in0, in1],
-            [out_honey],
+            [out_dinoml],
         )
         self.assertGreater(runtime_ms, 0)
-        self.assertTrue(torch.equal(out_pt, out_honey))
+        self.assertTrue(torch.equal(out_pt, out_dinoml))
         self.assertEqual(len(tensors), 1)
         self.assertTrue(torch.equal(tensors["output"], in0 * in1))
 
     def test_profile(self):
-        module, (in0, in1), (out_pt, out_honey) = self._get_simple_graph_and_output(
+        module, (in0, in1), (out_pt, out_dinoml) = self._get_simple_graph_and_output(
             "test_profile",
             False,
             True,
@@ -526,10 +526,10 @@ class ModelAPITestCase(unittest.TestCase):
             profile_name = os.path.join(tmpdirname, "profile.json")
             module.profile(
                 [
-                    torch_to_honey_data(in0),
-                    torch_to_honey_data(in1),
+                    torch_to_dinoml_data(in0),
+                    torch_to_dinoml_data(in1),
                 ],
-                [torch_to_honey_data(out_honey)],
+                [torch_to_dinoml_data(out_dinoml)],
                 20,
                 profile_name,
             )
@@ -564,15 +564,15 @@ class ModelAPITestCase(unittest.TestCase):
         self.assertRaises(
             RuntimeError,
             module.run,
-            [HoneyData(in0_pt.data_ptr(), [0, 10], "float16")],
-            [torch_to_honey_data(out_pt)],
+            [DinoMLData(in0_pt.data_ptr(), [0, 10], "float16")],
+            [torch_to_dinoml_data(out_pt)],
         )
 
         self.assertRaises(
             RuntimeError,
             module.run,
-            [HoneyData(in0_pt.data_ptr(), [11, 10], "float16")],
-            [torch_to_honey_data(out_pt)],
+            [DinoMLData(in0_pt.data_ptr(), [11, 10], "float16")],
+            [torch_to_dinoml_data(out_pt)],
         )
 
         # Make sure we can run with a valid batch size
@@ -610,14 +610,14 @@ class ModelAPITestCase(unittest.TestCase):
         shape = [0, 2]
         module.run(
             [
-                HoneyData(0, shape, "float16"),
-                HoneyData(0, shape, "float16"),
+                DinoMLData(0, shape, "float16"),
+                DinoMLData(0, shape, "float16"),
             ],
-            [HoneyData(0, [10, 2], "float16")],
+            [DinoMLData(0, [10, 2], "float16")],
         )
 
     def test_with_tensors_api_fails_on_cpu_inputs(self):
-        module, (in0, in1), (out_pt, out_honey) = self._get_simple_graph_and_output(
+        module, (in0, in1), (out_pt, out_dinoml) = self._get_simple_graph_and_output(
             "test_fail_on_cpu_inputs"
         )
 
@@ -625,25 +625,25 @@ class ModelAPITestCase(unittest.TestCase):
             ValueError,
             module.run_with_tensors,
             [in0.cpu(), in1.cpu()],
-            [out_honey],
+            [out_dinoml],
         )
         self.assertRaises(
             ValueError,
             module.run_with_tensors,
             [in0, in1],
-            [out_honey.cpu()],
+            [out_dinoml.cpu()],
         )
         self.assertRaises(
             ValueError,
             module.benchmark_with_tensors,
             [in0.cpu(), in1.cpu()],
-            [out_honey],
+            [out_dinoml],
         )
         self.assertRaises(
             ValueError,
             module.benchmark_with_tensors,
             [in0, in1],
-            [out_honey.cpu()],
+            [out_dinoml.cpu()],
         )
 
     def test_with_tensors_api_fails_on_strided_inputs(self):
@@ -721,14 +721,14 @@ class ModelAPITestCase(unittest.TestCase):
         ) = self._get_graph_three_inputs_three_outputs()
         out0_pt, out1_pt, out2_pt = outputs
         in_args = {
-            "input_0": torch_to_honey_data(in0_pt),
-            "input_1": torch_to_honey_data(in1_pt),
-            "input_2": torch_to_honey_data(in2_pt),
+            "input_0": torch_to_dinoml_data(in0_pt),
+            "input_1": torch_to_dinoml_data(in1_pt),
+            "input_2": torch_to_dinoml_data(in2_pt),
         }
         out_args = {
-            "output_0": torch_to_honey_data(out0_pt),
-            "output_1": torch_to_honey_data(out1_pt),
-            "output_2": torch_to_honey_data(out2_pt),
+            "output_0": torch_to_dinoml_data(out0_pt),
+            "output_1": torch_to_dinoml_data(out1_pt),
+            "output_2": torch_to_dinoml_data(out2_pt),
         }
 
         module.run(in_args, out_args)
@@ -884,10 +884,10 @@ class ModelAPITestCase(unittest.TestCase):
 
         module = compile_model(out, target, "./tmp", name)
 
-        output_honey = torch.randn((size,)).half().cuda()
-        module.run_with_tensors([], [output_honey])
+        output_dinoml = torch.randn((size,)).half().cuda()
+        module.run_with_tensors([], [output_dinoml])
 
-        self.assertTrue(torch.equal(output_honey.cpu(), in0_pt * in1_pt))
+        self.assertTrue(torch.equal(output_dinoml.cpu(), in0_pt * in1_pt))
 
     def test_use_internal_constant_tensors_host(self):
         self._test_use_constant_tensor(
@@ -936,14 +936,14 @@ class ModelAPITestCase(unittest.TestCase):
                 out1 = torch.empty_like(in0)
 
                 expected = {
-                    "out0": HoneyData(out0.data_ptr(), [a, b], "float16"),
-                    "out1": HoneyData(out1.data_ptr(), [a, b], "float16"),
+                    "out0": DinoMLData(out0.data_ptr(), [a, b], "float16"),
+                    "out1": DinoMLData(out1.data_ptr(), [a, b], "float16"),
                 }
                 actual = module.run(
-                    {"out0": torch_to_honey_data(in0)},
+                    {"out0": torch_to_dinoml_data(in0)},
                     {
-                        "out0": torch_to_honey_data(out0),
-                        "out1": torch_to_honey_data(out1),
+                        "out0": torch_to_dinoml_data(out0),
+                        "out1": torch_to_dinoml_data(out1),
                     },
                 )
                 self.assertEqual(expected, actual)
@@ -978,14 +978,14 @@ class ModelAPITestCase(unittest.TestCase):
         out0 = torch.empty_like(in0)
         out1 = torch.empty_like(in0)
         expected = {
-            "out0": HoneyData(out0.data_ptr(), [1, 2, 3, 4], "float16"),
-            "out1": HoneyData(out1.data_ptr(), [1, 2, 3, 4], "float16"),
+            "out0": DinoMLData(out0.data_ptr(), [1, 2, 3, 4], "float16"),
+            "out1": DinoMLData(out1.data_ptr(), [1, 2, 3, 4], "float16"),
         }
         actual = module.run(
-            {"out0": torch_to_honey_data(in0)},
+            {"out0": torch_to_dinoml_data(in0)},
             {
-                "out0": torch_to_honey_data(out0),
-                "out1": torch_to_honey_data(out1),
+                "out0": torch_to_dinoml_data(out0),
+                "out1": torch_to_dinoml_data(out1),
             },
         )
         self.assertEqual(expected, actual)
@@ -1021,14 +1021,14 @@ class ModelAPITestCase(unittest.TestCase):
             out1 = torch.empty_like(in0)
 
             expected = {
-                "out0": HoneyData(out0.data_ptr(), [10, dim, 2], "float16"),
-                "out1": HoneyData(out1.data_ptr(), [10, dim, 2], "float16"),
+                "out0": DinoMLData(out0.data_ptr(), [10, dim, 2], "float16"),
+                "out1": DinoMLData(out1.data_ptr(), [10, dim, 2], "float16"),
             }
             actual = module.run(
-                {"out0": torch_to_honey_data(in0)},
+                {"out0": torch_to_dinoml_data(in0)},
                 {
-                    "out0": torch_to_honey_data(out0),
-                    "out1": torch_to_honey_data(out1),
+                    "out0": torch_to_dinoml_data(out0),
+                    "out1": torch_to_dinoml_data(out1),
                 },
             )
             self.assertEqual(expected, actual)
@@ -1039,23 +1039,23 @@ class ModelAPITestCase(unittest.TestCase):
             self.assertTrue(torch.equal(out_tensors["out1"], in0 * in0))
 
     def test_many_threads_one_stream(self):
-        module, (in0, in1), (out_pt, out_honey) = self._get_simple_graph_and_output(
+        module, (in0, in1), (out_pt, out_dinoml) = self._get_simple_graph_and_output(
             "test_many_threads_one_stream"
         )
         runtime_ms, _, _ = module.benchmark_with_tensors(
             [in0, in1],
-            [out_honey],
+            [out_dinoml],
             num_threads=8,
             count=1000,
         )
 
     def test_many_threads_many_streams(self):
-        module, (in0, in1), (out_pt, out_honey) = self._get_simple_graph_and_output(
+        module, (in0, in1), (out_pt, out_dinoml) = self._get_simple_graph_and_output(
             "test_benchmark"
         )
         runtime_ms, _, _ = module.benchmark_with_tensors(
             [in0, in1],
-            [out_honey],
+            [out_dinoml],
             num_threads=8,
             count=1000,
             use_unique_stream_per_thread=True,
@@ -1289,7 +1289,7 @@ class ModelAPITestCase(unittest.TestCase):
                 actual.data_ptr(),
                 expected.data_ptr(),
                 actual.numel() * actual.element_size(),
-                HoneyMemcpyKind.DeviceToDevice,
+                DinoMLMemcpyKind.DeviceToDevice,
                 stream_ptr,
             )
             self.assertTrue(torch.equal(expected, actual))
@@ -1301,7 +1301,7 @@ class ModelAPITestCase(unittest.TestCase):
                 actual.data_ptr(),
                 expected.data_ptr(),
                 actual.numel() * actual.element_size(),
-                HoneyMemcpyKind.DeviceToHost,
+                DinoMLMemcpyKind.DeviceToHost,
                 stream_ptr,
             )
             self.assertTrue(torch.equal(expected.cpu(), actual))
@@ -1313,7 +1313,7 @@ class ModelAPITestCase(unittest.TestCase):
                 actual.data_ptr(),
                 expected.data_ptr(),
                 actual.numel() * actual.element_size(),
-                HoneyMemcpyKind.HostToDevice,
+                DinoMLMemcpyKind.HostToDevice,
                 stream_ptr,
             )
             self.assertTrue(torch.equal(expected, actual.cpu()))
@@ -1322,7 +1322,7 @@ class ModelAPITestCase(unittest.TestCase):
         (
             module,
             (in0_pt, in1_pt),
-            (out_pt, out_honey),
+            (out_pt, out_dinoml),
         ) = self._get_simple_graph_and_output("test_memcpy")
 
         @contextlib.contextmanager
@@ -1331,31 +1331,31 @@ class ModelAPITestCase(unittest.TestCase):
             nbytes = tensor.numel() * tensor.element_size()
             ptr = module.allocate_gpu_memory(nbytes, stream_ptr)
             try:
-                yield HoneyData(ptr, list(tensor.shape), "float16"), nbytes
+                yield DinoMLData(ptr, list(tensor.shape), "float16"), nbytes
             finally:
                 module.free_gpu_memory(ptr, stream_ptr)
 
         torch_stream = torch.cuda.Stream().cuda_stream
         for stream_ptr in (None, torch_stream):
-            with alloc_like(out_honey, stream_ptr) as (output, nbytes):
+            with alloc_like(out_dinoml, stream_ptr) as (output, nbytes):
                 module.run(
                     {
-                        "input_0": torch_to_honey_data(in0_pt),
-                        "input_1": torch_to_honey_data(in1_pt),
+                        "input_0": torch_to_dinoml_data(in0_pt),
+                        "input_1": torch_to_dinoml_data(in1_pt),
                     },
                     {"output": output},
                 )
                 module.memcpy(
-                    out_honey.data_ptr(),
+                    out_dinoml.data_ptr(),
                     output.data_ptr,
                     nbytes,
-                    HoneyMemcpyKind.DeviceToDevice,
+                    DinoMLMemcpyKind.DeviceToDevice,
                     stream_ptr,
                 )
-                self.assertTrue(torch.equal(out_pt, out_honey))
+                self.assertTrue(torch.equal(out_pt, out_dinoml))
 
     def test_get_num_runtimes(self):
-        self.assertEqual(Honey_DEFAULT_NUM_RUNTIMES, 1)
+        self.assertEqual(DINOML_DEFAULT_NUM_RUNTIMES, 1)
         x = Tensor([1], dtype="float16", is_input=True, is_output=True)
         with compile_model(
             x, detect_target(), "./tmp", "test_get_num_runtimes_compile_module_default"
@@ -1371,35 +1371,35 @@ class ModelAPITestCase(unittest.TestCase):
         ) as module:
             self.assertEqual(module.get_num_runtimes(), 2)
 
-    def test_honey_data_numpy_conversions(self):
+    def test_dinoml_data_numpy_conversions(self):
         x = Tensor([1], dtype="float16", is_input=True, is_output=True)
         with compile_model(
-            x, detect_target(), "./tmp", "test_honey_data_numpy_conversions"
+            x, detect_target(), "./tmp", "test_dinoml_data_numpy_conversions"
         ) as module:
             x_shape = [1, 2, 3]
             x = np.ones(x_shape, dtype="float16")
-            x_honey = module.numpy_to_honey_data(x)
-            self.assertEqual(x_honey.dtype, "float16")
-            self.assertEqual(x_honey.shape, x_shape)
+            x_dinoml = module.numpy_to_dinoml_data(x)
+            self.assertEqual(x_dinoml.dtype, "float16")
+            self.assertEqual(x_dinoml.shape, x_shape)
 
-            x_copied = module.honey_data_to_numpy(x_honey)
+            x_copied = module.dinoml_data_to_numpy(x_dinoml)
             np.testing.assert_equal(x, x_copied)
 
             y = torch.ones(x_shape, dtype=torch.float16).cuda()
-            y_honey = HoneyData(y.data_ptr(), x_shape, "float16")
-            y_np = module.honey_data_to_numpy(y_honey)
+            y_dinoml = DinoMLData(y.data_ptr(), x_shape, "float16")
+            y_np = module.dinoml_data_to_numpy(y_dinoml)
 
             np.testing.assert_equal(x, y_np)
 
-    def test_numpy_to_honey_data_manual_free(self):
+    def test_numpy_to_dinoml_data_manual_free(self):
         x = Tensor([1], dtype="float16", is_input=True, is_output=True)
         with compile_model(
-            x, detect_target(), "./tmp", "test_numpy_to_honey_data_manual_free"
+            x, detect_target(), "./tmp", "test_numpy_to_dinoml_data_manual_free"
         ) as module:
             x_shape = [1, 2, 3]
             x = np.ones(x_shape, dtype="float16")
-            x_honey = module.numpy_to_honey_data(x)
-            module.free_gpu_memory(x_honey.data_ptr)
+            x_dinoml = module.numpy_to_dinoml_data(x)
+            module.free_gpu_memory(x_dinoml.data_ptr)
             # Make sure we don't double-free when we exit.
 
     def test_custom_allocator(self):
@@ -1408,22 +1408,22 @@ class ModelAPITestCase(unittest.TestCase):
         z = y * y
         z._attrs["is_output"] = True
         for allocator_kind in (
-            HoneyAllocatorKind.DEFAULT,
-            HoneyAllocatorKind.TRACKING,
+            DinoMLAllocatorKind.DEFAULT,
+            DinoMLAllocatorKind.TRACKING,
         ):
             with compile_model(
                 z,
                 detect_target(),
                 "./tmp",
                 f"test_custom_allocator_{allocator_kind.value}",
-                allocator_kind=HoneyAllocatorKind.TRACKING,
+                allocator_kind=DinoMLAllocatorKind.TRACKING,
             ) as module:
                 allocator = module.allocator_handle
                 self.assertIsNotNone(allocator.value)
 
-                if allocator_kind == HoneyAllocatorKind.TRACKING:
+                if allocator_kind == DinoMLAllocatorKind.TRACKING:
                     num_bytes = ctypes.c_size_t()
-                    module.DLL.HoneyTrackingAllocatorGetNumBytes(
+                    module.DLL.DinoMLTrackingAllocatorGetNumBytes(
                         allocator, ctypes.byref(num_bytes)
                     )
                     self.assertGreater(num_bytes.value, 0)
@@ -1438,9 +1438,9 @@ class ModelAPITestCase(unittest.TestCase):
                 y_pt = x_pt * x_pt
                 z_pt = y_pt * y_pt
 
-                z_honey = torch.empty_like(x_pt)
-                module.run_with_tensors([x_pt], [z_honey])
-                self.assertTrue(z_honey.equal(z_pt))
+                z_dinoml = torch.empty_like(x_pt)
+                module.run_with_tensors([x_pt], [z_dinoml])
+                self.assertTrue(z_dinoml.equal(z_pt))
 
     def test_get_constant_names(self):
         target = detect_target()
@@ -1501,7 +1501,7 @@ class ModelAPITestCase(unittest.TestCase):
         names_5 = module.get_constant_folding_input_names(unbound_constants_only=False)
         self.assertEqual(set(names_5), {"constant_2", "constant_3", "constant_4"})
 
-    def test_get_constant_names_with_honey_generated(self):
+    def test_get_constant_names_with_dinoml_generated(self):
         target = detect_target()
 
         input_0 = Tensor(shape=[1, 2], dtype="float16", name="input_0", is_input=True)
@@ -1532,7 +1532,7 @@ class ModelAPITestCase(unittest.TestCase):
             output,
             target,
             "./tmp",
-            "test_get_constant_names_with_honey_generated",
+            "test_get_constant_names_with_dinoml_generated",
             constants=constants,
         )
 
@@ -1564,9 +1564,9 @@ class ModelAPITestCase(unittest.TestCase):
             {"constant_1": constant_1_pt, "constant_2": constant_2_pt}
         )
         output_pt = input_0_pt * constant_1_pt * constant_2_pt
-        output_honey = torch.empty_like(input_0_pt)
-        module.run_with_tensors([input_0_pt], [output_honey])
-        self.assertTrue(torch.equal(output_pt, output_honey))
+        output_dinoml = torch.empty_like(input_0_pt)
+        module.run_with_tensors([input_0_pt], [output_dinoml])
+        self.assertTrue(torch.equal(output_pt, output_dinoml))
 
     def test_async_fold_constants(self):
         target = detect_target()
@@ -1587,15 +1587,15 @@ class ModelAPITestCase(unittest.TestCase):
         constant_1_pt = torch.randn((10000, 2000)).cuda().half()
         constant_2_pt = torch.randn((10000, 2000)).cuda().half()
         output_pt = input_0_pt * constant_1_pt * constant_2_pt
-        output_honey = torch.empty_like(input_0_pt)
+        output_dinoml = torch.empty_like(input_0_pt)
 
         module.set_many_constants_with_tensors(
             {"constant_1": constant_1_pt, "constant_2": constant_2_pt}
         )
         module.fold_constants(sync=False)
-        module.run_with_tensors([input_0_pt], [output_honey])
+        module.run_with_tensors([input_0_pt], [output_dinoml])
 
-        self.assertTrue(torch.equal(output_pt, output_honey))
+        self.assertTrue(torch.equal(output_pt, output_dinoml))
 
 
 if __name__ == "__main__":

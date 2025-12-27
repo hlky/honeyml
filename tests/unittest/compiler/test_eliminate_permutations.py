@@ -16,12 +16,12 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
+from dinoml.compiler import compile_model, ops
 
-from honey.compiler.base import Tensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler.base import Tensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
     graph_has_op,

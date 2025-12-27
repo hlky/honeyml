@@ -2,10 +2,10 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
 
 class CreateStreamTestCase(unittest.TestCase):
@@ -35,7 +35,7 @@ class CreateStreamTestCase(unittest.TestCase):
             Y_pt.to(y.dtype),
             rtol=1e-3,
             atol=1e-3,
-            msg=lambda msg: f"{msg}\n\ncreate_stream\npt ({Y_pt.shape}):\n{Y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\ncreate_stream\npt ({Y_pt.shape}):\n{Y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
 
