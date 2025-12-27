@@ -15,15 +15,15 @@
 import unittest
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
 
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import graph_utils
+from dinoml.utils import graph_utils
 
 
 @unittest.skipIf(detect_target().name() == "rocm", "Not supported by ROCM.")
@@ -84,7 +84,7 @@ class SlicePermute021FusionTestCase(unittest.TestCase):
             a_pt = input_pt[slice_indices]
             y_pt = torch.permute(a_pt, dims)
 
-            # Run Honey module.
+            # Run DinoML module.
             y = get_torch_empty_tensor(y_pt.size(), dtype)
             module.run_with_tensors([input_pt], [y])
             self.assertTrue(torch.allclose(y, y_pt, atol=1e-2, rtol=1e-2))

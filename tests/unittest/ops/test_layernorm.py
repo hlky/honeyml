@@ -21,12 +21,12 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm, IntVar
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import filter_test_cases_by_test_env
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm, IntVar
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import filter_test_cases_by_test_env
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 
 class LayernormTestCase(unittest.TestCase):

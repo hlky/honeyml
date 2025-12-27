@@ -16,16 +16,16 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     count_ops,
     get_random_torch_tensor,
     get_torch_empty_tensor,
     graph_has_op,
 )
-from honey.utils import graph_utils
+from dinoml.utils import graph_utils
 
 
 class MergeViewOpsTestCase(unittest.TestCase):

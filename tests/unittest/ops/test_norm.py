@@ -17,11 +17,11 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import IntImm, IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntImm, IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 
 @unittest.skipIf(detect_target().name() == "rocm", "Not supported by ROCM.")
@@ -60,8 +60,8 @@ class VectorNormTestCase(unittest.TestCase):
         y_shape = [var._attrs["values"][0] for var in Y._attrs["shape"]]
         y_dtype = Y._attrs["dtype"]
 
-        logging.info("Honey output_shape: {}".format(y_shape))
-        logging.info("Honey output_type: {}".format(y_dtype))
+        logging.info("DinoML output_shape: {}".format(y_shape))
+        logging.info("DinoML output_type: {}".format(y_dtype))
 
         module = compile_model(Y, target, "./tmp", test_name)
         X_pt = get_random_torch_tensor(input_shape, input_type)
@@ -298,7 +298,7 @@ class VectorNormTestCase(unittest.TestCase):
         Y._attrs["is_output"] = True
         y_dtype = Y._attrs["dtype"]
 
-        logging.info("Honey output_type: {}".format(y_dtype))
+        logging.info("DinoML output_type: {}".format(y_dtype))
 
         output_dtype_pt = (
             string_to_torch_dtype(output_type)

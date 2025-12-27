@@ -16,16 +16,16 @@ import itertools
 import unittest
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import graph_utils, shape_utils
+from dinoml.utils import graph_utils, shape_utils
 
 
 class SliceElemwiseFusionTestCase(unittest.TestCase):
@@ -103,7 +103,7 @@ class SliceElemwiseFusionTestCase(unittest.TestCase):
         slice_output_pt = x1_pt[slice_indices]
         y_pt = slice_output_pt + x2_pt
 
-        # Run Honey module.
+        # Run DinoML module.
         inputs = {
             "input_x1": x1_pt,
             "input_x2": x2_pt,
@@ -309,7 +309,7 @@ class SliceElemwiseFusionTestCase(unittest.TestCase):
             y2_pt = y1_pt - x2_pt
             y_pt = slice_output_pt + y2_pt
 
-            # Run Honey module.
+            # Run DinoML module.
             inputs = {
                 "input_x1": x1_pt,
                 "input_x2": x2_pt,
@@ -489,7 +489,7 @@ class SliceElemwiseFusionTestCase(unittest.TestCase):
             slice_output2_pt = x1_pt[slice_indices2]
             y_pt = slice_output1_pt + slice_output2_pt
 
-            # Run Honey module.
+            # Run DinoML module.
             inputs = {
                 "input_x1": x1_pt,
             }

@@ -18,15 +18,15 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import shape_utils
+from dinoml.utils import shape_utils
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class PadBmmBiasWithCatTestCase(unittest.TestCase):
         )
 
         y_shape = [var._attrs["values"][0] for var in Y._attrs["shape"]]
-        _LOGGER.info("Honey y_shape: {}".format(y_shape))
+        _LOGGER.info("DinoML y_shape: {}".format(y_shape))
 
         for b, m in itertools.product(bs, ms):
             X1_pt = get_random_torch_tensor([b, m, k1], dtype)

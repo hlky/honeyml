@@ -15,11 +15,11 @@
 import unittest
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntVar, Tensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.testing import detect_target
-from honey.testing.test_utils import graph_has_op
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntVar, Tensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import graph_has_op
 from parameterized import param, parameterized
 
 
@@ -53,9 +53,9 @@ class TestFuseExpand(unittest.TestCase):
                 y_pt = torch.randn((1, N, M)).half().cuda()
                 z_pt = x_pt + y_pt.expand(batch_size, -1, -1)
 
-                z_honey = torch.empty_like(z_pt)
-                mod.run_with_tensors({"x": x_pt, "y": y_pt}, {"z": z_honey})
-                self.assertTrue(torch.equal(z_honey, z_pt), f"{z_honey=}\n{z_pt=}")
+                z_dinoml = torch.empty_like(z_pt)
+                mod.run_with_tensors({"x": x_pt, "y": y_pt}, {"z": z_dinoml})
+                self.assertTrue(torch.equal(z_dinoml, z_pt), f"{z_dinoml=}\n{z_pt=}")
 
 
 if __name__ == "__main__":

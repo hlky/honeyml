@@ -1,7 +1,7 @@
 #pragma once
-#include "honey/device.h"
+#include "dinoml/device.h"
 
-namespace honey {
+namespace dinoml {
 
 template <typename T, typename IndexType>
 __global__ void pad_kernel_constant_1d(
@@ -595,7 +595,7 @@ __global__ void pad_kernel_circular_5d_ndhwc(
   }
 }
 
-} // namespace honey
+} // namespace dinoml
 
 template <typename IndexType, typename ElemInputType, typename ElemOutputType>
 void InvokePad(
@@ -615,7 +615,7 @@ void InvokePad(
     ElemInputType pad_value,
     IndexType rank,
     const char* mode,
-    honey::DeviceStream stream) {
+    dinoml::DeviceStream stream) {
   IndexType total_elements;
   IndexType threads_per_block = 256;
   IndexType num_blocks;
@@ -624,7 +624,7 @@ void InvokePad(
     total_elements = N + pad_left + pad_right;
     num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
     if (strcmp(mode, "constant") == 0) {
-      honey::pad_kernel_constant_1d<<<num_blocks, threads_per_block, 0, stream>>>(
+      dinoml::pad_kernel_constant_1d<<<num_blocks, threads_per_block, 0, stream>>>(
           static_cast<const ElemInputType*>(in_ptr),
           static_cast<ElemOutputType*>(out_ptr),
           N,
@@ -632,14 +632,14 @@ void InvokePad(
           pad_right,
           pad_value);
     } else if (strcmp(mode, "reflect") == 0) {
-      honey::pad_kernel_reflect_1d<<<num_blocks, threads_per_block, 0, stream>>>(
+      dinoml::pad_kernel_reflect_1d<<<num_blocks, threads_per_block, 0, stream>>>(
           static_cast<const ElemInputType*>(in_ptr),
           static_cast<ElemOutputType*>(out_ptr),
           N,
           pad_left,
           pad_right);
     } else if (strcmp(mode, "replicate") == 0) {
-      honey::
+      dinoml::
           pad_kernel_replicate_1d<<<num_blocks, threads_per_block, 0, stream>>>(
               static_cast<const ElemInputType*>(in_ptr),
               static_cast<ElemOutputType*>(out_ptr),
@@ -647,7 +647,7 @@ void InvokePad(
               pad_left,
               pad_right);
     } else if (strcmp(mode, "circular") == 0) {
-      honey::pad_kernel_circular_1d<<<num_blocks, threads_per_block, 0, stream>>>(
+      dinoml::pad_kernel_circular_1d<<<num_blocks, threads_per_block, 0, stream>>>(
           static_cast<const ElemInputType*>(in_ptr),
           static_cast<ElemOutputType*>(out_ptr),
           N,
@@ -658,7 +658,7 @@ void InvokePad(
     total_elements = N * (H + pad_left + pad_right);
     num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
     if (strcmp(mode, "constant") == 0) {
-      honey::pad_kernel_constant_2d<<<num_blocks, threads_per_block, 0, stream>>>(
+      dinoml::pad_kernel_constant_2d<<<num_blocks, threads_per_block, 0, stream>>>(
           static_cast<const ElemInputType*>(in_ptr),
           static_cast<ElemOutputType*>(out_ptr),
           N,
@@ -667,7 +667,7 @@ void InvokePad(
           pad_right,
           pad_value);
     } else if (strcmp(mode, "reflect") == 0) {
-      honey::pad_kernel_reflect_2d<<<num_blocks, threads_per_block, 0, stream>>>(
+      dinoml::pad_kernel_reflect_2d<<<num_blocks, threads_per_block, 0, stream>>>(
           static_cast<const ElemInputType*>(in_ptr),
           static_cast<ElemOutputType*>(out_ptr),
           N,
@@ -675,7 +675,7 @@ void InvokePad(
           pad_left,
           pad_right);
     } else if (strcmp(mode, "replicate") == 0) {
-      honey::
+      dinoml::
           pad_kernel_replicate_2d<<<num_blocks, threads_per_block, 0, stream>>>(
               static_cast<const ElemInputType*>(in_ptr),
               static_cast<ElemOutputType*>(out_ptr),
@@ -684,7 +684,7 @@ void InvokePad(
               pad_left,
               pad_right);
     } else if (strcmp(mode, "circular") == 0) {
-      honey::pad_kernel_circular_2d<<<num_blocks, threads_per_block, 0, stream>>>(
+      dinoml::pad_kernel_circular_2d<<<num_blocks, threads_per_block, 0, stream>>>(
           static_cast<const ElemInputType*>(in_ptr),
           static_cast<ElemOutputType*>(out_ptr),
           N,
@@ -697,7 +697,7 @@ void InvokePad(
         N * (H + pad_top + pad_bottom) * (W + pad_left + pad_right);
     num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
     if (strcmp(mode, "constant") == 0) {
-      honey::pad_kernel_constant_3d<<<num_blocks, threads_per_block, 0, stream>>>(
+      dinoml::pad_kernel_constant_3d<<<num_blocks, threads_per_block, 0, stream>>>(
           static_cast<const ElemInputType*>(in_ptr),
           static_cast<ElemOutputType*>(out_ptr),
           N,
@@ -709,7 +709,7 @@ void InvokePad(
           pad_right,
           pad_value);
     } else if (strcmp(mode, "reflect") == 0) {
-      honey::pad_kernel_reflect_3d<<<num_blocks, threads_per_block, 0, stream>>>(
+      dinoml::pad_kernel_reflect_3d<<<num_blocks, threads_per_block, 0, stream>>>(
           static_cast<const ElemInputType*>(in_ptr),
           static_cast<ElemOutputType*>(out_ptr),
           N,
@@ -720,7 +720,7 @@ void InvokePad(
           pad_left,
           pad_right);
     } else if (strcmp(mode, "replicate") == 0) {
-      honey::
+      dinoml::
           pad_kernel_replicate_3d<<<num_blocks, threads_per_block, 0, stream>>>(
               static_cast<const ElemInputType*>(in_ptr),
               static_cast<ElemOutputType*>(out_ptr),
@@ -732,7 +732,7 @@ void InvokePad(
               pad_left,
               pad_right);
     } else if (strcmp(mode, "circular") == 0) {
-      honey::pad_kernel_circular_3d<<<num_blocks, threads_per_block, 0, stream>>>(
+      dinoml::pad_kernel_circular_3d<<<num_blocks, threads_per_block, 0, stream>>>(
           static_cast<const ElemInputType*>(in_ptr),
           static_cast<ElemOutputType*>(out_ptr),
           N,
@@ -748,7 +748,7 @@ void InvokePad(
         N * (H + pad_top + pad_bottom) * (W + pad_left + pad_right) * C;
     num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
     if (strcmp(mode, "constant") == 0) {
-      honey::pad_kernel_constant_4d_nhwc<<<
+      dinoml::pad_kernel_constant_4d_nhwc<<<
           num_blocks,
           threads_per_block,
           0,
@@ -765,7 +765,7 @@ void InvokePad(
           pad_right,
           pad_value);
     } else if (strcmp(mode, "reflect") == 0) {
-      honey::pad_kernel_reflect_4d_nhwc<<<
+      dinoml::pad_kernel_reflect_4d_nhwc<<<
           num_blocks,
           threads_per_block,
           0,
@@ -781,7 +781,7 @@ void InvokePad(
           pad_left,
           pad_right);
     } else if (strcmp(mode, "replicate") == 0) {
-      honey::pad_kernel_replicate_4d_nhwc<<<
+      dinoml::pad_kernel_replicate_4d_nhwc<<<
           num_blocks,
           threads_per_block,
           0,
@@ -797,7 +797,7 @@ void InvokePad(
           pad_left,
           pad_right);
     } else if (strcmp(mode, "circular") == 0) {
-      honey::pad_kernel_circular_4d_nhwc<<<
+      dinoml::pad_kernel_circular_4d_nhwc<<<
           num_blocks,
           threads_per_block,
           0,
@@ -818,7 +818,7 @@ void InvokePad(
         (H + pad_top + pad_bottom) * (W + pad_left + pad_right) * C;
     num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
     if (strcmp(mode, "constant") == 0) {
-      honey::pad_kernel_constant_5d_ndhwc<<<
+      dinoml::pad_kernel_constant_5d_ndhwc<<<
           num_blocks,
           threads_per_block,
           0,
@@ -838,7 +838,7 @@ void InvokePad(
           pad_right,
           pad_value);
     } else if (strcmp(mode, "reflect") == 0) {
-      honey::pad_kernel_reflect_5d_ndhwc<<<
+      dinoml::pad_kernel_reflect_5d_ndhwc<<<
           num_blocks,
           threads_per_block,
           0,
@@ -857,7 +857,7 @@ void InvokePad(
           pad_left,
           pad_right);
     } else if (strcmp(mode, "replicate") == 0) {
-      honey::pad_kernel_replicate_5d_ndhwc<<<
+      dinoml::pad_kernel_replicate_5d_ndhwc<<<
           num_blocks,
           threads_per_block,
           0,
@@ -876,7 +876,7 @@ void InvokePad(
           pad_left,
           pad_right);
     } else if (strcmp(mode, "circular") == 0) {
-      honey::pad_kernel_circular_5d_ndhwc<<<
+      dinoml::pad_kernel_circular_5d_ndhwc<<<
           num_blocks,
           threads_per_block,
           0,

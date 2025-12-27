@@ -3,17 +3,17 @@ import unittest
 from typing import cast, List, Optional, Tuple
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
-from honey.modeling.diffusers.activations import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
+from dinoml.modeling.diffusers.activations import (
     ApproximateGELU,
     GEGLU,
     GELU,
     get_activation,
 )
-from honey.builder.config import mark_output
+from dinoml.builder.config import mark_output
 
 from diffusers.models.activations import (
     ApproximateGELU as ApproximateGELU_torch,
@@ -49,7 +49,7 @@ class ActivationsTestCase(unittest.TestCase):
             y_pt,
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_activation_module(
@@ -76,23 +76,23 @@ class ActivationsTestCase(unittest.TestCase):
         y = torch.empty_like(y_pt)
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if value.ndim == 4 and "weight" in key:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         X = Tensor(shape=shape, dtype=dtype, name="X", is_input=True)
 
         if module_class == GELU:
-            op_honey = module_class(dim_in, dim_out, approximate=approximate)
+            op_dinoml = module_class(dim_in, dim_out, approximate=approximate)
         else:
-            op_honey = module_class(dim_in, dim_out)
-        op_honey.name_parameter_tensor()
+            op_dinoml = module_class(dim_in, dim_out)
+        op_dinoml.name_parameter_tensor()
 
-        Y = op_honey.forward(X)
+        Y = op_dinoml.forward(X)
         Y = mark_output(Y, "Y")
         target = detect_target()
         module = compile_model(
@@ -100,7 +100,7 @@ class ActivationsTestCase(unittest.TestCase):
             target,
             "./tmp",
             f"test_{module_class.__name__}",
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
 
         module.run_with_tensors([x], [y])
@@ -109,7 +109,7 @@ class ActivationsTestCase(unittest.TestCase):
             y_pt,
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def test_swish(self):

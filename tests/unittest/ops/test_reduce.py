@@ -17,12 +17,12 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import IntImm, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
-from honey.utils import shape_utils
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntImm, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
+from dinoml.utils import shape_utils
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -68,8 +68,8 @@ class ReduceTestCase(unittest.TestCase):
         y_shape = [var._attrs["values"][0] for var in Y._attrs["shape"]]
         y_dtype = Y._attrs["dtype"]
 
-        _LOGGER.info("Honey output_shape: {}".format(y_shape))
-        _LOGGER.info("Honey output_type: {}".format(y_dtype))
+        _LOGGER.info("DinoML output_shape: {}".format(y_shape))
+        _LOGGER.info("DinoML output_type: {}".format(y_dtype))
 
         dll_name = f"test_{self.test_count}.so"
         module = compile_model(Y, target, "./tmp", test_name, dll_name=dll_name)

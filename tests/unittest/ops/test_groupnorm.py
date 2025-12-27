@@ -21,10 +21,10 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ class GroupnormTestCase(unittest.TestCase):
         x4 = torch.empty_like(x1_nhwc_pt)
         module.run_with_tensors(inputs, [x4])
 
-        # from honey.testing.benchmark_pt import benchmark_torch_function
+        # from dinoml.testing.benchmark_pt import benchmark_torch_function
         # module.benchmark_with_tensors(inputs, [x4], count=100000)
         # t = benchmark_torch_function(
         #    100000,

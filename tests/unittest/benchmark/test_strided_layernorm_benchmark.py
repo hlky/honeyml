@@ -20,17 +20,17 @@ import unittest
 import uuid
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.utils import shape_utils
-from honey.testing.benchmark_honey import make_input_output_pools, run_benchmark
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.utils import shape_utils
+from dinoml.testing.benchmark_dinoml import make_input_output_pools, run_benchmark
 
 LOGGER = logging.getLogger(__name__)
 
 
-def build_honey_module(
+def build_dinoml_module(
     *,
     batch_sizes,
     input_nonbatch_shape,
@@ -42,7 +42,7 @@ def build_honey_module(
     fuse_sigmoid_mul,
     eps,
     test_id,
-    honey_dtype="float16",
+    dinoml_dtype="float16",
     workdir="./tmp",
     test_name="strided_layernorm",
     use_welford_algorithm=False,
@@ -55,7 +55,7 @@ def build_honey_module(
             shape_utils.gen_int_var_min_max(values=batch_sizes, name="input_batch"),
             *input_nonbatch_shape,
         ],
-        dtype=honey_dtype,
+        dtype=dinoml_dtype,
         name="input",
         is_input=True,
     )
@@ -66,7 +66,7 @@ def build_honey_module(
     else:
         X2 = Tensor(
             shape=layernorm_weight_shape,
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="gamma",
             is_input=True,
         )
@@ -75,7 +75,7 @@ def build_honey_module(
     else:
         X3 = Tensor(
             shape=layernorm_weight_shape,
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             name="beta",
             is_input=True,
         )
@@ -170,7 +170,7 @@ class TestStridedLayerNormBenchmark(unittest.TestCase):
                 "start_indices": start_indices,
                 "end_indices": end_indices,
             }
-            honey_module = build_honey_module(
+            dinoml_module = build_dinoml_module(
                 batch_sizes=(BATCH_SIZE,),
                 workdir=uuid.uuid4().hex,
                 test_id=self.test_id,
@@ -188,7 +188,7 @@ class TestStridedLayerNormBenchmark(unittest.TestCase):
                 output_filter_func=lambda k, _: k.startswith("output"),
             )
             mean_runtime = run_benchmark(
-                honey_module=honey_module,
+                dinoml_module=dinoml_module,
                 inputs_pool=inputs_pool,
                 outputs_pool=outputs_pool,
                 num_iters=NUM_ITERS,

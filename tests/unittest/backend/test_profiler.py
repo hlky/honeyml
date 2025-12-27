@@ -17,7 +17,7 @@ from random import randrange
 from time import sleep
 from unittest.mock import patch
 
-from honey.backend.profiler_runner import ProfilerRunner
+from dinoml.backend.profiler_runner import ProfilerRunner
 
 
 def dice():
@@ -48,7 +48,7 @@ def delegate_cb_wrapper(idx, value):
 class ProfilerTestCase(unittest.TestCase):
     def test_profiler_runner(self):
         with patch(
-            "honey.backend.profiler_runner.extract_profile_result"
+            "dinoml.backend.profiler_runner.extract_profile_result"
         ) as mock_extract_profile_result:
             mock_extract_profile_result.return_value = ("", False)
             pr = ProfilerRunner(

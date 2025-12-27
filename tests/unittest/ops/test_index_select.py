@@ -21,12 +21,12 @@ import random
 import unittest
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntVar
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.benchmark_pt import benchmark_torch_function
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntVar
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.benchmark_pt import benchmark_torch_function
+from dinoml.testing.test_utils import get_random_torch_tensor
 from parameterized import parameterized
 
 logger = logging.getLogger(__name__)
@@ -87,9 +87,9 @@ class IndexSelectTest(unittest.TestCase):
         if dim_idxs is None:
             dim_idxs = torch.arange(end=dim_idx_len, dtype=torch.int64, device=x.device)
 
-        y_honey = module.run_with_tensors([x, dim_idxs], [y])["output_values"]
+        y_dinoml = module.run_with_tensors([x, dim_idxs], [y])["output_values"]
         y_pt = torch.index_select(x, dim_idx, dim_idxs)
-        self.assertTrue(torch.equal(y_pt, y_honey))
+        self.assertTrue(torch.equal(y_pt, y_dinoml))
 
         if benchmark:
             print(
@@ -105,7 +105,7 @@ class IndexSelectTest(unittest.TestCase):
                 [x, dim_idxs], [y], count=num_benchmark_iter
             )
 
-            print(f"Honey time: {time_per_iter_ms:.4f}ms")
+            print(f"DinoML time: {time_per_iter_ms:.4f}ms")
 
             func = torch.index_select
             args = (x, dim_idx, dim_idxs)

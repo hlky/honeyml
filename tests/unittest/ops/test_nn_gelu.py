@@ -15,12 +15,12 @@
 import unittest
 
 import torch
-from honey.compiler import compile_model
+from dinoml.compiler import compile_model
 
-from honey.frontend import Tensor
-from honey.frontend.nn.activation import GELU
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.frontend import Tensor
+from dinoml.frontend.nn.activation import GELU
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
@@ -33,27 +33,27 @@ class GELUTestCase(unittest.TestCase):
         X_pt = get_random_torch_tensor(input_shape, dtype=dtype)
         OP_pt = torch.nn.GELU(approximate=approximate).cuda().half()
         Y_pt = OP_pt(X_pt)
-        X_honey = Tensor(
+        X_dinoml = Tensor(
             shape=input_shape,
             dtype=dtype,
             name="input0",
             is_input=True,
         )
-        OP_honey = GELU(approximate=approximate)
-        Y_honey = OP_honey(X_honey)
+        OP_dinoml = GELU(approximate=approximate)
+        Y_dinoml = OP_dinoml(X_dinoml)
 
-        Ys_honey = Ys_honey = [
-            var._attrs["values"][0] for var in Y_honey._attrs["shape"]
+        Ys_dinoml = Ys_dinoml = [
+            var._attrs["values"][0] for var in Y_dinoml._attrs["shape"]
         ]
-        self.assertEqual(list(Y_pt.shape), Ys_honey)
+        self.assertEqual(list(Y_pt.shape), Ys_dinoml)
 
-        Y_honey._attrs["name"] = "output_0"
-        Y_honey._attrs["is_output"] = True
+        Y_dinoml._attrs["name"] = "output_0"
+        Y_dinoml._attrs["is_output"] = True
 
         target = detect_target()
-        module = compile_model(Y_honey, target, "./tmp", "gelu")
+        module = compile_model(Y_dinoml, target, "./tmp", "gelu")
 
-        y = get_torch_empty_tensor(Ys_honey, dtype=dtype)
+        y = get_torch_empty_tensor(Ys_dinoml, dtype=dtype)
         inputs = {"input0": X_pt}
         module.run_with_tensors(inputs, [y])
 

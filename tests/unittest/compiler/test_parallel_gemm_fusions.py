@@ -19,23 +19,23 @@ from typing import Sequence
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.compiler.transform.fuse_parallel_gemms import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.compiler.transform.fuse_parallel_gemms import (
     fuse_parallel_gemms,
     fuse_single_source_parallel_gemms,
 )
-from honey.compiler.transform.toposort import toposort
-from honey.frontend import IntImm, IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler.transform.toposort import toposort
+from dinoml.frontend import IntImm, IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     count_ops,
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
     get_torch_empty_tensor,
     has_op,
 )
-from honey.utils import graph_utils
+from dinoml.utils import graph_utils
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ def _prepare_outputs(output_tensors, dtype):
     return outputs
 
 
-def _prepare_honey_module(m, nk_groups, constants, dtype, test_idx=0, has_bias=True):
+def _prepare_dinoml_module(m, nk_groups, constants, dtype, test_idx=0, has_bias=True):
     group_input_tensors = _prepare_input_tensors(m, nk_groups, dtype, has_bias=has_bias)
     output_tensors = []
     for group in group_input_tensors:
@@ -275,7 +275,7 @@ class ParallelGemmCatFusionTestCase(unittest.TestCase):
                     cat_inputs_pt.append(x3_pt)
                 cat_output_pt = torch.cat(cat_inputs_pt, dim=-1)
 
-                # Run Honey module.
+                # Run DinoML module.
 
                 out = get_torch_empty_tensor([m, b * n], dtype)
                 module.run_with_tensors([x_pt], [out])
@@ -556,7 +556,7 @@ class ParallelGemmCatFusionTestCase(unittest.TestCase):
 
                 cat_output_pt = torch.cat(cat_inputs_pt, dim=-1)
 
-                # Run Honey module.
+                # Run DinoML module.
 
                 out = get_torch_empty_tensor(cat_output_pt.size(), dtype)
                 module.run_with_tensors({"X1": x_pt, "X2": xx_pt}, {"output0": out})
@@ -585,7 +585,7 @@ class ParallelGemmCatFusionTestCase(unittest.TestCase):
         self, m, nk_groups, num_unfused_ops=0, dtype="float16"
     ):
         inputs, constants = _prepare_inputs_and_constants(m, nk_groups, dtype)
-        outputs, module = _prepare_honey_module(
+        outputs, module = _prepare_dinoml_module(
             m, nk_groups, constants, dtype, test_idx=self._test_id
         )
         self._test_id += 1
@@ -710,7 +710,7 @@ class ParallelGemmCatFusionTestCase(unittest.TestCase):
                     cat_inputs_pt.append(x3_pt)
                 cat_output_pt = (torch.cat(cat_inputs_pt, dim=-1), *cat_inputs_pt)
 
-                # Run Honey module.
+                # Run DinoML module.
 
                 cat_out = get_torch_empty_tensor([m, b * n], dtype)
                 out_other = [
@@ -720,9 +720,9 @@ class ParallelGemmCatFusionTestCase(unittest.TestCase):
                 module.run_with_tensors([x_pt], out)
 
                 # Do comparisons.
-                for out_honey, out_pt in zip(out, cat_output_pt):
+                for out_dinoml, out_pt in zip(out, cat_output_pt):
                     self.assertTrue(
-                        torch.allclose(out_honey, out_pt, atol=5e-2, rtol=5e-2)
+                        torch.allclose(out_dinoml, out_pt, atol=5e-2, rtol=5e-2)
                     )
 
     def test_skip_parallel_gemm_cat_groups(self):
@@ -785,7 +785,7 @@ class SingleSourceParallelGemmFusionTestCase(unittest.TestCase):
             y_pt = torch.nn.functional.linear(x_pt, constants[f"W{i}"])
             Ys_pt.append(torch.nn.functional.relu(y_pt))
 
-        # Run Honey module.
+        # Run DinoML module.
         target = detect_target()
         with compile_model(
             Ys,
@@ -803,8 +803,8 @@ class SingleSourceParallelGemmFusionTestCase(unittest.TestCase):
             module.run_with_tensors([x_pt], outs)
 
         # Do comparisons.
-        for out_honey, out_pt in zip(outs, Ys_pt):
-            self.assertTrue(torch.allclose(out_honey, out_pt, atol=5e-2, rtol=5e-2))
+        for out_dinoml, out_pt in zip(outs, Ys_pt):
+            self.assertTrue(torch.allclose(out_dinoml, out_pt, atol=5e-2, rtol=5e-2))
 
     def test_gemm_rcr_bias(self, dtype: str = "float16"):
         M = 1024
@@ -863,7 +863,7 @@ class SingleSourceParallelGemmFusionTestCase(unittest.TestCase):
             )
             Ys_pt.append(torch.nn.functional.relu(y_pt))
 
-        # Run Honey module.
+        # Run DinoML module.
         target = detect_target()
         with compile_model(
             Ys,
@@ -881,8 +881,8 @@ class SingleSourceParallelGemmFusionTestCase(unittest.TestCase):
             module.run_with_tensors([x_pt], outs)
 
         # Do comparisons.
-        for out_honey, out_pt in zip(outs, Ys_pt):
-            self.assertTrue(torch.allclose(out_honey, out_pt, atol=5e-2, rtol=5e-2))
+        for out_dinoml, out_pt in zip(outs, Ys_pt):
+            self.assertTrue(torch.allclose(out_dinoml, out_pt, atol=5e-2, rtol=5e-2))
 
     def test_mix_gemm(self, dtype: str = "float16"):
         M = 1024
@@ -953,7 +953,7 @@ class SingleSourceParallelGemmFusionTestCase(unittest.TestCase):
             y_pt = torch.nn.functional.linear(x_pt, constants[f"W{i + len(N1)}"])
             Ys_pt.append(torch.nn.functional.relu(y_pt))
 
-        # Run Honey module.
+        # Run DinoML module.
         target = detect_target()
         with compile_model(
             Ys,
@@ -971,8 +971,8 @@ class SingleSourceParallelGemmFusionTestCase(unittest.TestCase):
             module.run_with_tensors([x_pt], outs)
 
         # Do comparisons.
-        for out_honey, out_pt in zip(outs, Ys_pt):
-            self.assertTrue(torch.allclose(out_honey, out_pt, atol=5e-2, rtol=5e-2))
+        for out_dinoml, out_pt in zip(outs, Ys_pt):
+            self.assertTrue(torch.allclose(out_dinoml, out_pt, atol=5e-2, rtol=5e-2))
 
 
 filter_test_cases_by_test_env(ParallelGemmCatFusionTestCase)

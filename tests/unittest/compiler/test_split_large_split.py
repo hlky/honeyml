@@ -18,11 +18,11 @@ import unittest
 import numpy as np
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
@@ -68,7 +68,7 @@ class SplitLargeSplitTestCase(unittest.TestCase):
             Y._attrs["name"] = f"output_{idx}"
             Y._attrs["is_output"] = True
             y_shape = [d._attrs["values"][0] for d in Y._attrs["shape"]]
-            logging.info(f"Honey output_{idx} shape: {y_shape}")
+            logging.info(f"DinoML output_{idx} shape: {y_shape}")
             y_shapes.append(y_shape)
 
         module = compile_model(Ys, target, "./tmp", testname)
@@ -135,7 +135,7 @@ class SplitLargeSplitTestCase(unittest.TestCase):
             Y._attrs["is_output"] = True
 
             y_shape = [d._attrs["values"][0] for d in Y._attrs["shape"]]
-            logging.info(f"Honey output_{idx} shape: {y_shape}")
+            logging.info(f"DinoML output_{idx} shape: {y_shape}")
             y_shapes.append(y_shape)
 
         module = compile_model(Ys, target, "./tmp", "split_with_strided_ops")

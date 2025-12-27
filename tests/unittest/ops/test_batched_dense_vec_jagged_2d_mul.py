@@ -20,17 +20,17 @@ import unittest
 from typing import List
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm, IntVar, JaggedDim, Tensor
-from honey.testing import detect_target
-from honey.testing.jagged_utils import batched_dense_vec_jagged_2d_mul_ref
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm, IntVar, JaggedDim, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.jagged_utils import batched_dense_vec_jagged_2d_mul_ref
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     get_torch_empty_tensor,
     TestEnv,
 )
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.utils.torch_utils import string_to_torch_dtype
 from parameterized import parameterized
 
 
@@ -145,7 +145,7 @@ class BatchedDenseVecJagged2DMulTestCase(unittest.TestCase):
             }
         )
     )
-    def test_batched_dense_vesc_jagged_2d_mul(self, honey_dtype):
+    def test_batched_dense_vesc_jagged_2d_mul(self, dinoml_dtype):
         # test with different combination of offsets_dtype, use_fp16_acc and shapes
         self._test_batched_dense_vec_jagged_2d_mul(
             4,
@@ -153,10 +153,10 @@ class BatchedDenseVecJagged2DMulTestCase(unittest.TestCase):
             10,
             32,
             [0, 1, 4, 6, 7],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             offsets_dtype="int32",
             use_fp16_acc=True,
-            test_suffix=f"{honey_dtype}_int32_True",
+            test_suffix=f"{dinoml_dtype}_int32_True",
         )
         self._test_batched_dense_vec_jagged_2d_mul(
             6,
@@ -164,10 +164,10 @@ class BatchedDenseVecJagged2DMulTestCase(unittest.TestCase):
             15,
             39,
             [0, 1, 4, 6, 7, 9, 10],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             offsets_dtype="int32",
             use_fp16_acc=False,
-            test_suffix=f"{honey_dtype}_int32_False",
+            test_suffix=f"{dinoml_dtype}_int32_False",
         )
         self._test_batched_dense_vec_jagged_2d_mul(
             8,
@@ -175,10 +175,10 @@ class BatchedDenseVecJagged2DMulTestCase(unittest.TestCase):
             21,
             32,
             [0, 1, 4, 6, 7, 8, 12, 20, 29],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             offsets_dtype="int64",
             use_fp16_acc=True,
-            test_suffix=f"{honey_dtype}_int64_True",
+            test_suffix=f"{dinoml_dtype}_int64_True",
         )
         self._test_batched_dense_vec_jagged_2d_mul(
             10,
@@ -186,10 +186,10 @@ class BatchedDenseVecJagged2DMulTestCase(unittest.TestCase):
             32,
             8,
             [0, 1, 4, 6, 7, 11, 15, 19, 23, 26, 28],
-            dtype=honey_dtype,
+            dtype=dinoml_dtype,
             offsets_dtype="int64",
             use_fp16_acc=False,
-            test_suffix=f"{honey_dtype}_int64_False",
+            test_suffix=f"{dinoml_dtype}_int64_False",
         )
 
 

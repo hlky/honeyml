@@ -2,10 +2,10 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     TestEnv,
@@ -24,12 +24,12 @@ class PadTestCase(unittest.TestCase):
         dtype="float16",
     ):
         target = detect_target()
-        honey_shape = input_shape
+        dinoml_shape = input_shape
         if len(input_shape) == 4:
             n, c, h, w = input_shape
-            honey_shape = [n, h, w, c]
+            dinoml_shape = [n, h, w, c]
         X = Tensor(
-            shape=honey_shape,
+            shape=dinoml_shape,
             dtype=dtype,
             name="input_0",
             is_input=True,
@@ -58,7 +58,7 @@ class PadTestCase(unittest.TestCase):
             Y_pt.to(y.dtype),
             rtol=1e-3,
             atol=1e-3,
-            msg=lambda msg: f"{msg}\n\n{test_name}\npt ({Y_pt.shape}):\n{Y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\n{test_name}\npt ({Y_pt.shape}):\n{Y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     @parameterized.expand(
@@ -70,7 +70,7 @@ class PadTestCase(unittest.TestCase):
             }
         )
     )
-    def test_pad(self, honey_dtype):
+    def test_pad(self, dinoml_dtype):
         pad_modes = ["constant", "reflect", "replicate", "circular"]
         # PyTorch only supports constant pad for 1D tensor
         for pad_mode in ["constant"]:
@@ -80,8 +80,8 @@ class PadTestCase(unittest.TestCase):
                     mode=pad_mode,
                     value=1.0,
                     input_shape=[10],
-                    test_name=f"pad_{pad_mode}_1d_{honey_dtype}_{'-'.join([str(n) for n in pad])}",
-                    dtype=honey_dtype,
+                    test_name=f"pad_{pad_mode}_1d_{dinoml_dtype}_{'-'.join([str(n) for n in pad])}",
+                    dtype=dinoml_dtype,
                 )
         for pad_mode in pad_modes:
             for pad in [(1, 1), (0, 1), (1, 0)]:
@@ -90,8 +90,8 @@ class PadTestCase(unittest.TestCase):
                     mode=pad_mode,
                     value=1.0,
                     input_shape=[3, 4],
-                    test_name=f"pad_{pad_mode}_2d_{honey_dtype}_{'-'.join([str(n) for n in pad])}",
-                    dtype=honey_dtype,
+                    test_name=f"pad_{pad_mode}_2d_{dinoml_dtype}_{'-'.join([str(n) for n in pad])}",
+                    dtype=dinoml_dtype,
                 )
         for pad_mode in pad_modes:
             for pad in [(1, 1, 2, 2), (0, 1, 0, 1), (0, 1, 0, 0)]:
@@ -100,8 +100,8 @@ class PadTestCase(unittest.TestCase):
                     mode=pad_mode,
                     value=1.0,
                     input_shape=[2, 3, 4],
-                    test_name=f"pad_{pad_mode}_3d_{honey_dtype}_{'-'.join([str(n) for n in pad])}",
-                    dtype=honey_dtype,
+                    test_name=f"pad_{pad_mode}_3d_{dinoml_dtype}_{'-'.join([str(n) for n in pad])}",
+                    dtype=dinoml_dtype,
                 )
         for pad_mode in pad_modes:
             for pad in [(1, 1, 2, 2), (0, 1, 0, 1), (0, 1, 0, 0)]:
@@ -110,8 +110,8 @@ class PadTestCase(unittest.TestCase):
                     mode=pad_mode,
                     value=1.0,
                     input_shape=[1, 3, 3, 3],
-                    test_name=f"pad_{pad_mode}_4d_{honey_dtype}_{'-'.join([str(n) for n in pad])}",
-                    dtype=honey_dtype,
+                    test_name=f"pad_{pad_mode}_4d_{dinoml_dtype}_{'-'.join([str(n) for n in pad])}",
+                    dtype=dinoml_dtype,
                 )
 
 

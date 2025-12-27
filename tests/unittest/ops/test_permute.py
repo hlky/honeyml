@@ -17,10 +17,10 @@ from typing import Sequence
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.utils.torch_utils import torch_dtype_to_string
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.utils.torch_utils import torch_dtype_to_string
 from parameterized import param, parameterized
 
 
@@ -37,8 +37,8 @@ class GenericPermuteTest(unittest.TestCase):
         torch_dtype: torch.dtype,
         testname: str,
     ) -> None:
-        honey_dtype = torch_dtype_to_string(torch_dtype)
-        X = Tensor(shape=input_shapes, name="X", dtype=honey_dtype, is_input=True)
+        dinoml_dtype = torch_dtype_to_string(torch_dtype)
+        X = Tensor(shape=input_shapes, name="X", dtype=dinoml_dtype, is_input=True)
         op = ops.permute()
         Y = op(X, dims)
         Y._attrs["is_output"] = True

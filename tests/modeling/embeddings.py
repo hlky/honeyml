@@ -5,13 +5,13 @@ from typing import cast, List, Optional
 import diffusers.models.embeddings as embeddings_torch
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
-import honey.modeling.diffusers.embeddings as embeddings
-from honey.builder.config import mark_output
+import dinoml.modeling.diffusers.embeddings as embeddings
+from dinoml.builder.config import mark_output
 
 
 # TODO: other embeddings
@@ -35,13 +35,13 @@ class EmbeddingsTestCase(unittest.TestCase):
         ).to(x.device, x.dtype)
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if "conv" in key.lower() and "weight" in key:
                 value = value.permute(0, 2, 3, 1)
             value = value.to(x.device, x.dtype).contiguous()
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         y_pt: torch.Tensor = op.forward(x)
         y = torch.empty_like(y_pt).to(x.device, x.dtype)
@@ -59,7 +59,7 @@ class EmbeddingsTestCase(unittest.TestCase):
             target,
             "./tmp",
             f"test_timestep_embedding_{dtype}_in-{in_channels}_out-{time_embed_dim}",
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
 
         module.run_with_tensors([x], [y])
@@ -68,7 +68,7 @@ class EmbeddingsTestCase(unittest.TestCase):
             y_pt.to(x.device, x.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_timesteps(
@@ -114,7 +114,7 @@ class EmbeddingsTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_pixart_alpha_combined_timestep_size_embeddings(
@@ -137,13 +137,13 @@ class EmbeddingsTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if "conv" in key.lower() and "weight" in key:
                 value = value.permute(0, 2, 3, 1)
             value = value.to(x.device, x.dtype).contiguous()
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         batch_size = x.shape[0]
         height, width = 512, 512
@@ -191,7 +191,7 @@ class EmbeddingsTestCase(unittest.TestCase):
             target,
             "./tmp",
             f"test_pixart_alpha_combined_timestep_size_embeddings_{dtype}_embdim-{embedding_dim}_additional-{use_additional_conditions}",
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
 
         inputs = {"X": x}
@@ -203,7 +203,7 @@ class EmbeddingsTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_patch_embed(
@@ -224,7 +224,7 @@ class EmbeddingsTestCase(unittest.TestCase):
         batch, channels, h, w = shape
         latent_h, latent_w = h // 8, w // 8
         x = get_random_torch_tensor([batch, channels, latent_h, latent_w], dtype=dtype)
-        x_honey = x.clone().permute(0, 2, 3, 1).contiguous().to(x.device, x.dtype)
+        x_dinoml = x.clone().permute(0, 2, 3, 1).contiguous().to(x.device, x.dtype)
 
         op = (
             embeddings_torch.PatchEmbed(
@@ -243,18 +243,18 @@ class EmbeddingsTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             # NOTE: Stored constants, contrary to set constants, appear to skip shape checks.
             # Correct conditions for weight modifications are important!
             if value.ndim == 4 and "weight" in key:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         pos_embed = op.get_buffer("pos_embed").to(x.device, x.dtype)
-        # NOTE: Honey is missing arange/meshgrid kernel, this must be calculated externally
+        # NOTE: DinoML is missing arange/meshgrid kernel, this must be calculated externally
         embed_h = latent_h // patch_size
         embed_w = latent_w // patch_size
         if height != embed_h or width != embed_w:
@@ -269,8 +269,8 @@ class EmbeddingsTestCase(unittest.TestCase):
 
         with torch.inference_mode():
             y_pt: torch.Tensor = op.forward(x)
-            # NOTE: unusual case - pytorch output tensor is not contiguous, Honey requires contiguous output tensors
-            # .contiguous() applied once here fixes Honey output tensor and verification
+            # NOTE: unusual case - pytorch output tensor is not contiguous, DinoML requires contiguous output tensors
+            # .contiguous() applied once here fixes DinoML output tensor and verification
             # in practice, output from this module directly is unlikely
             y_pt = y_pt.contiguous()
         y = torch.empty_like(y_pt).to(x.device, x.dtype)
@@ -312,13 +312,13 @@ class EmbeddingsTestCase(unittest.TestCase):
         if bias:
             test_name += "_bias"
 
-        inputs = {"X": x_honey, "pos_embed": pos_embed}
+        inputs = {"X": x_dinoml, "pos_embed": pos_embed}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs, [y])
         torch.testing.assert_close(
@@ -326,7 +326,7 @@ class EmbeddingsTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_pixart_alpha_text_projection(
@@ -338,7 +338,7 @@ class EmbeddingsTestCase(unittest.TestCase):
         tolerance: float = 1e-5,
     ):
         x = get_random_torch_tensor(shape, dtype=dtype)
-        x_honey = x.clone().to(x.device, x.dtype)
+        x_dinoml = x.clone().to(x.device, x.dtype)
 
         op = (
             embeddings_torch.PixArtAlphaTextProjection(
@@ -350,13 +350,13 @@ class EmbeddingsTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if value.ndim == 4 and "weight" in key:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt: torch.Tensor = op.forward(x)
@@ -380,13 +380,13 @@ class EmbeddingsTestCase(unittest.TestCase):
 
         target = detect_target()
         test_name = f"test_pixart_alpha_text_projection_{dtype}_c{caption_channels}_dim{hidden_size}"
-        inputs = {"X": x_honey}
+        inputs = {"X": x_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs, [y])
         torch.testing.assert_close(
@@ -394,7 +394,7 @@ class EmbeddingsTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_label_embedding(
@@ -408,7 +408,7 @@ class EmbeddingsTestCase(unittest.TestCase):
         _x = get_random_torch_tensor(shape, dtype=dtype)
         # NOTE: unusual case - we want dtype "float16" for the embedding weight but input is int64
         x = torch.randint(69, 420, shape, device=_x.device).to(torch.int64)
-        x_honey = x.clone().to(x.device, x.dtype)
+        x_dinoml = x.clone().to(x.device, x.dtype)
 
         op = (
             embeddings_torch.LabelEmbedding(
@@ -421,13 +421,13 @@ class EmbeddingsTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if value.ndim == 4 and "weight" in key:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(_x.device, _x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt: torch.Tensor = op.forward(x)
@@ -452,13 +452,13 @@ class EmbeddingsTestCase(unittest.TestCase):
 
         target = detect_target()
         test_name = f"test_label_embedding_{dtype}_c{num_classes}_dim{hidden_size}"
-        inputs = {"X": x_honey}
+        inputs = {"X": x_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs, [y])
         torch.testing.assert_close(
@@ -466,7 +466,7 @@ class EmbeddingsTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_combined_timestep_label_embeddings(
@@ -479,11 +479,11 @@ class EmbeddingsTestCase(unittest.TestCase):
     ):
         batch, num_classes = shape
         timestep = get_random_torch_tensor([batch], dtype=dtype)
-        timestep_honey = timestep.clone()
+        timestep_dinoml = timestep.clone()
         class_labels = torch.randint(69, 420, shape, device=timestep.device).to(
             torch.int64
         )
-        class_labels_honey = class_labels.clone().to(
+        class_labels_dinoml = class_labels.clone().to(
             class_labels.device, class_labels.dtype
         )
 
@@ -498,13 +498,13 @@ class EmbeddingsTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if value.ndim == 4 and "weight" in key:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(timestep.device, timestep.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt: torch.Tensor = op.forward(
@@ -537,13 +537,13 @@ class EmbeddingsTestCase(unittest.TestCase):
 
         target = detect_target()
         test_name = f"test_combined_timestep_label_embeddings_{dtype}_c{num_classes}_dim{hidden_size}"
-        inputs = {"X": timestep_honey, "class_labels": class_labels_honey}
+        inputs = {"X": timestep_dinoml, "class_labels": class_labels_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs, [y])
         torch.testing.assert_close(
@@ -551,7 +551,7 @@ class EmbeddingsTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def test_timestep_embedding(self):

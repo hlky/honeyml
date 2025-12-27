@@ -1,18 +1,18 @@
-from honey.compiler import compile_model
-from honey.frontend import IntVar, Tensor
-from honey.testing import detect_target
+from dinoml.compiler import compile_model
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import detect_target
 
-from honey.builder.config import load_config, mark_output
+from dinoml.builder.config import load_config, mark_output
 
 batch_size = 1
 resolution = 512, 1024
 height, width = resolution, resolution
 
 model_name = "flux"
-config, honey_cls, pt_cls = load_config("black-forest-labs/FLUX.1-schnell")
+config, dinoml_cls, pt_cls = load_config("black-forest-labs/FLUX.1-schnell")
 
-honey_module = honey_cls(**config)
-honey_module.name_parameter_tensor()
+dinoml_module = dinoml_cls(**config)
+dinoml_module.name_parameter_tensor()
 
 output_name = "Y"
 
@@ -68,7 +68,7 @@ guidance = (
 )
 
 
-Y = honey_module.forward(
+Y = dinoml_module.forward(
     hidden_states=hidden_states,
     encoder_hidden_states=encoder_hidden_states,
     timestep=timestep,

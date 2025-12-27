@@ -19,16 +19,16 @@ from typing import Callable, List, Tuple
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntVar
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import IntImm, Tensor
-from honey.testing import detect_target, test_utils
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntVar
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import IntImm, Tensor
+from dinoml.testing import detect_target, test_utils
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import graph_utils
+from dinoml.utils import graph_utils
 
 from parameterized import param, parameterized
 
@@ -217,7 +217,7 @@ class StridedViewOpTestCase(unittest.TestCase):
             )
             y = get_torch_empty_tensor(y_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors([input0_pt, input1_pt], [y])
 
             # Do comparisons.
@@ -273,7 +273,7 @@ class StridedViewOpTestCase(unittest.TestCase):
             )
             y = get_torch_empty_tensor(y_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors([input0_pt, input1_pt], [y])
 
             # Do comparisons.
@@ -324,7 +324,7 @@ class StridedViewOpTestCase(unittest.TestCase):
             y_pt = torch.tanh(torch.reshape(torch_func(input_pt), [batch_size, -1]))
             y = get_torch_empty_tensor(y_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors([input_pt], [y])
 
             # Do comparisons.
@@ -367,7 +367,7 @@ class StridedViewOpTestCase(unittest.TestCase):
             y_pt = torch.tanh(torch.reshape(torch.tanh(x0_pt), [-1, N2]))
             y = get_torch_empty_tensor(y_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors([x0_pt], [y])
 
             # Do comparisons.
@@ -407,7 +407,7 @@ class StridedViewOpTestCase(unittest.TestCase):
             y1 = get_torch_empty_tensor(y1_pt.shape, dtype)
             y2 = get_torch_empty_tensor(y2_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors([input_pt], [y1, y2])
 
             # Do comparisons.
@@ -450,7 +450,7 @@ class StridedViewOpTestCase(unittest.TestCase):
             y1 = get_torch_empty_tensor(y1_pt.shape, dtype)
             y2 = get_torch_empty_tensor(y2_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors([input_pt], [y1, y2])
 
             # Do comparisons.

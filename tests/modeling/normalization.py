@@ -5,13 +5,13 @@ from typing import cast, List, Optional, Tuple
 import diffusers.models.normalization as normalization_torch
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
-import honey.modeling.diffusers.normalization as normalization
-from honey.builder.config import mark_output
+import dinoml.modeling.diffusers.normalization as normalization
+from dinoml.builder.config import mark_output
 
 
 class NormalizationTestCase(unittest.TestCase):
@@ -25,7 +25,7 @@ class NormalizationTestCase(unittest.TestCase):
         tolerance: float = 1e-5,
     ):
         x = get_random_torch_tensor(shape, dtype=dtype)
-        x_honey = x.clone().to(x.device, x.dtype)
+        x_dinoml = x.clone().to(x.device, x.dtype)
 
         op = (
             normalization_torch.RMSNorm(
@@ -38,13 +38,13 @@ class NormalizationTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if value.ndim == 4 and "weight" in key:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt: torch.Tensor = op.forward(x)
@@ -71,13 +71,13 @@ class NormalizationTestCase(unittest.TestCase):
         test_name = f"test_rms_norm_{dtype}_dim{hidden_size}_eps{eps}"
         if elementwise_affine:
             test_name += "_elementwise_affine"
-        inputs = {"X": x_honey}
+        inputs = {"X": x_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs, [y])
         torch.testing.assert_close(
@@ -85,7 +85,7 @@ class NormalizationTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_ada_layer_norm(
@@ -99,8 +99,8 @@ class NormalizationTestCase(unittest.TestCase):
         x = get_random_torch_tensor(shape, dtype=dtype)
         # NOTE: Diffusers' AdaLayerNorm expects rank 0 for timestep
         timestep = torch.randint(69, 420, [], device=x.device).to(torch.int64)
-        x_honey = x.clone()
-        timestep_honey = timestep.clone().unsqueeze(0)
+        x_dinoml = x.clone()
+        timestep_dinoml = timestep.clone().unsqueeze(0)
 
         op = (
             normalization_torch.AdaLayerNorm(
@@ -112,13 +112,13 @@ class NormalizationTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if value.ndim == 4 and "weight" in key:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt: torch.Tensor = op.forward(x, timestep)
@@ -151,13 +151,13 @@ class NormalizationTestCase(unittest.TestCase):
         test_name = (
             f"test_ada_layer_norm_{dtype}_dim{embedding_dim}_number{num_embeddings}"
         )
-        inputs = {"X": x_honey, "timestep": timestep_honey}
+        inputs = {"X": x_dinoml, "timestep": timestep_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs, [y])
         torch.testing.assert_close(
@@ -165,7 +165,7 @@ class NormalizationTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_ada_layer_norm_zero(
@@ -178,13 +178,13 @@ class NormalizationTestCase(unittest.TestCase):
     ):
         batch, _, _ = shape
         x = get_random_torch_tensor(shape, dtype=dtype)
-        x_honey = x.clone()
+        x_dinoml = x.clone()
         timestep = get_random_torch_tensor([batch], dtype=dtype)
-        timestep_honey = timestep.clone()
+        timestep_dinoml = timestep.clone()
         class_labels = torch.randint(
             69, 420, [num_embeddings], device=timestep.device
         ).to(torch.int64)
-        class_labels_honey = class_labels.clone().to(
+        class_labels_dinoml = class_labels.clone().to(
             class_labels.device, class_labels.dtype
         )
 
@@ -198,26 +198,26 @@ class NormalizationTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if value.ndim == 4 and "weight" in key:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(timestep.device, timestep.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             outputs: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor] = op.forward(
                 x, timestep, class_labels, hidden_dtype=timestep.dtype
             )
-        outputs_honey = {
+        outputs_dinoml = {
             "Y": torch.empty_like(outputs[0]),
             "gate_msa": torch.empty_like(outputs[1]),
             "shift_mlp": torch.empty_like(outputs[2]),
             "scale_mlp": torch.empty_like(outputs[3]),
             "gate_mlp": torch.empty_like(outputs[4]),
         }
-        for key, tensor in outputs_honey.items():
+        for key, tensor in outputs_dinoml.items():
             print(f"{key} - {tensor.shape}")
 
         X = Tensor(
@@ -259,27 +259,27 @@ class NormalizationTestCase(unittest.TestCase):
             f"test_ada_layer_norm_zero_{dtype}_num{num_embeddings}_dim{hidden_size}"
         )
         inputs = {
-            "X": x_honey,
-            "timestep": timestep_honey,
-            "class_labels": class_labels_honey,
+            "X": x_dinoml,
+            "timestep": timestep_dinoml,
+            "class_labels": class_labels_dinoml,
         }
         module = compile_model(
             Outputs,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
-        module.run_with_tensors(inputs, outputs_honey)
-        for idx, name in enumerate(outputs_honey.keys()):
-            y: torch.Tensor = outputs_honey[name]
+        module.run_with_tensors(inputs, outputs_dinoml)
+        for idx, name in enumerate(outputs_dinoml.keys()):
+            y: torch.Tensor = outputs_dinoml[name]
             y_pt: torch.Tensor = outputs[idx]
             torch.testing.assert_close(
                 y,
                 y_pt.to(y.dtype),
                 rtol=tolerance,
                 atol=tolerance,
-                msg=lambda msg: f"{msg}\n\n{name}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+                msg=lambda msg: f"{msg}\n\n{name}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
             )
 
     def _test_ada_layer_norm_single(
@@ -290,7 +290,7 @@ class NormalizationTestCase(unittest.TestCase):
         tolerance: float = 1e-5,
     ):
         timestep = get_random_torch_tensor([1], dtype=dtype)
-        timestep_honey = timestep.clone()
+        timestep_dinoml = timestep.clone()
 
         op = (
             normalization_torch.AdaLayerNormSingle(
@@ -302,13 +302,13 @@ class NormalizationTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             if value.ndim == 4 and "weight" in key:
                 value = value.permute(0, 2, 3, 1).contiguous()
             value = value.to(timestep.device, timestep.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         batch_size = timestep.shape[0]
         height, width = 512, 512
@@ -332,11 +332,11 @@ class NormalizationTestCase(unittest.TestCase):
             outputs: Tuple[torch.Tensor, torch.Tensor] = op.forward(
                 timestep, kwargs, batch_size, hidden_dtype=timestep.dtype
             )
-        outputs_honey = {
+        outputs_dinoml = {
             "Y": torch.empty_like(outputs[0]),
             "embedded_timestep": torch.empty_like(outputs[1]),
         }
-        for key, tensor in outputs_honey.items():
+        for key, tensor in outputs_dinoml.items():
             print(f"{key} - {tensor.shape}")
 
         X = Tensor(shape=[1], dtype=dtype, name="X", is_input=True)
@@ -361,7 +361,7 @@ class NormalizationTestCase(unittest.TestCase):
 
         target = detect_target()
         test_name = f"test_ada_layer_norm_single_{dtype}_dim{hidden_size}_added-cond{use_additional_conditions}"
-        inputs = {"X": timestep_honey}
+        inputs = {"X": timestep_dinoml}
         if use_additional_conditions:
             inputs.update({"resolution": resolution, "aspect_ratio": aspect_ratio})
         module = compile_model(
@@ -369,18 +369,18 @@ class NormalizationTestCase(unittest.TestCase):
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
-        module.run_with_tensors(inputs, outputs_honey)
-        for idx, name in enumerate(outputs_honey.keys()):
-            y: torch.Tensor = outputs_honey[name]
+        module.run_with_tensors(inputs, outputs_dinoml)
+        for idx, name in enumerate(outputs_dinoml.keys()):
+            y: torch.Tensor = outputs_dinoml[name]
             y_pt: torch.Tensor = outputs[idx]
             torch.testing.assert_close(
                 y,
                 y_pt.to(y.dtype),
                 rtol=tolerance,
                 atol=tolerance,
-                msg=lambda msg: f"{msg}\n\n{name}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+                msg=lambda msg: f"{msg}\n\n{name}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
             )
 
     def _test_ada_group_norm(
@@ -397,8 +397,8 @@ class NormalizationTestCase(unittest.TestCase):
         b, c, h, w = shape
         x = get_random_torch_tensor(shape, dtype=dtype)
         emb = get_random_torch_tensor([shape[0], embedding_dim], dtype=dtype)
-        x_honey = x.clone().permute(0, 2, 3, 1).contiguous().to(x.device, x.dtype)
-        emb_honey = emb.clone().to(emb.device, emb.dtype)
+        x_dinoml = x.clone().permute(0, 2, 3, 1).contiguous().to(x.device, x.dtype)
+        emb_dinoml = emb.clone().to(emb.device, emb.dtype)
 
         op = (
             normalization_torch.AdaGroupNorm(
@@ -413,11 +413,11 @@ class NormalizationTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt = op.forward(x, emb)
@@ -439,15 +439,15 @@ class NormalizationTestCase(unittest.TestCase):
             is_input=True,
         )
 
-        op_honey = normalization.AdaGroupNorm(
+        op_dinoml = normalization.AdaGroupNorm(
             embedding_dim=embedding_dim,
             out_dim=out_dim,
             num_groups=num_groups,
             act_fn=act_fn,
             eps=eps,
         )
-        op_honey.name_parameter_tensor()
-        Y = op_honey.forward(X, Emb)
+        op_dinoml.name_parameter_tensor()
+        Y = op_dinoml.forward(X, Emb)
         Y = mark_output(Y, "Y")
 
         target = detect_target()
@@ -456,13 +456,13 @@ class NormalizationTestCase(unittest.TestCase):
         )
         if act_fn:
             test_name += f"_{act_fn}"
-        inputs = {"X": x_honey, "Emb": emb_honey}
+        inputs = {"X": x_dinoml, "Emb": emb_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs, [y])
         y = y.permute(0, 3, 1, 2).contiguous()
@@ -471,7 +471,7 @@ class NormalizationTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_ada_layer_norm_continuous(
@@ -490,8 +490,8 @@ class NormalizationTestCase(unittest.TestCase):
         conditioning_embedding = get_random_torch_tensor(
             [shape[0], conditioning_embedding_dim], dtype=dtype
         )
-        x_honey = x.clone().to(x.device, x.dtype)
-        conditioning_embedding_honey = conditioning_embedding.clone().to(
+        x_dinoml = x.clone().to(x.device, x.dtype)
+        conditioning_embedding_dinoml = conditioning_embedding.clone().to(
             conditioning_embedding.device, conditioning_embedding.dtype
         )
 
@@ -509,11 +509,11 @@ class NormalizationTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt = op.forward(x, conditioning_embedding)
@@ -533,7 +533,7 @@ class NormalizationTestCase(unittest.TestCase):
             is_input=True,
         )
 
-        op_honey = normalization.AdaLayerNormContinuous(
+        op_dinoml = normalization.AdaLayerNormContinuous(
             embedding_dim=embedding_dim,
             conditioning_embedding_dim=conditioning_embedding_dim,
             elementwise_affine=elementwise_affine,
@@ -542,19 +542,19 @@ class NormalizationTestCase(unittest.TestCase):
             norm_type=norm_type,
             dtype=dtype,
         )
-        op_honey.name_parameter_tensor()
-        Y = op_honey.forward(X, ConditioningEmbedding)
+        op_dinoml.name_parameter_tensor()
+        Y = op_dinoml.forward(X, ConditioningEmbedding)
         Y = mark_output(Y, "Y")
 
         target = detect_target()
         test_name = f"test_ada_layer_norm_continuous_{dtype}_dim{embedding_dim}_conditioning_dim{conditioning_embedding_dim}_norm{norm_type}_eps{eps}"
-        inputs = {"X": x_honey, "ConditioningEmbedding": conditioning_embedding_honey}
+        inputs = {"X": x_dinoml, "ConditioningEmbedding": conditioning_embedding_dinoml}
         module = compile_model(
             Y,
             target,
             "./tmp",
             test_name,
-            constants=state_dict_honey,
+            constants=state_dict_dinoml,
         )
         module.run_with_tensors(inputs, [y])
         torch.testing.assert_close(
@@ -562,7 +562,7 @@ class NormalizationTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def _test_global_response_norm(
@@ -572,7 +572,7 @@ class NormalizationTestCase(unittest.TestCase):
         tolerance: float = 1e-5,
     ):
         x = get_random_torch_tensor(shape, dtype=dtype)
-        x_honey = x.clone().to(x.device, x.dtype)
+        x_dinoml = x.clone().to(x.device, x.dtype)
 
         op = (
             normalization_torch.GlobalResponseNorm(dim=shape[-1])
@@ -581,11 +581,11 @@ class NormalizationTestCase(unittest.TestCase):
         )
 
         state_dict_pt = cast(dict[str, torch.Tensor], op.state_dict())
-        state_dict_honey = {}
+        state_dict_dinoml = {}
         for key, value in state_dict_pt.items():
-            key_honey = key.replace(".", "_")
+            key_dinoml = key.replace(".", "_")
             value = value.to(x.device, x.dtype)
-            state_dict_honey[key_honey] = value
+            state_dict_dinoml[key_dinoml] = value
 
         with torch.inference_mode():
             y_pt: torch.Tensor = op.forward(x)
@@ -599,14 +599,14 @@ class NormalizationTestCase(unittest.TestCase):
             is_input=True,
         )
 
-        op_honey = normalization.GlobalResponseNorm(dim=shape[-1], dtype=dtype)
-        op_honey.name_parameter_tensor()
-        Y = op_honey.forward(X)
+        op_dinoml = normalization.GlobalResponseNorm(dim=shape[-1], dtype=dtype)
+        op_dinoml.name_parameter_tensor()
+        Y = op_dinoml.forward(X)
         Y = mark_output(Y, "Y")
 
         target = detect_target()
         test_name = f"test_global_response_norm_{dtype}_dim{shape[-1]}"
-        inputs = {"X": x_honey}
+        inputs = {"X": x_dinoml}
         module = compile_model(
             Y,
             target,
@@ -621,7 +621,7 @@ class NormalizationTestCase(unittest.TestCase):
             y_pt.to(y.dtype),
             rtol=tolerance,
             atol=tolerance,
-            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\nhoney ({y.shape}):\n{y}\n\n",
+            msg=lambda msg: f"{msg}\n\npt ({y_pt.shape}):\n{y_pt}\n\ndinoml ({y.shape}):\n{y}\n\n",
         )
 
     def test_rms_norm(self):

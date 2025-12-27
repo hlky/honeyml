@@ -16,11 +16,11 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
+from dinoml.compiler import compile_model, ops
 
-from honey.compiler.base import Tensor
-from honey.testing import detect_target, test_utils
-from honey.testing.test_utils import (
+from dinoml.compiler.base import Tensor
+from dinoml.testing import detect_target, test_utils
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     TestEnv,
@@ -99,10 +99,10 @@ class FusePermuteGemmTestCase(unittest.TestCase):
         w_pt = get_random_torch_tensor([32, 52], dtype)
         y_pt = x_pt.t()
         z_pt = torch.matmul(w_pt, y_pt)
-        z_honey = torch.empty_like(z_pt)
-        module.run_with_tensors({"x": x_pt, "w": w_pt}, {"z": z_honey})
+        z_dinoml = torch.empty_like(z_pt)
+        module.run_with_tensors({"x": x_pt, "w": w_pt}, {"z": z_dinoml})
 
-        torch.testing.assert_close(z_honey, z_pt, atol=1e-1, rtol=1e-1)
+        torch.testing.assert_close(z_dinoml, z_pt, atol=1e-1, rtol=1e-1)
 
     @parameterized.expand(
         **filter_test_cases_by_params(
@@ -137,10 +137,10 @@ class FusePermuteGemmTestCase(unittest.TestCase):
         x_pt = get_random_torch_tensor([52, 32], dtype)
         w_pt = get_random_torch_tensor([32, 52], dtype)
         z_pt = torch.matmul(w_pt, x_pt)
-        z_honey = torch.empty_like(z_pt)
-        module.run_with_tensors({"x": x_pt, "w": w_pt}, {"z": z_honey})
+        z_dinoml = torch.empty_like(z_pt)
+        module.run_with_tensors({"x": x_pt, "w": w_pt}, {"z": z_dinoml})
 
-        torch.testing.assert_close(z_honey, z_pt, atol=1e-1, rtol=1e-1)
+        torch.testing.assert_close(z_dinoml, z_pt, atol=1e-1, rtol=1e-1)
 
 
 if __name__ == "__main__":

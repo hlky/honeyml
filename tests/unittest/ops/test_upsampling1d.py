@@ -2,10 +2,10 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model
-from honey.frontend import IntVar, nn, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model
+from dinoml.frontend import IntVar, nn, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     TestEnv,
@@ -57,7 +57,7 @@ class Upsampling1dTestCase(unittest.TestCase):
                 Y_pt.to(y.dtype),
                 rtol=1e-3,
                 atol=1e-3,
-                msg=lambda msg: f"{msg}\n\n{test_name}\npt ({Y_pt.shape}):\n{Y_pt}\n\nhoney ({y_transpose.shape}):\n{y_transpose}\n\n",
+                msg=lambda msg: f"{msg}\n\n{test_name}\npt ({Y_pt.shape}):\n{Y_pt}\n\ndinoml ({y_transpose.shape}):\n{y_transpose}\n\n",
             )
 
     @parameterized.expand(
@@ -69,34 +69,34 @@ class Upsampling1dTestCase(unittest.TestCase):
             }
         )
     )
-    def test_upsampling1d_constructor(self, honey_dtype):
-        if honey_dtype != "bfloat16":
+    def test_upsampling1d_constructor(self, dinoml_dtype):
+        if dinoml_dtype != "bfloat16":
             self._test_single_op(
                 scale_factor=3.5,
                 mode="linear",
-                test_name=f"linear_upsampling1d_{honey_dtype}",
-                dtype=honey_dtype,
+                test_name=f"linear_upsampling1d_{dinoml_dtype}",
+                dtype=dinoml_dtype,
             )
             self._test_single_op(
                 scale_factor=2.0,
                 mode="linear",
                 align_corners=True,
-                test_name=f"linear_align_corners_upsampling1d_{honey_dtype}",
-                dtype=honey_dtype,
+                test_name=f"linear_align_corners_upsampling1d_{dinoml_dtype}",
+                dtype=dinoml_dtype,
             )
         self._test_single_op(
             scale_factor=2.0,
             mode="nearest-exact",
             align_corners=None,
-            test_name=f"nearest-exact_upsampling1d_{honey_dtype}",
-            dtype=honey_dtype,
+            test_name=f"nearest-exact_upsampling1d_{dinoml_dtype}",
+            dtype=dinoml_dtype,
         )
         self._test_single_op(
             scale_factor=2.0,
             mode="nearest",
             align_corners=None,
-            test_name=f"nearest_upsampling1d_{honey_dtype}",
-            dtype=honey_dtype,
+            test_name=f"nearest_upsampling1d_{dinoml_dtype}",
+            dtype=dinoml_dtype,
         )
 
 

@@ -104,7 +104,7 @@ __device__ bfloat16_2 h2sign_custom(const bfloat16_2 a) {
 }
 
 __device__ half2 fast_tanh(half2 x) {
-#if defined(Honey_USE_FAST_MATH)
+#if defined(DINOML_USE_FAST_MATH)
 #if defined(__CUDA_ARCH__) && (__CUDACC_VER_MAJOR__ >= 11) && \
     (__CUDA_ARCH__ >= 750)
 
@@ -123,7 +123,7 @@ __device__ half2 fast_tanh(half2 x) {
 }
 
 __device__ half fast_tanh(half x) {
-#if defined(Honey_USE_FAST_MATH)
+#if defined(DINOML_USE_FAST_MATH)
 #if defined(__CUDA_ARCH__) && (__CUDACC_VER_MAJOR__ >= 11) && \
     (__CUDA_ARCH__ >= 750)
 
@@ -140,7 +140,7 @@ __device__ half fast_tanh(half x) {
 
 __device__ bfloat16_2 fast_tanh(bfloat16_2 x) {
 #if defined(__CUDA_ARCH__) && (__CUDACC_VER_MAJOR__ >= 11) && \
-    (__CUDA_ARCH__ >= 900) && defined(Honey_USE_FAST_MATH)
+    (__CUDA_ARCH__ >= 900) && defined(DINOML_USE_FAST_MATH)
 
   asm volatile("tanh.approx.bf16x2 %0, %1;"
                : "=r"(__TO_UI(x))
@@ -148,7 +148,7 @@ __device__ bfloat16_2 fast_tanh(bfloat16_2 x) {
   return x;
 
 #elif defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 800)
-#if defined(Honey_USE_FAST_MATH)
+#if defined(DINOML_USE_FAST_MATH)
   return bfloat16_2(
       {cutlass::fast_tanh(float(x.x)), cutlass::fast_tanh(float(x.y))});
 #else
@@ -161,12 +161,12 @@ __device__ bfloat16_2 fast_tanh(bfloat16_2 x) {
 
 __device__ bfloat16 fast_tanh(bfloat16 x) {
 #if defined(__CUDA_ARCH__) && (__CUDACC_VER_MAJOR__ >= 11) && \
-    (__CUDA_ARCH__ >= 900) && defined(Honey_USE_FAST_MATH)
+    (__CUDA_ARCH__ >= 900) && defined(DINOML_USE_FAST_MATH)
   asm volatile("tanh.approx.bf16 %0, %1;" : "=h"(__TO_US(x)) : "h"(__TO_US(x)));
   return x;
 
 #elif defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 800)
-#if defined(Honey_USE_FAST_MATH)
+#if defined(DINOML_USE_FAST_MATH)
   return cutlass::fast_tanh(float(x));
 #else
   return bfloat16(tanhf(float(x)));
@@ -197,7 +197,7 @@ __device__ bfloat16 bf16sigmoid(const bfloat16 a) {
 #endif
 
 __device__ float fsigmoid_custom(const float a) {
-#if defined(Honey_USE_TANH_FOR_SIGMOID)
+#if defined(DINOML_USE_TANH_FOR_SIGMOID)
   return (cutlass::fast_tanh(a * 0.5f) + 1.0f) * 0.5f;
 #else
   return 1.0f / (1.0f + expf(-a));
@@ -205,7 +205,7 @@ __device__ float fsigmoid_custom(const float a) {
 }
 
 __device__ half hsigmoid_custom(const half a) {
-#if defined(Honey_USE_TANH_FOR_SIGMOID)
+#if defined(DINOML_USE_TANH_FOR_SIGMOID)
   return __hmul(
       (__hadd(fast_tanh(__hmul(a, CUDA_FP16_ONE_HALF)), CUDA_FP16_ONE)),
       CUDA_FP16_ONE_HALF);
@@ -215,7 +215,7 @@ __device__ half hsigmoid_custom(const half a) {
 }
 
 __device__ half2 h2sigmoid_custom(const half2 a) {
-#if defined(Honey_USE_TANH_FOR_SIGMOID)
+#if defined(DINOML_USE_TANH_FOR_SIGMOID)
   const auto halfX2 = half2(CUDA_FP16_ONE_HALF, CUDA_FP16_ONE_HALF);
   const auto oneX2 = half2(CUDA_FP16_ONE, CUDA_FP16_ONE);
   return __hmul2((__hadd2(fast_tanh(__hmul2(a, halfX2)), oneX2)), halfX2);
@@ -228,7 +228,7 @@ __device__ half2 h2sigmoid_custom(const half2 a) {
 __device__ bfloat16 hsigmoid_custom(const bfloat16 a) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 800)
 
-#if defined(Honey_USE_TANH_FOR_SIGMOID)
+#if defined(DINOML_USE_TANH_FOR_SIGMOID)
   return __hmul(
       (__hadd(fast_tanh(__hmul(a, CUDA_BF16_ONE_HALF)), CUDA_BF16_ONE)),
       CUDA_BF16_ONE_HALF);
@@ -244,7 +244,7 @@ __device__ bfloat16 hsigmoid_custom(const bfloat16 a) {
 __device__ bfloat16_2 h2sigmoid_custom(const bfloat16_2 a) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 800)
 
-#if defined(Honey_USE_TANH_FOR_SIGMOID)
+#if defined(DINOML_USE_TANH_FOR_SIGMOID)
   const auto halfX2 = bfloat16_2(CUDA_BF16_ONE_HALF, CUDA_BF16_ONE_HALF);
   const auto oneX2 = bfloat16_2(CUDA_BF16_ONE, CUDA_BF16_ONE);
   return __hmul2((__hadd2(fast_tanh(__hmul2(a, halfX2)), oneX2)), halfX2);

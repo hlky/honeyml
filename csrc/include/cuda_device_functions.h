@@ -32,7 +32,7 @@ using bfloat16 = __nv_bfloat16;
 using float8_e5m2 = cutlass::float_e5m2_t;
 using float8_e4m3 = cutlass::float_e4m3_t;
 
-namespace honey {
+namespace dinoml {
 
 inline thread_local bool target_has_graph_mode = true;
 
@@ -436,4 +436,4 @@ inline void ProfilerRangePop() {
   nvtxRangePop();
 }
 
-} // namespace honey
+} // namespace dinoml

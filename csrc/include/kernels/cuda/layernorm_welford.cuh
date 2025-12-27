@@ -24,7 +24,7 @@ constexpr uint32_t kFinalMask = 0xffffffff;
 #define NOT_IMPLEMENTED() assert(0 && __PRETTY_FUNCTION__)
 
 __device__ half fast_tanh(half x) {
-#if defined(Honey_USE_FAST_MATH)
+#if defined(DINOML_USE_FAST_MATH)
 #if defined(__CUDA_ARCH__) && (__CUDACC_VER_MAJOR__ >= 11) && \
     (__CUDA_ARCH__ >= 750)
 
@@ -43,14 +43,14 @@ __device__ half fast_tanh(half x) {
 
 __device__ bfloat16 fast_tanh(bfloat16 x) {
 #if defined(__CUDA_ARCH__) && (__CUDACC_VER_MAJOR__ >= 11) && \
-    (__CUDA_ARCH__ >= 900) && defined(Honey_USE_FAST_MATH)
+    (__CUDA_ARCH__ >= 900) && defined(DINOML_USE_FAST_MATH)
   asm volatile("tanh.approx.bf16 %0, %1;"
                : "=h"(__HALF_TO_US(x))
                : "h"(__HALF_TO_US(x)));
   return x;
 
 #elif defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 800)
-#if defined(Honey_USE_FAST_MATH)
+#if defined(DINOML_USE_FAST_MATH)
   return cutlass::fast_tanh(float(x));
 #else
   return bfloat16(tanhf(float(x)));
@@ -209,17 +209,17 @@ struct TensorAccessorStore {
     for (int i = 0; i < N; ++i) {
       SRC normalized_i = src[i];
 
-#ifdef Honey_LAYERNORM_CONST_GAMMA
-      const SRC gamma_val = Honey_LAYERNORM_CONST_GAMMA;
+#ifdef DINOML_LAYERNORM_CONST_GAMMA
+      const SRC gamma_val = DINOML_LAYERNORM_CONST_GAMMA;
 #else
       const SRC gamma_val = static_cast<SRC>(gamma[col + i]);
-#endif // Honey_LAYERNORM_CONST_GAMMA
+#endif // DINOML_LAYERNORM_CONST_GAMMA
 
-#ifdef Honey_LAYERNORM_CONST_BETA
-      const SRC beta_val = Honey_LAYERNORM_CONST_BETA;
+#ifdef DINOML_LAYERNORM_CONST_BETA
+      const SRC beta_val = DINOML_LAYERNORM_CONST_BETA;
 #else
       const SRC beta_val = static_cast<SRC>(beta[col + i]);
-#endif // Honey_LAYERNORM_CONST_BETA
+#endif // DINOML_LAYERNORM_CONST_BETA
 
       normalized_i = normalized_i * gamma_val + beta_val;
 

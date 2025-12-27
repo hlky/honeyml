@@ -1,4 +1,4 @@
-from honey.builder.transformer_flux import FluxTransformer2DBuilder
+from dinoml.builder.transformer_flux import FluxTransformer2DBuilder
 
 builder = FluxTransformer2DBuilder(
     hf_hub="black-forest-labs/FLUX.1-schnell",

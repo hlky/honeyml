@@ -25,13 +25,13 @@ from statistics import mean
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm, IntVar
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.profile import profile_callable
-from honey.testing.test_utils import filter_test_cases_by_params, TestEnv
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm, IntVar
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.profile import profile_callable
+from dinoml.testing.test_utils import filter_test_cases_by_params, TestEnv
+from dinoml.utils.torch_utils import string_to_torch_dtype
 from parameterized import parameterized
 
 BenchResult = namedtuple("BenchResult", ["dim", "batch_size", "runtime_ms"])

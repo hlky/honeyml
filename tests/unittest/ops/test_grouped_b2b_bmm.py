@@ -24,17 +24,17 @@ from typing import List, Tuple
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntVar, JaggedDim
-from honey.compiler.ops.b2b_bmm.b2b_bmm_base import CausalType
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntVar, JaggedDim
+from dinoml.compiler.ops.b2b_bmm.b2b_bmm_base import CausalType
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     epilogue_math_name_to_torch_fn,
     get_attn_mask_per_causal_type,
 )
-from honey.utils import shape_utils
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.utils import shape_utils
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ class GroupedFMHAStyleB2bBmmTestCase(unittest.TestCase):
         use_fp16_acc=False,
         write_standalone_testcase_data: bool = False,
     ):
-        # Initialize Honey fmha_style_b2b_bmm operator.
+        # Initialize DinoML fmha_style_b2b_bmm operator.
         if isinstance(batch_sizes, int):
             batch_sizes = [batch_sizes, batch_sizes]
         if isinstance(max_seq_lens, int):
@@ -190,7 +190,7 @@ class GroupedFMHAStyleB2bBmmTestCase(unittest.TestCase):
                         bias_shape[i] = 1
             bias_pt = torch.rand(bias_shape, dtype=torch_dtype).cuda()
 
-            # Run Honey.
+            # Run DinoML.
             inputs = {
                 "q": q_pt,
                 "k": k_pt,

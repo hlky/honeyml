@@ -15,14 +15,14 @@
 import unittest
 
 import torch
-from honey.compiler import compile_model, ops
+from dinoml.compiler import compile_model, ops
 
-from honey.compiler.base import Tensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.compiler.public import IntImm
+from dinoml.compiler.base import Tensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.compiler.public import IntImm
 
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor, graph_has_op
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor, graph_has_op
 
 
 class FuseSplitCatTestCase(unittest.TestCase):
@@ -58,12 +58,12 @@ class FuseSplitCatTestCase(unittest.TestCase):
             [split_pt[1], split_pt[0]],
             0,
         )
-        y_honey = torch.empty_like(y_pt)
+        y_dinoml = torch.empty_like(y_pt)
         model.run_with_tensors(
             {"input_1": input_1},
-            [y_honey],
+            [y_dinoml],
         )
-        torch.testing.assert_close(y_honey, y_pt, atol=0, rtol=0)
+        torch.testing.assert_close(y_dinoml, y_pt, atol=0, rtol=0)
 
     def test_fuse_split_cat_even(self):
         self._test_fuse_split_cat_rearrange(
@@ -106,12 +106,12 @@ class FuseSplitCatTestCase(unittest.TestCase):
             [split_pt[1], split_pt[0], split_pt[1]],
             0,
         )
-        y_honey = torch.empty_like(y_pt)
+        y_dinoml = torch.empty_like(y_pt)
         model.run_with_tensors(
             {"input_1": input_1},
-            [y_honey],
+            [y_dinoml],
         )
-        torch.testing.assert_close(y_honey, y_pt, atol=0, rtol=0)
+        torch.testing.assert_close(y_dinoml, y_pt, atol=0, rtol=0)
 
     def test_fuse_split_cat_dim1(self):
         dtype = "float16"
@@ -143,12 +143,12 @@ class FuseSplitCatTestCase(unittest.TestCase):
             split_pt[::-1],
             1,
         )
-        y_honey = torch.empty_like(y_pt)
+        y_dinoml = torch.empty_like(y_pt)
         model.run_with_tensors(
             {"input_1": input_1},
-            [y_honey],
+            [y_dinoml],
         )
-        torch.testing.assert_close(y_honey, y_pt, atol=0, rtol=0)
+        torch.testing.assert_close(y_dinoml, y_pt, atol=0, rtol=0)
 
     def test_fuse_split_cat_different_dims(self):
         """Splitting and then concatting on different dims is not
@@ -182,12 +182,12 @@ class FuseSplitCatTestCase(unittest.TestCase):
             split_pt[::-1],
             1,
         )
-        y_honey = torch.empty_like(y_pt)
+        y_dinoml = torch.empty_like(y_pt)
         model.run_with_tensors(
             {"input_1": input_1},
-            [y_honey],
+            [y_dinoml],
         )
-        torch.testing.assert_close(y_honey, y_pt, atol=0, rtol=0)
+        torch.testing.assert_close(y_dinoml, y_pt, atol=0, rtol=0)
 
     def test_fuse_split_cat_bmm(self):
         """Optimize out a split op whose output is used by both concat and bmm."""

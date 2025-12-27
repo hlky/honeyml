@@ -17,9 +17,9 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import IntImm, Tensor
-from honey.testing import detect_target
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntImm, Tensor
+from dinoml.testing import detect_target
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ def _prepare_outputs(output_tensors):
     return outputs
 
 
-def _prepare_group_gemm_honey_module(
+def _prepare_group_gemm_dinoml_module(
     m, nk_groups_1, nk_groups_2=None, test_idx=0, has_bias=True
 ):
     output_tensors = []
@@ -155,7 +155,7 @@ def _prepare_group_gemm_honey_module(
     return outputs, module
 
 
-def _prepare_gemm_honey_module(m, nk_groups, test_idx=0, has_bias=True):
+def _prepare_gemm_dinoml_module(m, nk_groups, test_idx=0, has_bias=True):
     group_input_tensors = _prepare_input_tensors(m, nk_groups, has_bias=has_bias)
     input_tensors = []
     output_tensors = []
@@ -179,7 +179,7 @@ def _prepare_gemm_honey_module(m, nk_groups, test_idx=0, has_bias=True):
     return outputs, module
 
 
-def _prepare_bmm_honey_module(b, m, n, k, has_bias=False):
+def _prepare_bmm_dinoml_module(b, m, n, k, has_bias=False):
     assert not has_bias, (
         "bmm_rcr_bias is not implemented! has_bias has to be false for now"
     )
@@ -289,7 +289,7 @@ class GroupGemmBenchTestCase(unittest.TestCase):
             nk_groups_2 = []
         inputs = _prepare_inputs(m, nk_groups, inputs_repeats)
 
-        group_gemm_outputs, group_gemm_module = _prepare_group_gemm_honey_module(
+        group_gemm_outputs, group_gemm_module = _prepare_group_gemm_dinoml_module(
             m, nk_groups_1, nk_groups_2, test_idx
         )
         _benchmark(
@@ -304,7 +304,7 @@ class GroupGemmBenchTestCase(unittest.TestCase):
 
         if benchmark_non_group:
             nk_groups = nk_groups_1 + nk_groups_2
-            gemm_outputs, gemm_module = _prepare_gemm_honey_module(
+            gemm_outputs, gemm_module = _prepare_gemm_dinoml_module(
                 m, nk_groups, test_idx
             )
             _benchmark(
@@ -332,7 +332,7 @@ class GroupGemmBenchTestCase(unittest.TestCase):
         group_gemm_inputs = _prepare_inputs(
             m, nk_groups, inputs_repeats, has_bias=False
         )
-        group_gemm_outputs, group_gemm_module = _prepare_group_gemm_honey_module(
+        group_gemm_outputs, group_gemm_module = _prepare_group_gemm_dinoml_module(
             m, nk_groups, has_bias=False
         )
         _benchmark(
@@ -344,7 +344,7 @@ class GroupGemmBenchTestCase(unittest.TestCase):
             group_gemm_module,
             f"{test_name}: batch_{b}_group_gemm_{m}_{n}_{k}",
         )
-        gemm_outputs, gemm_module = _prepare_gemm_honey_module(
+        gemm_outputs, gemm_module = _prepare_gemm_dinoml_module(
             m, nk_groups, has_bias=False
         )
         _benchmark(
@@ -358,7 +358,7 @@ class GroupGemmBenchTestCase(unittest.TestCase):
         )
         gemm_output_cat = torch.stack(gemm_outputs, dim=0)
         bmm_inputs = _prepare_batch_inputs(group_gemm_inputs, has_bias=False)
-        bmm_outputs, bmm_module = _prepare_bmm_honey_module(b, m, n, k, has_bias=False)
+        bmm_outputs, bmm_module = _prepare_bmm_dinoml_module(b, m, n, k, has_bias=False)
         _benchmark(
             COUNT,
             inputs_repeats,

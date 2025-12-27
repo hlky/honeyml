@@ -17,14 +17,14 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 
-def get_honey_inputs(
+def get_dinoml_inputs(
     batch_size=1,
     seq_len=512,
     dtype="int64",
@@ -50,7 +50,7 @@ def get_honey_inputs(
     return (input_ids, token_type_ids, position_ids)
 
 
-def get_honey_params(
+def get_dinoml_params(
     hidden_size,
     vocab_size,
     max_position_embeddings,
@@ -108,12 +108,12 @@ class bertEmbeddingsTestCase(unittest.TestCase):
         indices_type="int64",
         input_type="float16",
     ):
-        inputs = get_honey_inputs(
+        inputs = get_dinoml_inputs(
             batch_size,
             seq_len,
             dtype=indices_type,
         )
-        params = get_honey_params(
+        params = get_dinoml_params(
             hidden_size,
             vocab_size,
             max_position_embeddings,

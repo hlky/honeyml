@@ -17,19 +17,19 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
     get_torch_empty_tensor,
     TestEnv,
 )
-from honey.utils import graph_utils, shape_utils
+from dinoml.utils import graph_utils, shape_utils
 
 from parameterized import parameterized
 
@@ -100,7 +100,7 @@ class SliceGemmFusionTestCase(unittest.TestCase):
         a_pt = input_pt[slice_indices]
         y_pt = torch.nn.functional.linear(a_pt, b_pt, bias=bias_pt)
 
-        # Run Honey module.
+        # Run DinoML module.
         y = get_torch_empty_tensor(y_pt.size(), dtype)
         module.run_with_tensors([input_pt, b_pt, bias_pt], [y])
         self.assertTrue(torch.allclose(y, y_pt, atol=1e-2, rtol=1e-2))
@@ -310,7 +310,7 @@ class SliceGemmFusionTestCase(unittest.TestCase):
         b_pt = input_pt[slice_indices]
         y_pt = torch.nn.functional.linear(a_pt, b_pt)
 
-        # Run Honey module.
+        # Run DinoML module.
         y = get_torch_empty_tensor(y_pt.size(), dtype)
         module.run_with_tensors([input_pt, a_pt], [y])
         self.assertTrue(torch.allclose(y, y_pt, atol=1e-2, rtol=1e-2))
@@ -405,7 +405,7 @@ class SliceGemmFusionTestCase(unittest.TestCase):
         a_pt = input_pt[slice_indices]
         y_pt = torch.nn.functional.linear(a_pt, a_pt, bias=bias_pt)
 
-        # Run Honey module.
+        # Run DinoML module.
         y = get_torch_empty_tensor(y_pt.size(), dtype)
         module.run_with_tensors([input_pt, bias_pt], [y])
         self.assertTrue(torch.allclose(y, y_pt, atol=1e-2, rtol=1e-2))
@@ -504,7 +504,7 @@ class SliceGemmFusionTestCase(unittest.TestCase):
         y2_pt = torch.nn.functional.linear(a_pt, b_pt, bias=bias_pt)
         y_pt = y2_pt + d_pt
 
-        # Run Honey module.
+        # Run DinoML module.
         y = get_torch_empty_tensor(y_pt.size(), dtype)
         module.run_with_tensors([input_pt, b_pt, bias_pt, d_pt], [y])
         self.assertTrue(torch.allclose(y, y_pt, atol=1e-2, rtol=1e-2))
@@ -640,7 +640,7 @@ class SliceGemmFusionTestCase(unittest.TestCase):
             a_pt = input_pt[slice_indices]
             y_pt = torch.nn.functional.linear(a_pt, b_pt, bias=bias_pt)
 
-            # Run Honey module.
+            # Run DinoML module.
             y = get_torch_empty_tensor(y_pt.size(), dtype)
             module.run_with_tensors([input_pt, b_pt, bias_pt], [y])
             self.assertTrue(torch.allclose(y, y_pt, atol=1e-2, rtol=1e-2))
@@ -747,7 +747,7 @@ class SliceGemmFusionTestCase(unittest.TestCase):
         y2_pt = torch.nn.functional.linear(a_pt, b2_pt, bias=bias_pt)
         y_pt = y1_pt + y2_pt
 
-        # Run Honey module.
+        # Run DinoML module.
         y = get_torch_empty_tensor(y_pt.size(), dtype)
         module.run_with_tensors(
             {

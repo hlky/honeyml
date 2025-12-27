@@ -17,19 +17,19 @@ import os
 import unittest
 from typing import Sequence
 
-from honey.backend.codegen import set_value
+from dinoml.backend.codegen import set_value
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import Tensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.testing import detect_target
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import Tensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.testing import detect_target
 
-from honey.testing.test_utils import gen_input_tensor, get_random_torch_tensor
+from dinoml.testing.test_utils import gen_input_tensor, get_random_torch_tensor
 
 
 class TestCodegenOutputAliases(unittest.TestCase):
     MODEL_GENERATED_FILE = "model-generated.h"
-    WORKDIR = "/tmp/honey/test_codegen_output_aliases"
+    WORKDIR = "/tmp/dinoml/test_codegen_output_aliases"
     SHAPE = (2, 3, 4)
 
     def _check_string_in_file(self, file_path: str, target_string: str) -> bool:
@@ -131,7 +131,7 @@ class TestCodegenOutputAliases(unittest.TestCase):
                         <--view-- ( output_1 )
         Expected: gelu will be initialized with params_[2]
         """
-        # Honey, two outputs.
+        # DinoML, two outputs.
         x = gen_input_tensor(shape=self.SHAPE, name="input_x")
         gelu = ops.elementwise(FuncEnum.GELU)(x)  # has an output alias
         output0 = ops.unsqueeze(dim=0)(gelu)

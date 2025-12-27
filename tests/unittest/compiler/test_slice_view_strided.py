@@ -16,17 +16,17 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntVar
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.testing import detect_target, test_utils
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntVar
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.testing import detect_target, test_utils
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     get_torch_empty_tensor,
     TestEnv,
 )
-from honey.utils import graph_utils
+from dinoml.utils import graph_utils
 
 from parameterized import parameterized
 
@@ -88,7 +88,7 @@ class SliceViewStridedOpTestCase(unittest.TestCase):
             y_pt = torch.nn.functional.linear(x1_pt, input1_pt)
             y = get_torch_empty_tensor(y_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors(
                 {
                     "input0": input0_pt,
@@ -145,7 +145,7 @@ class SliceViewStridedOpTestCase(unittest.TestCase):
             y_pt = torch.nn.functional.linear(x1_pt, input1_pt)
             y = get_torch_empty_tensor(y_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors(
                 {
                     "input0": input0_pt,
@@ -221,7 +221,7 @@ class SliceViewStridedOpTestCase(unittest.TestCase):
             y_pt = torch.cat([x2_pt, y2_pt, y4_pt], dim=cat_dim)
             y = get_torch_empty_tensor(y_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors(
                 {
                     "x0": x0_pt,
@@ -294,7 +294,7 @@ class SliceViewStridedOpTestCase(unittest.TestCase):
             y_pt = torch.cat([y4_pt, y2_pt, x2_pt, y4_pt], dim=cat_dim)
             y = get_torch_empty_tensor(y_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors(
                 {
                     "x0": x0_pt,
@@ -366,7 +366,7 @@ class SliceViewStridedOpTestCase(unittest.TestCase):
             y_pt = torch.cat([y3_pt, x1_pt], dim=cat_dim)
             y = get_torch_empty_tensor(y_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors(
                 {
                     "x0": x0_pt,
@@ -442,7 +442,7 @@ class SliceViewStridedOpTestCase(unittest.TestCase):
             y_pt = torch.nn.functional.linear(y3_pt, w1_pt)
             y = get_torch_empty_tensor(y_pt.shape, dtype)
 
-            # Run Honey module.
+            # Run DinoML module.
             module.run_with_tensors(
                 {
                     "x0": x0_pt,

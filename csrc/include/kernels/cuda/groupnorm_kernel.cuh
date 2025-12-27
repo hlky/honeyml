@@ -99,13 +99,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#define __Honey_GN_USE_FAST_MATH 1
+#define __DINOML_GN_USE_FAST_MATH 1
 template <typename T>
 __forceinline__ __device__ T Div(T a, T b);
 
 template <>
 __forceinline__ __device__ float Div<float>(float a, float b) {
-#ifdef __Honey_GN_USE_FAST_MATH
+#ifdef __DINOML_GN_USE_FAST_MATH
   return __fdividef(a, b);
 #else
   return a / b;
@@ -122,7 +122,7 @@ __forceinline__ __device__ T Rsqrt(T x);
 
 template <>
 __forceinline__ __device__ float Rsqrt<float>(float x) {
-#ifdef __Honey_GN_USE_FAST_MATH
+#ifdef __DINOML_GN_USE_FAST_MATH
   return __frsqrt_rn(x);
 #else
   return rsqrt(x);
@@ -142,7 +142,7 @@ __forceinline__ __device__ bfloat16 Rsqrt<bfloat16>(bfloat16 x) {
 }
 #endif
 
-#undef __Honey_GN_USE_FAST_MATH
+#undef __DINOML_GN_USE_FAST_MATH
 
 template <typename T>
 inline __device__ void WelfordCombine(T val, T* mean, T* m2, int* count) {

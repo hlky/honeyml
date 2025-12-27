@@ -20,17 +20,17 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import IntImm, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import IntImm, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils.debug_settings import HoneyDebugSettings
-from honey.utils.misc import is_windows
+from dinoml.utils.debug_settings import DinoMLDebugSettings
+from dinoml.utils.misc import is_windows
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class StridedOpCatPatternTestCase(unittest.TestCase):
         Y._attrs["is_output"] = True
 
         target = detect_target()
-        debug_settings = HoneyDebugSettings(gen_standalone=True)
+        debug_settings = DinoMLDebugSettings(gen_standalone=True)
         dll_name = "test.so"
         module = compile_model(
             Y,

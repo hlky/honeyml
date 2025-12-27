@@ -18,11 +18,11 @@ import unittest
 import numpy as np
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     get_torch_empty_tensor,
@@ -92,7 +92,7 @@ class PadGemmWithCatTestCase(unittest.TestCase):
         Y_pt = torch.cat([X5_pt, X6_pt], dim=1)
 
         y_shape = [var._attrs["values"][0] for var in Y._attrs["shape"]]
-        _LOGGER.info("Honey y_shape: {}".format(y_shape))
+        _LOGGER.info("DinoML y_shape: {}".format(y_shape))
         np.testing.assert_equal(y_shape, Y_pt.size())
 
         inputs = [0] * 6

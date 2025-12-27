@@ -17,17 +17,17 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     env_variables,
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import shape_utils
+from dinoml.utils import shape_utils
 
 
 _TOLERANCE_LIMITS = {
@@ -166,7 +166,7 @@ class GEMMRcrBiasFastGeluTestCase(unittest.TestCase):
 
     def test_gemm_rcr_bias_fast_gelu_sm90(self):
         with env_variables(
-            Honey_FORCE_CUTLASS_SM90_KERNELS="1",
+            DINOML_FORCE_CUTLASS_SM90_KERNELS="1",
             INSIDE_RE_WORKER="1",
         ):
             with self.assertRaisesRegex(

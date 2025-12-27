@@ -2,10 +2,10 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     TestEnv,
@@ -47,13 +47,13 @@ class MeshGridTestCase(unittest.TestCase):
             torch.empty_like(tensor).contiguous() for tensor in output_tensors
         ]
         module.run_with_tensors(input_data, output_data)
-        for out_honey, out_pt in zip(output_data, output_tensors):
+        for out_dinoml, out_pt in zip(output_data, output_tensors):
             torch.testing.assert_close(
-                out_honey,
-                out_pt.to(out_honey.dtype),
+                out_dinoml,
+                out_pt.to(out_dinoml.dtype),
                 rtol=1e-3,
                 atol=1e-3,
-                msg=lambda msg: f"{msg}\n\n{test_name}\npt ({out_pt.shape}):\n{out_pt}\n\nhoney ({out_honey.shape}):\n{out_honey}\n\n",
+                msg=lambda msg: f"{msg}\n\n{test_name}\npt ({out_pt.shape}):\n{out_pt}\n\ndinoml ({out_dinoml.shape}):\n{out_dinoml}\n\n",
             )
 
     @parameterized.expand(
@@ -66,24 +66,24 @@ class MeshGridTestCase(unittest.TestCase):
             }
         )
     )
-    def test_meshgrid(self, honey_dtype):
+    def test_meshgrid(self, dinoml_dtype):
         self._test_single_op(
             input_shapes=[[4], [5], [6]],
             indexing="ij",
-            test_name=f"meshgrid_{honey_dtype}_ij",
-            dtype=honey_dtype,
+            test_name=f"meshgrid_{dinoml_dtype}_ij",
+            dtype=dinoml_dtype,
         )
         self._test_single_op(
             input_shapes=[[10], [20]],
             indexing="ij",
-            test_name=f"meshgrid_{honey_dtype}_ij",
-            dtype=honey_dtype,
+            test_name=f"meshgrid_{dinoml_dtype}_ij",
+            dtype=dinoml_dtype,
         )
         self._test_single_op(
             input_shapes=[[10], [20]],
             indexing="xy",
-            test_name=f"meshgrid_{honey_dtype}_xy",
-            dtype=honey_dtype,
+            test_name=f"meshgrid_{dinoml_dtype}_xy",
+            dtype=dinoml_dtype,
         )
 
 

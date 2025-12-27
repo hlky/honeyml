@@ -19,11 +19,11 @@ Unittests for masked_select Operator.
 import unittest
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.frontend import IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.benchmark_pt import benchmark_torch_function
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.benchmark_pt import benchmark_torch_function
+from dinoml.testing.test_utils import get_random_torch_tensor
 from parameterized import parameterized
 
 
@@ -77,11 +77,11 @@ class maskedSelectTestCase(unittest.TestCase):
             dtype=x.dtype,
             device=x.device,
         )
-        y_honey = module.run_with_tensors([x, mask], [y])["output_values"]
-        # y_honey contains the correct result. It points to the same memory blob as y, but has the correct shape
-        self.assertTrue(torch.allclose(y_pt, y_honey, atol=1e-10, rtol=0))
+        y_dinoml = module.run_with_tensors([x, mask], [y])["output_values"]
+        # y_dinoml contains the correct result. It points to the same memory blob as y, but has the correct shape
+        self.assertTrue(torch.allclose(y_pt, y_dinoml, atol=1e-10, rtol=0))
         # y retained the original shape (x.numel(),), so needs to be cut before comparison
-        self.assertTrue(torch.allclose(y_pt, y[: y_honey.shape[0]], atol=1e-10, rtol=0))
+        self.assertTrue(torch.allclose(y_pt, y[: y_dinoml.shape[0]], atol=1e-10, rtol=0))
 
         if benchmark:
             print(
@@ -96,7 +96,7 @@ class maskedSelectTestCase(unittest.TestCase):
             time_per_iter_ms, time_std, _ = module.benchmark_with_tensors(
                 [x, mask], [y], count=num_benchmark_iter
             )
-            print(f"Honey time: {time_per_iter_ms:.2f}ms")
+            print(f"DinoML time: {time_per_iter_ms:.2f}ms")
 
             func = torch.masked_select
             args = (x, mask)

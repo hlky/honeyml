@@ -18,14 +18,14 @@ import unittest
 import numpy as np
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import shape_utils
+from dinoml.utils import shape_utils
 
 
 class ConcatenateTanhTestCase(unittest.TestCase):
@@ -71,16 +71,16 @@ class ConcatenateTanhTestCase(unittest.TestCase):
         Y._attrs["is_output"] = True
         y_shape = [d._attrs["values"][0] for d in Y._attrs["shape"]]
 
-        logging.info(f"Honey output_shape: {y_shape}")
+        logging.info(f"DinoML output_shape: {y_shape}")
 
         module = compile_model(Y, target, "./tmp", f"{test_name}_{self._test_id}")
         self._test_id += 1
 
-        input_tensors_honey = {
+        input_tensors_dinoml = {
             f"input_{idx}": input_tensors_pt[idx] for idx in range(len(inputs))
         }
         y = torch.empty_like(Y_pt)
-        module.run_with_tensors(input_tensors_honey, [y])
+        module.run_with_tensors(input_tensors_dinoml, [y])
         self.assertTrue(torch.allclose(Y_pt, y, atol=1e-2, rtol=1e-2))
 
     def _run_batch_concatenate(
@@ -126,11 +126,11 @@ class ConcatenateTanhTestCase(unittest.TestCase):
             )
             Y_pt = torch.tanh(Y_pt)
 
-            input_tensors_honey = {
+            input_tensors_dinoml = {
                 f"input_{idx}": input_tensors_pt[idx] for idx in range(len(inputs))
             }
             y = torch.empty_like(Y_pt)
-            module.run_with_tensors(input_tensors_honey, [y])
+            module.run_with_tensors(input_tensors_dinoml, [y])
             self.assertTrue(torch.allclose(Y_pt, y, atol=1e-2, rtol=1e-2))
 
     def _run_masked_concatenate(
@@ -185,7 +185,7 @@ class ConcatenateTanhTestCase(unittest.TestCase):
         concatenate_op._attrs["inputs"] = inputs
         concatenate_op._attrs["input_accessors"] = input_accessors
 
-        logging.info(f"Honey output_shape: {y_shape}")
+        logging.info(f"DinoML output_shape: {y_shape}")
 
         module = compile_model(Y, target, "./tmp", f"{test_name}_{self._test_id}")
         self._test_id += 1

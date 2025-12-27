@@ -18,12 +18,12 @@ import unittest
 import numpy as np
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntVarTensor
-from honey.frontend import IntImm, IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
-from honey.utils import shape_utils
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntVarTensor
+from dinoml.frontend import IntImm, IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
+from dinoml.utils import shape_utils
 
 
 class DynamicSliceTestCase(unittest.TestCase):
@@ -64,14 +64,14 @@ class DynamicSliceTestCase(unittest.TestCase):
         Y._attrs["name"] = "output_0"
         Y._attrs["is_output"] = True
         y_shape = [var._attrs["values"][0] for var in Y._attrs["shape"]]
-        logging.info("Honey output_0 shape: {}".format(y_shape))
+        logging.info("DinoML output_0 shape: {}".format(y_shape))
         np.testing.assert_equal(y_shape, Y_pt.size())
 
         module = compile_model(Y, target, "./tmp", f"dynamic_slice_{self.test_count}")
 
-        y_honey = torch.empty_like(Y_pt)
-        module.run_with_tensors([X_pt], [y_honey])
-        self.assertTrue(torch.allclose(Y_pt, y_honey, atol=1e-2, rtol=1e-2))
+        y_dinoml = torch.empty_like(Y_pt)
+        module.run_with_tensors([X_pt], [y_dinoml])
+        self.assertTrue(torch.allclose(Y_pt, y_dinoml, atol=1e-2, rtol=1e-2))
         self.test_count += 1
 
     def test_dynamic_slice(self):
@@ -223,9 +223,9 @@ class DynamicSliceBatchedTestCase(unittest.TestCase):
             X_pt = get_random_torch_tensor([batch, *input_shape], input_type)
             slice_indices = [slice(i, j) for i, j in zip(start_indices, end_indices)]
             Y_pt = X_pt[slice_indices]
-            y_honey = torch.empty_like(Y_pt)
-            module.run_with_tensors([X_pt], [y_honey])
-            self.assertTrue(torch.allclose(Y_pt, y_honey, atol=1e-2, rtol=1e-2))
+            y_dinoml = torch.empty_like(Y_pt)
+            module.run_with_tensors([X_pt], [y_dinoml])
+            self.assertTrue(torch.allclose(Y_pt, y_dinoml, atol=1e-2, rtol=1e-2))
         self.test_count += 1
 
     def test_batch_dynamic_slice(self):

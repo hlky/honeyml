@@ -22,16 +22,16 @@ import tempfile
 import unittest
 from typing import List
 
-import honey.testing.jagged_utils as jagged_utils
+import dinoml.testing.jagged_utils as jagged_utils
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import JaggedDim
-from honey.frontend import IntImm, IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import JaggedDim
+from dinoml.frontend import IntImm, IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
+from dinoml.utils.torch_utils import string_to_torch_dtype
 from parameterized import param, parameterized
 
 

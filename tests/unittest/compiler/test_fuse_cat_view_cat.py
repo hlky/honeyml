@@ -15,13 +15,13 @@
 import unittest
 
 import torch
-from honey.compiler import compile_model, ops
+from dinoml.compiler import compile_model, ops
 
-from honey.compiler.base import Tensor
-from honey.compiler.public import IntImm, IntVar
+from dinoml.compiler.base import Tensor
+from dinoml.compiler.public import IntImm, IntVar
 
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
 
 class FuseCatViewCatTestCase(unittest.TestCase):
@@ -79,12 +79,12 @@ class FuseCatViewCatTestCase(unittest.TestCase):
             ],
             dim=1,
         )
-        y_honey = torch.empty_like(y_pt)
+        y_dinoml = torch.empty_like(y_pt)
         mod.run_with_tensors(
             {"input_1": input_1_pt, "input_2": input_2_pt, "input_3": input_3_pt},
-            [y_honey],
+            [y_dinoml],
         )
-        torch.testing.assert_close(y_honey, y_pt, atol=0, rtol=0)
+        torch.testing.assert_close(y_dinoml, y_pt, atol=0, rtol=0)
 
 
 if __name__ == "__main__":

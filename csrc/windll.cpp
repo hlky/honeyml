@@ -33,7 +33,7 @@ BOOL WINAPI DllMain(
   return TRUE;
 }
 
-namespace honey {
+namespace dinoml {
 
 #define TRIGGER_ERROR(message)                        \
   throw std::runtime_error(                           \
@@ -67,4 +67,4 @@ void GetConstantsBin(void** address, size_t* size) {
   *address = resourceData;
 }
 
-} // namespace honey
+} // namespace dinoml

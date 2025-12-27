@@ -16,54 +16,54 @@
 #include "logging.h"
 
 #define FAIL_IF_ERROR(expr)                       \
-  if ((expr) != honey::GetDeviceSuccess()) {        \
+  if ((expr) != dinoml::GetDeviceSuccess()) {        \
     LOG(ERROR) << "Call " << #expr << " failed."; \
-    return HoneyError::HoneyFailure;    \
+    return DinoMLError::DinoMLFailure;    \
   }
 
-HoneyError HoneyDeviceMalloc(
+DinoMLError DinoMLDeviceMalloc(
     void** ptr_out,
     size_t size,
-    honey::StreamType stream,
+    dinoml::StreamType stream,
     bool sync) {
-  FAIL_IF_ERROR(honey::DeviceMallocAsync(ptr_out, size, stream));
+  FAIL_IF_ERROR(dinoml::DeviceMallocAsync(ptr_out, size, stream));
   if (sync) {
-    FAIL_IF_ERROR(honey::StreamSynchronize(stream));
+    FAIL_IF_ERROR(dinoml::StreamSynchronize(stream));
   }
-  return HoneyError::HoneySuccess;
+  return DinoMLError::DinoMLSuccess;
 }
 
-HoneyError HoneyDeviceFree(
+DinoMLError DinoMLDeviceFree(
     void* ptr,
-    honey::StreamType stream,
+    dinoml::StreamType stream,
     bool sync) {
-  FAIL_IF_ERROR(honey::FreeDeviceMemoryAsync(ptr, stream));
+  FAIL_IF_ERROR(dinoml::FreeDeviceMemoryAsync(ptr, stream));
   if (sync) {
-    FAIL_IF_ERROR(honey::StreamSynchronize(stream));
+    FAIL_IF_ERROR(dinoml::StreamSynchronize(stream));
   }
-  return HoneyError::HoneySuccess;
+  return DinoMLError::DinoMLSuccess;
 }
 
-HoneyError HoneyMemcpy(
+DinoMLError DinoMLMemcpy(
     void* dst,
     const void* src,
     size_t count,
-    honey::HoneyMemcpyKind kind,
-    honey::StreamType stream,
+    dinoml::DinoMLMemcpyKind kind,
+    dinoml::StreamType stream,
     bool sync) {
   switch (kind) {
-    case honey::HoneyMemcpyKind::HostToDevice:
-      FAIL_IF_ERROR(honey::CopyToDevice(dst, src, count, stream));
+    case dinoml::DinoMLMemcpyKind::HostToDevice:
+      FAIL_IF_ERROR(dinoml::CopyToDevice(dst, src, count, stream));
       break;
-    case honey::HoneyMemcpyKind::DeviceToHost:
-      FAIL_IF_ERROR(honey::CopyToHost(dst, src, count, stream));
+    case dinoml::DinoMLMemcpyKind::DeviceToHost:
+      FAIL_IF_ERROR(dinoml::CopyToHost(dst, src, count, stream));
       break;
-    case honey::HoneyMemcpyKind::DeviceToDevice:
-      FAIL_IF_ERROR(honey::DeviceToDeviceCopy(dst, src, count, stream));
+    case dinoml::DinoMLMemcpyKind::DeviceToDevice:
+      FAIL_IF_ERROR(dinoml::DeviceToDeviceCopy(dst, src, count, stream));
       break;
   }
   if (sync) {
-    FAIL_IF_ERROR(honey::StreamSynchronize(stream));
+    FAIL_IF_ERROR(dinoml::StreamSynchronize(stream));
   }
-  return HoneyError::HoneySuccess;
+  return DinoMLError::DinoMLSuccess;
 }

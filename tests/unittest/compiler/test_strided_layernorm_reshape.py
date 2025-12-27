@@ -15,18 +15,18 @@
 import unittest
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.utils import shape_utils, torch_utils
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.utils import shape_utils, torch_utils
 
 
-def build_honey_module(
+def build_dinoml_module(
     *,
     batch_sizes,
     eps,
     test_id,
-    honey_dtype="float16",
+    dinoml_dtype="float16",
     workdir="./tmp",
     test_name="strided_layernorm_reshape",
 ):
@@ -38,7 +38,7 @@ def build_honey_module(
             batch_size,
             *input_nonbatch_shape,
         ],
-        dtype=honey_dtype,
+        dtype=dinoml_dtype,
         name="input",
         is_input=True,
     )
@@ -49,7 +49,7 @@ def build_honey_module(
     layernorm_weight_shape = reshape_out.shape()[-2:]
     gamma_beta_params = {
         "shape": layernorm_weight_shape,
-        "dtype": honey_dtype,
+        "dtype": dinoml_dtype,
         "is_input": True,
     }
     gammas = Tensor(
@@ -115,30 +115,30 @@ class SliceLayerNormReshapeTestCase(unittest.TestCase):
         atol=1e-3,
         rtol=1e-3,
     ):
-        honey_in_node, honey_out_node, honey_module = build_honey_module(
+        dinoml_in_node, dinoml_out_node, dinoml_module = build_dinoml_module(
             batch_sizes=batch_sizes,
             eps=eps,
             test_id=self._test_id,
-            honey_dtype=dtype,
+            dinoml_dtype=dtype,
         )
         self._test_id += 1
 
         for op_name in (
-            next(iter(honey_in_node._attrs["dst_ops"]))._attrs["name"],
-            next(iter(honey_out_node._attrs["src_ops"]))._attrs["name"],
+            next(iter(dinoml_in_node._attrs["dst_ops"]))._attrs["name"],
+            next(iter(dinoml_out_node._attrs["src_ops"]))._attrs["name"],
         ):
             self.assertRegex(op_name, "layernorm")
 
         pt_dtype = torch_utils.string_to_torch_dtype(dtype)
         for batch_size in batch_sizes:
             pt_tensors = eval_pt(batch_size=batch_size, eps=eps, dtype=pt_dtype)
-            honey_inputs = {k: v for k, v in pt_tensors.items() if k != "output"}
-            honey_outputs = {"output": torch.empty_like(pt_tensors["output"])}
-            honey_module.run_with_tensors(honey_inputs, honey_outputs)
+            dinoml_inputs = {k: v for k, v in pt_tensors.items() if k != "output"}
+            dinoml_outputs = {"output": torch.empty_like(pt_tensors["output"])}
+            dinoml_module.run_with_tensors(dinoml_inputs, dinoml_outputs)
 
             self.assertTrue(
                 torch.allclose(
-                    honey_outputs["output"], pt_tensors["output"], atol=atol, rtol=rtol
+                    dinoml_outputs["output"], pt_tensors["output"], atol=atol, rtol=rtol
                 )
             )
 

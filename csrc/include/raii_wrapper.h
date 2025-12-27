@@ -21,7 +21,7 @@
 #include "device_functions-generated.h"
 #include "macros.h"
 
-namespace honey {
+namespace dinoml {
 
 // RAII wrapper for owned GPU memory. Not that the underlying calls
 // to malloc/free are synchronous for simplicity.
@@ -39,7 +39,7 @@ using GraphPtr = std::unique_ptr<
 
 inline GPUPtr RAII_DeviceMalloc(
     size_t num_bytes,
-    HoneyAllocator& allocator) {
+    DinoMLAllocator& allocator) {
   auto* output = allocator.Allocate(num_bytes);
   auto deleter = [&allocator](void* ptr) mutable { allocator.Free(ptr); };
   return GPUPtr(output, deleter);
@@ -82,4 +82,4 @@ class RAII_ProfilerRange {
   RAII_ProfilerRange(RAII_ProfilerRange&&) = delete;
 };
 
-} // namespace honey
+} // namespace dinoml

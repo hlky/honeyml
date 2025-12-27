@@ -26,7 +26,7 @@
 #include "library/include/ck/library/utility/host_tensor.hpp"
 #include "library/include/ck/library/utility/host_tensor_generator.hpp"
 
-namespace honey {
+namespace dinoml {
 
 inline thread_local bool target_has_graph_mode = false;
 
@@ -336,4 +336,4 @@ inline void ProfilerRangePop() {
   // TODO: Activate roctx header and linkage
   // roctxRangePop();
 }
-} // namespace honey
+} // namespace dinoml

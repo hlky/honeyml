@@ -18,11 +18,11 @@ from typing import List
 
 import torch
 
-from honey.compiler import compile_model, ops
+from dinoml.compiler import compile_model, ops
 
-from honey.compiler.base import IntVar, Tensor
-from honey.testing import detect_target, test_utils
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler.base import IntVar, Tensor
+from dinoml.testing import detect_target, test_utils
+from dinoml.testing.test_utils import get_random_torch_tensor
 
 from parameterized import parameterized
 
@@ -128,13 +128,13 @@ class TransformPermuteToReshapeTestCase(unittest.TestCase):
 
         x_pt = get_random_torch_tensor(shape, dtype)
         z_pt = torch.softmax(torch.permute(x_pt, tuple(permutation)), dim=-1)
-        z_honey = torch.empty_like(z_pt)
+        z_dinoml = torch.empty_like(z_pt)
         if squeeze_trailing_dim:
-            # Same as what we did with Honey input tensor X above
+            # Same as what we did with DinoML input tensor X above
             x_pt = x_pt.squeeze(-1)
-        module.run_with_tensors({"x": x_pt}, {"z": z_honey})
+        module.run_with_tensors({"x": x_pt}, {"z": z_dinoml})
 
-        torch.testing.assert_close(z_honey, z_pt, atol=1e-1, rtol=1e-1)
+        torch.testing.assert_close(z_dinoml, z_pt, atol=1e-1, rtol=1e-1)
 
 
 if __name__ == "__main__":

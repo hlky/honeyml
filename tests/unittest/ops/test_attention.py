@@ -25,16 +25,16 @@ import unittest
 import torch
 import torch.nn.functional as F
 
-from honey.compiler import compile_model, Model, ops
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import IntVar, Tensor
-from honey.testing import benchmark_pt, detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, Model, ops
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import IntVar, Tensor
+from dinoml.testing import benchmark_pt, detect_target
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     TestEnv,
 )
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 from einops import rearrange, repeat
 
@@ -318,7 +318,7 @@ class AttentionTestCase(unittest.TestCase):
             torch.testing.assert_close(y, y_pt, atol=1e-3, rtol=1e-3)
 
             if benchmark_pt:
-                from honey.testing.benchmark_pt import benchmark_torch_function
+                from dinoml.testing.benchmark_pt import benchmark_torch_function
 
                 func = attention_ref
                 args = (
@@ -468,7 +468,7 @@ class AttentionTestCase(unittest.TestCase):
         device="cuda",
         test_name="mem_eff_attention",
         rebuild=True,
-        benchmark_honey=False,
+        benchmark_dinoml=False,
         benchmark_pt=False,
         copy_op=False,
         use_perm=True,
@@ -635,7 +635,7 @@ class AttentionTestCase(unittest.TestCase):
 
             ret = {}
 
-            if benchmark_honey or benchmark_pt:
+            if benchmark_dinoml or benchmark_pt:
                 print(
                     f"batch_size = {batch_size}, nheads = {nheads}, seqlen = {seqlen}, n = {n}, causal = {causal}, dtype = {dtype}"
                 )
@@ -643,21 +643,21 @@ class AttentionTestCase(unittest.TestCase):
                     f"variable_seq_length_kv = {variable_seq_length_kv}, variable_seq_length_q = {variable_seq_length_q}"
                 )
 
-            if benchmark_honey:
+            if benchmark_dinoml:
                 # Warm up.
                 for _ in range(5):
                     module.run_with_tensors(inputs, [y])
-                # Benchmark Honey
+                # Benchmark DinoML
                 time_per_iter_ms, time_std, _ = module.benchmark_with_tensors(
                     inputs,
                     [y],
                     count=100,
                 )
                 print(
-                    f"Honey benchmark eff-mem-attn time per iter: {time_per_iter_ms:.2f}ms"
+                    f"DinoML benchmark eff-mem-attn time per iter: {time_per_iter_ms:.2f}ms"
                 )
 
-                ret["honey_time_per_iter_ms"] = time_per_iter_ms
+                ret["dinoml_time_per_iter_ms"] = time_per_iter_ms
 
             # y ~ [batch_size, seqlen, num_heads, head_size]
             # attention_mask_bool_q ~ [batch_size, seqlen, 1]
@@ -672,7 +672,7 @@ class AttentionTestCase(unittest.TestCase):
                 )
 
             if benchmark_pt:
-                from honey.testing.benchmark_pt import benchmark_torch_function
+                from dinoml.testing.benchmark_pt import benchmark_torch_function
 
                 func = attention_ref
                 args = (
@@ -791,7 +791,7 @@ class AttentionTestCase(unittest.TestCase):
                                     variable_seq_length_q=variable_seq_length_q,
                                     causal=causal,
                                     use_grouped_fmha=use_grouped_fmha,
-                                    benchmark_honey=True,
+                                    benchmark_dinoml=True,
                                     benchmark_pt=not skip_pt,
                                     skip_pt=skip_pt,
                                     test_name=f"mem_eff_attention_{dtype}_{causal}_{variable_seq_length_kv}_{variable_seq_length_q}_small",
@@ -861,7 +861,7 @@ class AttentionTestCase(unittest.TestCase):
         device="cuda",
         test_name="cross_attention",
         rebuild=True,
-        benchmark_honey=False,
+        benchmark_dinoml=False,
         benchmark_pt=False,
         copy_op=False,
         cache_size=1,
@@ -965,11 +965,11 @@ class AttentionTestCase(unittest.TestCase):
             )
             module.run_with_tensors(inputs, [y])
 
-            if benchmark_honey:
+            if benchmark_dinoml:
                 # Warm up.
                 for _ in range(5):
                     module.run_with_tensors(inputs, [y])
-                # Benchmark Honey
+                # Benchmark DinoML
                 time_per_iter_ms, time_std, _ = module.benchmark_with_tensors(
                     inputs,
                     [y],

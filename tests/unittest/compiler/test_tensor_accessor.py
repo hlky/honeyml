@@ -16,8 +16,8 @@
 import unittest
 from typing import List, Optional
 
-from honey.compiler.base import IntVar, Tensor
-from honey.compiler.tensor_accessor import TensorAccessor
+from dinoml.compiler.base import IntVar, Tensor
+from dinoml.compiler.tensor_accessor import TensorAccessor
 
 
 class TensorAccessorTestCase(unittest.TestCase):

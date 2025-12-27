@@ -17,13 +17,13 @@ import unittest
 from typing import List, Optional, Tuple
 
 import torch
-from honey.compiler import compile_model
+from dinoml.compiler import compile_model
 
-from honey.compiler.ops import elementwise, squeeze, unsqueeze
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import IntImm, IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.compiler.ops import elementwise, squeeze, unsqueeze
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import IntImm, IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
 
 def _construct_shape(

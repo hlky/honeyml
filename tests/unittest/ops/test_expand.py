@@ -18,13 +18,13 @@ import unittest
 
 import torch
 
-from honey import compiler
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm, IntVar, JaggedDim, Tensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor, graph_has_op, has_op
-from honey.utils import graph_utils
+from dinoml import compiler
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm, IntVar, JaggedDim, Tensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor, graph_has_op, has_op
+from dinoml.utils import graph_utils
 from parameterized import param, parameterized
 
 
@@ -62,11 +62,11 @@ class ExpandTestCase(unittest.TestCase):
 
         x_pt = get_random_torch_tensor([1, 2, 3], dtype=dtype)
         z_pt = x_pt * x_pt
-        z_honey = torch.empty_like(z_pt)
+        z_dinoml = torch.empty_like(z_pt)
         with compile_model(z, detect_target(), "./tmp", test_name) as module:
-            module.run_with_tensors({"input_0": x_pt}, {"output_0": z_honey})
+            module.run_with_tensors({"input_0": x_pt}, {"output_0": z_dinoml})
             self.assertFalse(graph_has_op(module.debug_sorted_graph, "expand"))
-            self.assertTrue(torch.equal(z_honey, z_pt))
+            self.assertTrue(torch.equal(z_dinoml, z_pt))
 
     def test_no_op_expands_removed_static_shapes_fp16(self):
         self._test_no_op_expands_removed_static_shapes(
@@ -100,11 +100,11 @@ class ExpandTestCase(unittest.TestCase):
 
         x_pt = get_random_torch_tensor([1, 2, 3], dtype=dtype)
         z_pt = x_pt * x_pt
-        z_honey = torch.empty_like(z_pt)
+        z_dinoml = torch.empty_like(z_pt)
         with compile_model(z, detect_target(), "./tmp", test_name) as module:
-            module.run_with_tensors({"input_0": x_pt}, {"output_0": z_honey})
+            module.run_with_tensors({"input_0": x_pt}, {"output_0": z_dinoml})
             self.assertFalse(graph_has_op(module.debug_sorted_graph, "expand"))
-            self.assertTrue(torch.equal(z_honey, z_pt))
+            self.assertTrue(torch.equal(z_dinoml, z_pt))
 
     def test_no_op_expands_removed_dynamic_shapes_fp16(self):
         self._test_no_op_expands_removed_dynamic_shapes(
@@ -147,13 +147,13 @@ class ExpandTestCase(unittest.TestCase):
         x_pt = get_random_torch_tensor([1, 2, 3], dtype=dtype)
         y_pt = get_random_torch_tensor([1, 2, 3], dtype=dtype)
         z_pt = x_pt * y_pt
-        z_honey = torch.empty_like(z_pt)
+        z_dinoml = torch.empty_like(z_pt)
         with compile_model(z, detect_target(), "./tmp", test_name) as module:
             module.run_with_tensors(
-                {"input_0": x_pt, "input_1": y_pt}, {"output_0": z_honey}
+                {"input_0": x_pt, "input_1": y_pt}, {"output_0": z_dinoml}
             )
             self.assertFalse(graph_has_op(module.debug_sorted_graph, "expand"))
-            self.assertTrue(torch.equal(z_honey, z_pt))
+            self.assertTrue(torch.equal(z_dinoml, z_pt))
 
     def test_no_op_expands_removed_size_op_fp16(self):
         self._test_no_op_expands_removed_size_op(
@@ -387,7 +387,7 @@ class ExpandTestCase(unittest.TestCase):
                 1, math.prod(src_shape) + 1, 1, dtype=torch.int64, device="cuda"
             ).view(src_shape)
         y_pt = x_pt.expand(expand_shape)
-        y_honey = torch.zeros_like(y_pt)
+        y_dinoml = torch.zeros_like(y_pt)
         stream = torch.cuda.default_stream()
         start_event_pt = torch.cuda.Event(enable_timing=True)
         end_event_pt = torch.cuda.Event(enable_timing=True)
@@ -395,20 +395,20 @@ class ExpandTestCase(unittest.TestCase):
         with compile_model(
             y, detect_target(), "./tmp", "test_expand_codegen_" + name
         ) as module:
-            module.run_with_tensors({"X": x_pt}, {"Y": y_honey})
+            module.run_with_tensors({"X": x_pt}, {"Y": y_dinoml})
             self.assertTrue(graph_has_op(module.debug_sorted_graph, "expand"))
             time_mean_ms, time_std_ms, result_tensors = module.benchmark_with_tensors(
-                {"X": x_pt}, {"Y": y_honey}, count=num_iters
+                {"X": x_pt}, {"Y": y_dinoml}, count=num_iters
             )
         print(
             f"Write GB/sec:{1000 * y_pt.numel() * y_pt.element_size() / time_mean_ms / (1024 * 1024 * 1024)}"
         )
-        self.assertTrue(torch.equal(y_honey, y_pt))
+        self.assertTrue(torch.equal(y_dinoml, y_pt))
         # measure time against torch.contiguous()
         cache_trasher = torch.zeros(1000, 1000, 42, device="cuda", requires_grad=False)
         sum_elapsed_pt = 0.0
         for _ in range(num_iters):
-            # trash the L2 cache, just like the benchmark code of Honey does
+            # trash the L2 cache, just like the benchmark code of DinoML does
             cache_trasher.normal_()
             start_event_pt = torch.cuda.Event(enable_timing=True)
             end_event_pt = torch.cuda.Event(enable_timing=True)
@@ -420,25 +420,25 @@ class ExpandTestCase(unittest.TestCase):
             sum_elapsed_pt += start_event_pt.elapsed_time(end_event_pt)
 
         pt_time = sum_elapsed_pt / num_iters
-        honey_throughput_write = (
+        dinoml_throughput_write = (
             1000
             * y_pt.numel()
             * y_pt.element_size()
             / time_mean_ms
             / (1024 * 1024 * 1024)
         )
-        honey_throughput_read_once = (
+        dinoml_throughput_read_once = (
             1000
             * x_pt.numel()
             * x_pt.element_size()
             / time_mean_ms
             / (1024 * 1024 * 1024)
         )
-        honey_throughput_total_lower_bound = (
-            honey_throughput_write + honey_throughput_read_once
+        dinoml_throughput_total_lower_bound = (
+            dinoml_throughput_write + dinoml_throughput_read_once
         )  # Assuming we just read the input once
-        honey_throughput_total_upper_bound = (
-            honey_throughput_write * 2
+        dinoml_throughput_total_upper_bound = (
+            dinoml_throughput_write * 2
         )  # Assuming every byte written has been read as well
 
         pt_throughput_write = (
@@ -455,13 +455,13 @@ class ExpandTestCase(unittest.TestCase):
             pt_throughput_write * 2
         )  # Assuming every byte written has been read as well
 
-        # honey_speedup_percent = round(100.0 * pt_time / time_mean_ms - 100.0)
-        honey_speedup_factor = f"{pt_time / time_mean_ms:.2f}"
-        honey_expand_variant = "general"
+        # dinoml_speedup_percent = round(100.0 * pt_time / time_mean_ms - 100.0)
+        dinoml_speedup_factor = f"{pt_time / time_mean_ms:.2f}"
+        dinoml_expand_variant = "general"
         if optimize_fixed_dims:
-            honey_expand_variant = "optimized"
+            dinoml_expand_variant = "optimized"
         print(
-            f"""Benchmark Summary (test_expand_op:{name}) - {src_shape} => {expand_shape}: dtype={dtype}, variant={honey_expand_variant}. Honey speedup={honey_speedup_factor}x. Throughputs in GB/sec.: Write: pt={pt_throughput_write:.1f}, honey={honey_throughput_write:.1f}, Total (lower): pt={pt_throughput_total_lower_bound:.1f}, honey={honey_throughput_total_lower_bound:.1f} Total (upper): pt={pt_throughput_total_upper_bound:.1f}, honey=={honey_throughput_total_upper_bound:.1f} ]
+            f"""Benchmark Summary (test_expand_op:{name}) - {src_shape} => {expand_shape}: dtype={dtype}, variant={dinoml_expand_variant}. DinoML speedup={dinoml_speedup_factor}x. Throughputs in GB/sec.: Write: pt={pt_throughput_write:.1f}, dinoml={dinoml_throughput_write:.1f}, Total (lower): pt={pt_throughput_total_lower_bound:.1f}, dinoml={dinoml_throughput_total_lower_bound:.1f} Total (upper): pt={pt_throughput_total_upper_bound:.1f}, dinoml=={dinoml_throughput_total_upper_bound:.1f} ]
 Benchmark note: Total throughput (lower) assumes the input is read once, Total throughput (upper) assumes every byte written has been read as well. The truth is inbetween due to caching of repeated reads.""",
             file=sys.stdout,
             flush=True,

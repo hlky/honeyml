@@ -1,6 +1,6 @@
 import torch
 
-from honey.compiler import Model
+from dinoml.compiler import Model
 
 import tqdm
 

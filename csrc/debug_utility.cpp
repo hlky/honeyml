@@ -47,15 +47,15 @@ __global__ void inf_and_nan_checker(const half* tensor, int64_t elem_cnt) {
 
 } // namespace
 
-namespace honey {
+namespace dinoml {
 void InvokeInfAndNanChecker(
     const half* tensor,
     const char* tensor_name,
     int64_t elem_cnt,
-    honey::StreamType stream) {
+    dinoml::StreamType stream) {
   printf("Tensor (%s) ", tensor_name);
   inf_and_nan_checker<<<1, 1, 0, stream>>>(tensor, elem_cnt);
-  honey::StreamSynchronize(stream);
+  dinoml::StreamSynchronize(stream);
 }
 
-} // namespace honey
+} // namespace dinoml

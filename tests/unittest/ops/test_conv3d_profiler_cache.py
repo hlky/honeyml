@@ -17,13 +17,13 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from honey.backend.profiler_cache import ProfileCacheDB
+from dinoml.backend.profiler_cache import ProfileCacheDB
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import DynamicProfileStrategy
-from honey.frontend import IntImm, IntVar, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import env_variables
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import DynamicProfileStrategy
+from dinoml.frontend import IntImm, IntVar, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import env_variables
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ class Conv3DProfilerCacheTestCase(unittest.TestCase):
     def test_conv3d_profiler_cache(self):
         first_dim = IntImm(4)
         test_name = "conv3d_profiler_cache"
-        logger = "honey.compiler.transform.profile"
+        logger = "dinoml.compiler.transform.profile"
 
         _LOGGER.info(f"running {test_name=}")
         with tempfile.TemporaryDirectory() as tmp_dirname:
@@ -123,7 +123,7 @@ class Conv3DProfilerCacheTestCase(unittest.TestCase):
     def test_conv3d_profiler_cache_versioning(self):
         first_dim = IntImm(4)
         test_name = "conv3d_profiler_cache_versioning"
-        logger = "honey.backend.profiler_cache"
+        logger = "dinoml.backend.profiler_cache"
         cache_version_property = "conv3d_cache_version"
         target_name = detect_target().name()
 
@@ -189,7 +189,7 @@ class Conv3DProfilerCacheTestCase(unittest.TestCase):
         test_name = "conv3d_profiler_force_cache"
         cache_version_property = "conv3d_cache_version"
 
-        logger = "honey.backend.profiler_cache"
+        logger = "dinoml.backend.profiler_cache"
         _LOGGER.info(f"running {test_name=}")
         with tempfile.TemporaryDirectory() as tmp_dirname:
             _LOGGER.info(f"{tmp_dirname=}")
@@ -199,7 +199,7 @@ class Conv3DProfilerCacheTestCase(unittest.TestCase):
                 new=1,  # version
             ):
                 _LOGGER.info("force cache with no cache 1")
-                with env_variables(Honey_FORCE_PROFILER_CACHE="1"):
+                with env_variables(DINOML_FORCE_PROFILER_CACHE="1"):
                     with self.assertRaisesRegex(
                         RuntimeError, "force_cache is enabled but we could not find"
                     ):
@@ -211,7 +211,7 @@ class Conv3DProfilerCacheTestCase(unittest.TestCase):
                         )
 
                 _LOGGER.info("make cache 1")
-                with env_variables(Honey_FORCE_PROFILER_CACHE=None):
+                with env_variables(DINOML_FORCE_PROFILER_CACHE=None):
                     self._run_test(
                         first_dim=first_dim,
                         test_name=test_name,
@@ -220,7 +220,7 @@ class Conv3DProfilerCacheTestCase(unittest.TestCase):
                     )
 
                 _LOGGER.info("force cache with no cache 1")
-                with env_variables(Honey_FORCE_PROFILER_CACHE="1"):
+                with env_variables(DINOML_FORCE_PROFILER_CACHE="1"):
                     self._run_test(
                         first_dim=first_dim,
                         test_name=test_name,
@@ -231,7 +231,7 @@ class Conv3DProfilerCacheTestCase(unittest.TestCase):
     def test_conv3d_profiler_cache_dynamic(self):
         first_dim = IntVar([2, 8])
         test_name = "conv3d_profiler_cache_dynamic"
-        logger = "honey.compiler.transform.profile"
+        logger = "dinoml.compiler.transform.profile"
 
         _LOGGER.info(f"running {test_name=}")
         with tempfile.TemporaryDirectory() as tmp_dirname:

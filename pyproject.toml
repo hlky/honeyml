@@ -3,14 +3,15 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "honey"
+name = "dinoml"
 version = "0.1.0"
-description = "Honey: Optimization never tasted so sweet 🍯🐝"
+description = "DinoML"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.7, <4"
 dependencies = [
     "jinja2",
     "numpy",
-    "sympy"
+    "sympy",
+    "click"
 ]

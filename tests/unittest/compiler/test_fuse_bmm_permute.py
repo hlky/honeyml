@@ -18,20 +18,20 @@ from typing import Tuple
 
 import torch
 
-from honey.compiler import compile_model, ops
+from dinoml.compiler import compile_model, ops
 
-from honey.compiler.base import IntVar
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.frontend import Tensor
-from honey.testing import detect_target
+from dinoml.compiler.base import IntVar
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
 
-from honey.testing.test_utils import (
+from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
     get_torch_empty_tensor,
     TestEnv,
 )
-from honey.utils import shape_utils
+from dinoml.utils import shape_utils
 
 from parameterized import parameterized
 
@@ -123,7 +123,7 @@ class FuseBmmPermuteCase(unittest.TestCase):
                 Y_pt = torch.transpose(Y_pt, 2, 1)
             Y_pt = torch.cos(Y_pt)
 
-            # Compute Honey output
+            # Compute DinoML output
             out_shape = [b, m, n] if not is_row_major_c else [b, n, m]
             y = get_torch_empty_tensor(out_shape, dtype)
             input_name_to_index = module.get_input_name_to_index_map()

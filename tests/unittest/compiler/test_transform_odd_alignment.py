@@ -16,11 +16,11 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import _TorchConstantTensorData, Tensor
-from honey.compiler.ops.common.epilogue import FuncEnum
-from honey.testing import detect_target
-from honey.utils import shape_utils
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import _TorchConstantTensorData, Tensor
+from dinoml.compiler.ops.common.epilogue import FuncEnum
+from dinoml.testing import detect_target
+from dinoml.utils import shape_utils
 
 
 def _extract_shape(batch, shape):

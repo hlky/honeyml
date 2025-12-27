@@ -24,17 +24,17 @@ from typing import List, Tuple
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntVar, JaggedDim
-from honey.compiler.ops.b2b_bmm.b2b_bmm_base import CausalType
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntVar, JaggedDim
+from dinoml.compiler.ops.b2b_bmm.b2b_bmm_base import CausalType
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     epilogue_math_name_to_torch_fn,
     get_attn_mask_per_causal_type,
 )
-from honey.utils import shape_utils
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.utils import shape_utils
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ class GroupedClassicB2bBmmTestCase(unittest.TestCase):
             random_seeds = random_seed
         else:
             random_seeds = [random_seed]
-        # Initialize Honey classic_b2b_bmm operator.
+        # Initialize DinoML classic_b2b_bmm operator.
         if isinstance(batch_sizes, int):
             batch_sizes = [batch_sizes, batch_sizes]
         if isinstance(max_seq_lens, int):
@@ -228,7 +228,7 @@ class GroupedClassicB2bBmmTestCase(unittest.TestCase):
                         v_pt = v_pt_max[:total_length, :, :].contiguous()
                         bias_pt = bias_pt_max[:batch_size, :, :, :].contiguous()
                         offsets_pt = offsets_max_pt[: batch_size + 1].contiguous()
-                        # Run Honey.
+                        # Run DinoML.
                         inputs = {
                             "q": q_pt,
                             "k": k_pt,

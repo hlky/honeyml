@@ -18,16 +18,16 @@ from typing import List, Optional
 
 import torch
 
-from honey.compiler import compile_model, Model, ops
-from honey.compiler.base import IntVar
-from honey.frontend import IntImm, Tensor
-from honey.testing import detect_target, test_utils
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, Model, ops
+from dinoml.compiler.base import IntVar
+from dinoml.frontend import IntImm, Tensor
+from dinoml.testing import detect_target, test_utils
+from dinoml.testing.test_utils import (
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import graph_utils
+from dinoml.utils import graph_utils
 
 from parameterized import param, parameterized
 
@@ -209,7 +209,7 @@ class ViewStridedOpTestCase(unittest.TestCase):
             y_pt = torch.matmul(x0_pt, x1_pt.transpose(1, 2))
             y_pts.append(y_pt)
 
-        # Run Honey module.
+        # Run DinoML module.
         inputs = [x0_pt.reshape(*x0_shape), x1_pt.reshape(*x1_shape)]
         module.run_with_tensors(inputs, ys)
 
@@ -570,7 +570,7 @@ class ViewStridedOpTestCase(unittest.TestCase):
                 get_torch_empty_tensor([batch_size, N0, N2], dtype),
             ]
 
-            # Run Honey module.
+            # Run DinoML module.
             inputs = [x0_pt, x1_pt, x2_pt]
             module.run_with_tensors(inputs, ys)
 

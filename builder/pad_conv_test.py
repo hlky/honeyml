@@ -1,9 +1,9 @@
-from honey.compiler import compile_model, ops
-from honey.frontend import IntVar, Tensor, nn
-from honey.testing import detect_target
-from honey.testing.benchmark_honey import benchmark_module
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import IntVar, Tensor, nn
+from dinoml.testing import detect_target
+from dinoml.testing.benchmark_dinoml import benchmark_module
 
-from honey.builder.config import load_config, mark_output
+from dinoml.builder.config import load_config, mark_output
 
 import torch
 
@@ -85,7 +85,7 @@ class PadConvTest(nn.Module):
         return x
 
 
-honey_module = PadConvTest()
+dinoml_module = PadConvTest()
 pt_module = PadConvTestPT()
 
 constants = dict(pt_module.state_dict())
@@ -93,7 +93,7 @@ constants["conv.weight"] = (
     constants["conv.weight"].permute(0, 2, 3, 1).contiguous().cuda().to(torch.float16)
 )
 
-Y = honey_module(x)
+Y = dinoml_module(x)
 Y = mark_output(Y, "Y")
 
 target = detect_target()

@@ -17,16 +17,16 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import (
+from dinoml.compiler import compile_model, ops
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import (
     env_variables,
     filter_test_cases_by_test_env,
     get_random_torch_tensor,
     get_torch_empty_tensor,
 )
-from honey.utils import shape_utils
+from dinoml.utils import shape_utils
 
 
 class BMMTestCase(unittest.TestCase):
@@ -411,7 +411,7 @@ class BMMTestCase(unittest.TestCase):
 
     def test_rrr_sm90(self) -> None:
         with env_variables(
-            Honey_FORCE_CUTLASS_SM90_KERNELS="1",
+            DINOML_FORCE_CUTLASS_SM90_KERNELS="1",
             INSIDE_RE_WORKER="1",
         ):
             with self.assertRaisesRegex(
@@ -456,7 +456,7 @@ class BMMTestCase(unittest.TestCase):
 
     def test_rcr_sm90(self) -> None:
         with env_variables(
-            Honey_FORCE_CUTLASS_SM90_KERNELS="1",
+            DINOML_FORCE_CUTLASS_SM90_KERNELS="1",
             INSIDE_RE_WORKER="1",
         ):
             with self.assertRaisesRegex(
@@ -501,7 +501,7 @@ class BMMTestCase(unittest.TestCase):
 
     def test_ccr_sm90(self) -> None:
         with env_variables(
-            Honey_FORCE_CUTLASS_SM90_KERNELS="1",
+            DINOML_FORCE_CUTLASS_SM90_KERNELS="1",
             INSIDE_RE_WORKER="1",
         ):
             with self.assertRaisesRegex(
@@ -546,7 +546,7 @@ class BMMTestCase(unittest.TestCase):
 
     def test_crr_sm90(self) -> None:
         with env_variables(
-            Honey_FORCE_CUTLASS_SM90_KERNELS="1",
+            DINOML_FORCE_CUTLASS_SM90_KERNELS="1",
             INSIDE_RE_WORKER="1",
         ):
             with self.assertRaisesRegex(
@@ -591,7 +591,7 @@ class BMMTestCase(unittest.TestCase):
 
     def test_rrc_sm90(self) -> None:
         with env_variables(
-            Honey_FORCE_CUTLASS_SM90_KERNELS="1",
+            DINOML_FORCE_CUTLASS_SM90_KERNELS="1",
             INSIDE_RE_WORKER="1",
         ):
             with self.assertRaisesRegex(
@@ -636,7 +636,7 @@ class BMMTestCase(unittest.TestCase):
 
     def test_rcc_sm90(self) -> None:
         with env_variables(
-            Honey_FORCE_CUTLASS_SM90_KERNELS="1",
+            DINOML_FORCE_CUTLASS_SM90_KERNELS="1",
             INSIDE_RE_WORKER="1",
         ):
             with self.assertRaisesRegex(
@@ -681,7 +681,7 @@ class BMMTestCase(unittest.TestCase):
 
     def test_ccc_sm90(self) -> None:
         with env_variables(
-            Honey_FORCE_CUTLASS_SM90_KERNELS="1",
+            DINOML_FORCE_CUTLASS_SM90_KERNELS="1",
             INSIDE_RE_WORKER="1",
         ):
             with self.assertRaisesRegex(
@@ -726,7 +726,7 @@ class BMMTestCase(unittest.TestCase):
 
     def test_crc_sm90(self) -> None:
         with env_variables(
-            Honey_FORCE_CUTLASS_SM90_KERNELS="1",
+            DINOML_FORCE_CUTLASS_SM90_KERNELS="1",
             INSIDE_RE_WORKER="1",
         ):
             with self.assertRaisesRegex(

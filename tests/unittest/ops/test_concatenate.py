@@ -16,12 +16,12 @@ import unittest
 
 import torch
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntImm, IntVar
-from honey.frontend import Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
-from honey.utils import shape_utils
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntImm, IntVar
+from dinoml.frontend import Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
+from dinoml.utils import shape_utils
 from parameterized import parameterized
 
 
@@ -67,11 +67,11 @@ class ConcatenateTestCase(unittest.TestCase):
         dll_name = f"test_{self.test_count}.so"
         module = compile_model(Y, target, "./tmp", "concatenate", dll_name=dll_name)
 
-        input_tensors_honey = {
+        input_tensors_dinoml = {
             f"input_{idx}": input_tensors_pt[idx] for idx in range(len(inputs))
         }
         y = torch.empty_like(Y_pt)
-        module.run_with_tensors(input_tensors_honey, [y])
+        module.run_with_tensors(input_tensors_dinoml, [y])
         self.assertTrue(torch.equal(Y_pt, y))
 
         self.test_count += 1
@@ -125,11 +125,11 @@ class ConcatenateTestCase(unittest.TestCase):
                 if dim is None
                 else torch.cat(input_tensors_pt, dim)
             )
-            input_tensors_honey = {
+            input_tensors_dinoml = {
                 f"input_{idx}": input_tensors_pt[idx] for idx in range(len(inputs))
             }
             y = torch.empty_like(Y_pt)
-            module.run_with_tensors(input_tensors_honey, [y])
+            module.run_with_tensors(input_tensors_dinoml, [y])
             self.assertTrue(torch.equal(Y_pt, y))
             self.test_count += 1
 

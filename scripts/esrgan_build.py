@@ -1,6 +1,6 @@
 import click
 
-from honey.builder.esrgan import ESRGANBuilder
+from dinoml.builder.esrgan import ESRGANBuilder
 
 """
 python scripts/esrgan_build.py --hf-hub hlky/RealESRGAN_x4plus --label x4plus --batch-size 1 --min-res 8 --max-res 512

@@ -16,12 +16,12 @@ import itertools
 import unittest
 
 import torch
-from honey.compiler import compile_model, ops
-from honey.compiler.base import IntVarTensor
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import IntVarTensor
 
-from honey.frontend import IntImm, IntVar, nn, Tensor
-from honey.testing import detect_target
-from honey.testing.test_utils import get_random_torch_tensor
+from dinoml.frontend import IntImm, IntVar, nn, Tensor
+from dinoml.testing import detect_target
+from dinoml.testing.test_utils import get_random_torch_tensor
 
 
 class ReshapeTestCase(unittest.TestCase):

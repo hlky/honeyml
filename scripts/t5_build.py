@@ -1,6 +1,6 @@
 import click
 
-from honey.builder.t5 import T5EncoderBuilder
+from dinoml.builder.t5 import T5EncoderBuilder
 
 """
 python scripts/t5_build.py --hf-hub hlky/t5-v1_1-xxl-encoder --label xxl --batch-size 1 --min-seq 8 --max-seq 512

@@ -17,12 +17,12 @@ import unittest
 from unittest.mock import patch
 
 import jinja2
-from honey.backend.build_cache_base import SkipBuildCache
+from dinoml.backend.build_cache_base import SkipBuildCache
 
-from honey.compiler import compile_model, ops
-from honey.compiler.base import DynamicProfileStrategy
-from honey.frontend import IntImm, Tensor
-from honey.testing import detect_target
+from dinoml.compiler import compile_model, ops
+from dinoml.compiler.base import DynamicProfileStrategy
+from dinoml.frontend import IntImm, Tensor
+from dinoml.testing import detect_target
 
 
 class _EnableForceProfile:
@@ -81,7 +81,7 @@ class CompilationFailureTestCase(unittest.TestCase):
         target = detect_target().name()
         with _EnableForceProfile():
             profiler_main_template = (
-                f"honey.backend.{target}.conv2d.common.PROFILER_MAIN_TEMPLATE"
+                f"dinoml.backend.{target}.conv2d.common.PROFILER_MAIN_TEMPLATE"
             )
             with patch(profiler_main_template, jinja2.Template("BAD CODE!")):
                 with self.assertRaisesRegex(RuntimeError, "Build has failed."):
@@ -91,7 +91,7 @@ class CompilationFailureTestCase(unittest.TestCase):
 
     def test_compilation_failure_function(self):
         target = detect_target().name()
-        gen_function = f"honey.backend.{target}.conv2d.common.gen_function"
+        gen_function = f"dinoml.backend.{target}.conv2d.common.gen_function"
         with patch(gen_function) as mock_gen_function:
             mock_gen_function.return_value = "BAD CODE!"
             with self.assertRaisesRegex(RuntimeError, "Build has failed."):

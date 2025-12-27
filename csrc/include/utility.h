@@ -18,37 +18,37 @@
 
 // Utility functions for allocating, freeing, and manipulating GPU memory.
 // These are useful to have around for Python clients - it allows users
-// to allocate Honey tensors without depending on any extra Python libraries.
+// to allocate DinoML tensors without depending on any extra Python libraries.
 
-namespace honey {
-enum class HoneyMemcpyKind {
+namespace dinoml {
+enum class DinoMLMemcpyKind {
   HostToDevice = 0,
   DeviceToHost,
   DeviceToDevice,
 };
-} // namespace honey
+} // namespace dinoml
 
 extern "C" {
 
-Honey_EXPORT
-HoneyError HoneyDeviceMalloc(
+DINOML_EXPORT
+DinoMLError DinoMLDeviceMalloc(
     void** ptr_out,
     size_t size,
-    honey::StreamType stream = 0,
+    dinoml::StreamType stream = 0,
     bool sync = true);
 
-Honey_EXPORT
-HoneyError HoneyDeviceFree(
+DINOML_EXPORT
+DinoMLError DinoMLDeviceFree(
     void* ptr,
-    honey::StreamType stream = 0,
+    dinoml::StreamType stream = 0,
     bool sync = true);
 
-Honey_EXPORT
-HoneyError HoneyMemcpy(
+DINOML_EXPORT
+DinoMLError DinoMLMemcpy(
     void* dst,
     const void* src,
     size_t count,
-    honey::HoneyMemcpyKind kind,
-    honey::StreamType stream = 0,
+    dinoml::DinoMLMemcpyKind kind,
+    dinoml::StreamType stream = 0,
     bool sync = true);
 }

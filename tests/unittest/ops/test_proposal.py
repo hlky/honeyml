@@ -18,11 +18,11 @@ import unittest
 
 import numpy.random as npr
 import torch
-from honey.compiler import compile_model
+from dinoml.compiler import compile_model
 
-from honey.frontend import nn, Tensor
-from honey.testing import detect_target
-from honey.utils.torch_utils import string_to_torch_dtype
+from dinoml.frontend import nn, Tensor
+from dinoml.testing import detect_target
+from dinoml.utils.torch_utils import string_to_torch_dtype
 
 np.random.seed(0)
 
@@ -452,23 +452,23 @@ class ProposalTestCase(unittest.TestCase):
         bbox_deltas = np.repeat(bbox_deltas, repeats=batch_size, axis=0)
         scores = np.repeat(scores, repeats=batch_size, axis=0)
 
-        bbox_deltas_honey = np.transpose(
+        bbox_deltas_dinoml = np.transpose(
             bbox_deltas.astype(dtype),
             (0, 2, 3, 1),
         ).copy()
-        scores_honey = np.transpose(
+        scores_dinoml = np.transpose(
             scores.astype(dtype),
             (0, 2, 3, 1),
         ).copy()
 
         X_bbox_deltas = Tensor(
-            shape=bbox_deltas_honey.shape,
+            shape=bbox_deltas_dinoml.shape,
             name="X_bbox_deltas",
             dtype=dtype,
             is_input=True,
         )
         X_scores = Tensor(
-            shape=scores_honey.shape,
+            shape=scores_dinoml.shape,
             name="X_scores",
             dtype=dtype,
             is_input=True,
@@ -498,17 +498,17 @@ class ProposalTestCase(unittest.TestCase):
         module.set_constant_with_tensor("batch_inds", batch_inds)
         torch_dtype = string_to_torch_dtype(dtype)
         inputs_pt = [
-            torch.from_numpy(bbox_deltas_honey).cuda().to(torch_dtype),
-            torch.from_numpy(scores_honey).cuda().to(torch_dtype),
+            torch.from_numpy(bbox_deltas_dinoml).cuda().to(torch_dtype),
+            torch.from_numpy(scores_dinoml).cuda().to(torch_dtype),
         ]
         out0_shape = module.get_output_maximum_shape(0)
         out0 = torch.empty(out0_shape, dtype=torch_dtype, device="cuda")
-        y_honey_shape = module.get_output_maximum_shape(1)
-        y_honey = torch.empty(y_honey_shape, dtype=torch_dtype, device="cuda")
-        module.run_with_tensors(inputs_pt, [out0, y_honey])
-        y_honey = y_honey.reshape(2, -1, 4)
+        y_dinoml_shape = module.get_output_maximum_shape(1)
+        y_dinoml = torch.empty(y_dinoml_shape, dtype=torch_dtype, device="cuda")
+        module.run_with_tensors(inputs_pt, [out0, y_dinoml])
+        y_dinoml = y_dinoml.reshape(2, -1, 4)
         self.assertTrue(
-            torch.allclose(y_honey[0, :], y_honey[1, :], atol=1e-2, rtol=1e-2)
+            torch.allclose(y_dinoml[0, :], y_dinoml[1, :], atol=1e-2, rtol=1e-2)
         )
 
     def test_proposal_fp16(self):
