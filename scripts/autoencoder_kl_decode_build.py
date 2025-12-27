@@ -1,13 +1,13 @@
 import click
 import os
-# os.environ["DISABLE_PROFILER_CODEGEN"] = "1"
-# os.environ["CI_FLAG"] = "CIRCLECI"
+os.environ["DISABLE_PROFILER_CODEGEN"] = "1"
+os.environ["CI_FLAG"] = "CIRCLECI"
 os.environ["DINOML_ALLOCATION_MODE"] = "2"
 
 from dinoml.builder.autoencoder_kl import AutoencoderKLDecodeBuilder
 
 """
-python scripts/autoencoder_kl_decode_build.py --hf-hub runwayml/stable-diffusion-v1-5 --subfolder vae --label v1 --batch-size 1 --min-res 8 --max-res 512
+python scripts/autoencoder_kl_decode_build.py --hf-hub runwayml/stable-diffusion-v1-5 --subfolder vae --label v1 --batch-size 1 --min-res 64 --max-res 2048
 """
 
 
@@ -30,7 +30,7 @@ python scripts/autoencoder_kl_decode_build.py --hf-hub runwayml/stable-diffusion
 @click.option(
     "--min-res",
     type=int,
-    default=8,
+    default=64,
 )
 @click.option(
     "--max-res",
