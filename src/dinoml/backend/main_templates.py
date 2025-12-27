@@ -128,22 +128,22 @@ class {{model_name}} : public ModelBase<{{model_name}}> {
       uint8_t* constants = constants_;
 
       {% for bucket, cond in bucket_conditions.items() %}
-      {% if loop.first %}
       if ({{ cond }}) {
-      {% else %}
-      else if ({{ cond }}) {
-      {% endif %}
+        if (bucketId_ == "{{bucket}}") return;
+        if (bucketId_ != "{{bucket}}" && workspace_type_ == DinoMLWorkspaceAllocationMode::kLazy) {
+          blob_.reset();
+        }
+        bucketId_ = "{{bucket}}";
         blob_ = RAII_DeviceMalloc({{ buckets[bucket][0] }}, allocator_);
         auto* blob_ptr = static_cast<uint8_t*>(blob_.get());
 
         {% for stmt in blob_tensor_slice[bucket] %}
         {{ stmt }}
         {% endfor %}
+        return;
       }
       {% endfor %}
-      else {
-        throw std::runtime_error("No matching bucket for input shape");
-      }
+      throw std::runtime_error("No matching bucket for input shape");
     {% endif %}
     }
 
@@ -340,6 +340,7 @@ class {{model_name}} : public ModelBase<{{model_name}}> {
     }
 
   private:
+std::string bucketId_;
 {{ tensor_decl }}
 {{ dim_decl }}
 {{ jagged_decl }}
