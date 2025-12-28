@@ -68,6 +68,8 @@ SRC_TEMPLATE = jinja2.Template(
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <cstdint>
+
 #include "short_file.h"
 #include "cutlass/cutlass.h"
 #include "cutlass/conv/kernel/default_conv3d_fprop.h"
