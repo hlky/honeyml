@@ -326,6 +326,7 @@ class {{model_name}} : public ModelBase<{{model_name}}> {
     }
 
   private:
+  uint64_t global_counter_ = 0;
 {{ tensor_decl }}
 {{ dim_decl }}
 {{ jagged_decl }}
