@@ -51,7 +51,6 @@ ModelContainer::ModelContainer(
     size_t num_bound_constants,
     size_t num_unbound_constants,
     size_t params_size,
-    size_t blob_size,
     size_t workspace_size,
     DinoMLAllocator& allocator)
     : ModelContainerBase(
@@ -64,7 +63,6 @@ ModelContainer::ModelContainer(
       allocator_(allocator),
       num_inputs_(num_inputs),
       num_outputs_(num_outputs),
-      blob_size_(blob_size),
       workspace_size_(workspace_size) {
   if (num_models == 0) {
     throw std::runtime_error("Number of models must be positive");

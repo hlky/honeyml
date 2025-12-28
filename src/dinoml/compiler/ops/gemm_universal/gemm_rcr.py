@@ -92,11 +92,12 @@ class gemm_rcr(common.gemm):
     def _align_ab(self, a: Tensor, b: Tensor):
         a_shape = a._attrs["shape"]
         b_shape = b._attrs["shape"]
-        if a_shape[-1] != b_shape[-1]:
+        if a_shape[-1].symbolic_value() != b_shape[-1].symbolic_value():
             raise RuntimeError(
                 "A/B shape mismatch! A: {}, B: {}".format(a_shape, b_shape)
             )
         if not isinstance(a_shape[-1], IntImm):
-            raise RuntimeError("K must be static! k: {}".format(a_shape[-1]))
+            if a_shape[-1].lower_bound() != a_shape[-1].upper_bound():
+                raise RuntimeError("K must be static! k: {}".format(a_shape[-1]))
 
         return a, b
