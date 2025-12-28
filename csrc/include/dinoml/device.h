@@ -18,10 +18,12 @@ namespace dinoml {
 #ifdef DINOML_CUDA
 using bfloat16 = __nv_bfloat16;
 using DeviceStream = cudaStream_t;
+#define LDG(x) __ldg(x)
 #endif
 #ifdef DINOML_HIP
 using bfloat16 = hip_bfloat16;
 using DeviceStream = hipStream_t;
+#define LDG(x) *(x)
 #endif
 
 inline uint64_t make_seed() {
