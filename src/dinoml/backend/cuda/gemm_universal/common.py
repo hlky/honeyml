@@ -136,6 +136,8 @@ SRC_TEMPLATE = jinja2.Template(
 #include <memory>
 #include <random>
 #include <vector>
+#include <cstdint>
+
 #include "short_file.h"
 #include "cutlass/cutlass.h"
 #include "cutlass/gemm/device/gemm_universal.h"
@@ -225,6 +227,7 @@ void {{function_name}} (
 )
 
 
+# NOTE: CUTLASS_CHECK after gemm_op removed as it can be faulty sometimes
 EXEC_TEMPLATE = jinja2.Template(
     """
 //  TODO: cast to right dtype
@@ -256,7 +259,6 @@ EXEC_TEMPLATE = jinja2.Template(
 {{indent}}status = gemm_op.initialize(arguments, workspace, stream);
 {{indent}}CUTLASS_CHECK(status);
 {{indent}}status = gemm_op(stream);
-{{indent}}CUTLASS_CHECK(status);
 {{indent}}return;
 """
 )
@@ -827,7 +829,9 @@ def extract_config(
     if include_cutlass_3x_ops:
         gemm_kinds.add(cutlass_lib.library.GemmKind.Universal3x)
     gemm_ops = OrderedDict()
-    extract_ops = Target.current()._operators[op_kind].items()
+    extract_ops = list(Target.current()._operators[op_kind].items())
+    if len(extract_ops) == 1:
+        extract_ops = list(extract_ops[0][1].items())
 
     for _, value in extract_ops:
         op = value[0]

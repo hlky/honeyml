@@ -5,3 +5,9 @@ from . import conv3d_operation
 from . import gemm_operation
 from . import conv2d_operation
 from . import extra_operation
+from . import rank_2k_operation
+from . import rank_k_operation
+from . import symm_operation
+from . import trmm_operation
+from . import emit_kernel_listing
+from .library import *

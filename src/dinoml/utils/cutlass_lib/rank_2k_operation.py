@@ -1,15 +1,44 @@
+#################################################################################################
 #
-# \file generator.py
+# Copyright (c) 2017 - 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
 #
-# \brief Generates the CUTLASS Library's instances
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
 #
-# 
+# 1. Redistributions of source code must retain the above copyright notice, this
+# list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its
+# contributors may be used to endorse or promote products derived from
+# this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+#################################################################################################
+
+"""
+Utilities for emitting Rank2K kernels
+"""
 
 import enum
-import os.path
-import shutil
 import functools
 import operator
+import os.path
+import shutil
 
 from .library import *
 
@@ -34,7 +63,7 @@ class Rank2KOperation:
     self.rank_k_kind = rank_k_kind
     # tensor A and B have same data type and layout
     self.A = A
-    self.B = A  
+    self.B = A
     self.C = C
     self.element_epilogue = element_epilogue
     self.epilogue_functor = epilogue_functor
@@ -43,12 +72,16 @@ class Rank2KOperation:
   #
   def is_complex(self):
     complex_operators = [
-      MathOperation.multiply_add_complex, 
+      MathOperation.multiply_add_complex,
       MathOperation.multiply_add_complex_gaussian,
       MathOperation.multiply_add_complex_fast_f32
     ]
     return self.tile_description.math_instruction.math_operation in complex_operators
     return False
+
+  #
+  def is_mixed_input(self):
+    return self.A.element != self.B.element
 
   #
   def is_planar_complex(self):
@@ -73,13 +106,14 @@ class Rank2KOperation:
   #
   def core_name(self):
     ''' The basic operation kind is prefixed with a letter indicating the accumulation type. '''
-    
+
     inst_shape = ''
     inst_operation = ''
     intermediate_type = ''
 
     math_operations_map = {
       MathOperation.xor_popc: 'xor',
+      MathOperation.and_popc: 'and'
     }
 
     if self.tile_description.math_instruction.opcode_class == OpcodeClass.TensorOp or \
@@ -126,7 +160,7 @@ class Rank2KOperation:
   def layout_name(self):
     if self.is_complex() or self.is_planar_complex():
       return "%s" % (
-        ShortComplexLayoutNames[(self.A.layout, self.A.complex_transform)] 
+        ShortComplexLayoutNames[(self.A.layout, self.A.complex_transform)]
       )
     return "%s" % (ShortLayoutTypeNames[self.A.layout])
 
@@ -173,10 +207,10 @@ class EmitRank2KUniversalInstance:
   def __init__(self):
     self.rank_k_template = """
 // Rank K operator ${operation_name}
-using Operation_${operation_name} = 
+using Operation_${operation_name} =
   typename cutlass::gemm::device::Rank2K<
-    ${element_a}, ${layout_a}, 
-    ${element_b}, ${layout_b}, 
+    ${element_a}, ${layout_a},
+    ${element_b}, ${layout_b},
     ${element_c}, ${layout_c}, ${fill_mode},
     ${element_accumulator},
     ${opcode_class},
@@ -200,10 +234,10 @@ using Operation_${operation_name} =
 """
     self.rank_k_complex_template = """
 // Rank K operator ${operation_name}
-using Operation_${operation_name} = 
+using Operation_${operation_name} =
   typename cutlass::gemm::device::Rank2K<
-    ${element_a}, ${layout_a}, 
-    ${element_b}, ${layout_b}, 
+    ${element_a}, ${layout_a},
+    ${element_b}, ${layout_b},
     ${element_c}, ${layout_c}, ${fill_mode},
     ${element_accumulator},
     ${opcode_class},
@@ -232,7 +266,7 @@ using Operation_${operation_name} =
   def emit(self, operation):
 
     threadblock_shape = operation.tile_description.threadblock_shape
-    
+
     warp_count = operation.tile_description.warp_count
     warp_shape = [threadblock_shape[idx] // warp_count[idx] for idx in range(3)]
 
@@ -266,7 +300,7 @@ using Operation_${operation_name} =
       'stages': str(operation.tile_description.stages),
       'align_a': str(operation.A.alignment),
       'align_b': str(operation.B.alignment),
-      'split_k_serial': 'false', 
+      'split_k_serial': 'false',
       'math_operation': MathOperationTag[operation.tile_description.math_instruction.math_operation],
       'transform_a': ComplexTransformTag[operation.A.complex_transform],
       'transform_b': ComplexTransformTag[operation.B.complex_transform],
@@ -375,7 +409,7 @@ void initialize_${configuration_name}(Manifest &manifest) {
       'compile_guard_start': SubstituteTemplate(self.wmma_guard_start, {'sm_number': str(operation.arch)}) \
         if operation.tile_description.math_instruction.opcode_class == OpcodeClass.WmmaTensorOp else "",
       'compile_guard_end': "#endif" \
-        if operation.tile_description.math_instruction.opcode_class == OpcodeClass.WmmaTensorOp else "" 
+        if operation.tile_description.math_instruction.opcode_class == OpcodeClass.WmmaTensorOp else ""
       }))
 
   def __exit__(self, exception_type, exception_value, traceback):
@@ -388,9 +422,9 @@ void initialize_${configuration_name}(Manifest &manifest) {
     self.configuration_file.write(SubstituteTemplate(self.initialize_function_template, {
       'configuration_name': self.configuration_name
       }))
-   
+
     for instance_wrapper in self.instance_wrappers:
-      self.configuration_file.write(instance_wrapper) 
+      self.configuration_file.write(instance_wrapper)
 
     self.configuration_file.write(self.epilogue_template)
     self.configuration_file.close()
