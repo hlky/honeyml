@@ -827,7 +827,9 @@ def extract_config(
     if include_cutlass_3x_ops:
         gemm_kinds.add(cutlass_lib.library.GemmKind.Universal3x)
     gemm_ops = OrderedDict()
-    extract_ops = Target.current()._operators[op_kind].items()
+    extract_ops = list(Target.current()._operators[op_kind].items())
+    if len(extract_ops) == 1:
+        extract_ops = list(extract_ops[0][1].items())
 
     for _, value in extract_ops:
         op = value[0]

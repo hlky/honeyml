@@ -587,6 +587,8 @@ def extract_config(
     if op_kind is None:
         op_kind = cutlass_lib.library.OperationKind.Conv2d
     extract_ops = list(Target.current()._operators[op_kind].items())
+    if len(extract_ops) == 1:
+        extract_ops = list(extract_ops[0][1].items())
     conv_kind = cutlass_lib.library.ConvKind.Fprop
 
     conv_ops = OrderedDict()
