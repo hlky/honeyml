@@ -23,6 +23,7 @@ from ..compiler.model import Model
 
 def prepare_inputs_outputs(
     module: Model,
+    use_zeros: bool = False,
     device: str = "cuda",
 ):
     inputs = {}
@@ -31,7 +32,10 @@ def prepare_inputs_outputs(
         shape = module.get_input_maximum_shape(idx)
         dtype = _ENUM_TO_TORCH_DTYPE[module.get_input_dtype(idx)]
         if dtype.is_floating_point:
-            tensor = torch.randn(*shape, dtype=dtype).to(device)
+            if use_zeros:
+                tensor = torch.zeros(*shape, dtype=dtype).to(device)
+            else:
+                tensor = torch.randn(*shape, dtype=dtype).to(device)
         else:
             tensor = torch.randint(0, 64, shape, dtype=dtype).to(device)
         inputs[name] = tensor

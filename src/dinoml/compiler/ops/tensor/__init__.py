@@ -43,6 +43,7 @@ from dinoml.compiler.ops.tensor.permute102 import permute102
 from dinoml.compiler.ops.tensor.permute210 import permute210
 from dinoml.compiler.ops.tensor.pixel_shuffle import pixel_shuffle
 from dinoml.compiler.ops.tensor.pixel_unshuffle import pixel_unshuffle
+from dinoml.compiler.ops.tensor.randn import randn
 from dinoml.compiler.ops.tensor.relational import eq, ge, gt, le, lt, ne
 from dinoml.compiler.ops.tensor.relative_attention_bias import relative_attention_bias
 from dinoml.compiler.ops.tensor.repeat_interleave import repeat_interleave
