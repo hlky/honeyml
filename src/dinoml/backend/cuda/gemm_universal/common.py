@@ -138,6 +138,8 @@ SRC_TEMPLATE = jinja2.Template(
 #include <vector>
 #include <cstdint>
 
+#include "dinoml/cutlass_global_override.h"
+
 #include "short_file.h"
 #include "cutlass/cutlass.h"
 #include "cutlass/gemm/device/gemm_universal.h"
@@ -1460,7 +1462,6 @@ def function_filter(cfg, func_attrs, ab_alignment):
     tmp = cfg.split("_")
     align_c = int(tmp[-1])
     align_ab = int(tmp[-2])
-    size_a, size_b = tmp[-6].split("x")
     if align_c != func_attrs["epilogue_alignment"]:
         return False
     if align_ab != ab_alignment:
