@@ -229,7 +229,6 @@ void {{function_name}} (
 )
 
 
-# NOTE: CUTLASS_CHECK after gemm_op removed as it can be faulty sometimes
 EXEC_TEMPLATE = jinja2.Template(
     """
 //  TODO: cast to right dtype
@@ -261,6 +260,7 @@ EXEC_TEMPLATE = jinja2.Template(
 {{indent}}status = gemm_op.initialize(arguments, workspace, stream);
 {{indent}}CUTLASS_CHECK(status);
 {{indent}}status = gemm_op(stream);
+{{indent}}CUTLASS_CHECK(status);
 {{indent}}return;
 """
 )
