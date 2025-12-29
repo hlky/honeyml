@@ -196,10 +196,7 @@ class T5Attention(nn.Module):
             ops.softmax()(ops.cast()(scores, "float32"), dim=-1), scores.dtype()
         )
         attn_w3 = ops.reshape()(attn_weights, [BH, S, S])
-        context3 = ops.bmm_rrr()(attn_w3, v3)
-
-        attn_output = ops.reshape()(context3, [batch_size, self.n_heads, S, D])
-        attn_output = ops.transpose()(attn_output, 1, 2)
+        attn_output = ops.bmm_rrr_permute((self.n_heads,))(attn_w3, v3)
         attn_output = ops.reshape()(attn_output, [batch_size, -1, self.inner_dim])
         attn_output = self.o(attn_output)
 
