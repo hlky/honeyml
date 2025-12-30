@@ -1,6 +1,6 @@
 import math
 
-from typing import Optional
+from typing import Optional, Tuple, Union
 
 import numpy as np
 from dinoml.compiler import ops
@@ -24,6 +24,22 @@ def get_shape(x):
     return shape
 
 
+def get_3d_sincos_pos_embed(
+    embed_dim: int,
+    spatial_size: Union[int, Tuple[int, int]],
+    temporal_size: int,
+    spatial_interpolation_scale: float = 1.0,
+    temporal_interpolation_scale: float = 1.0,
+) -> Tensor:
+    return ops.get_3d_sincos_pos_embed()(
+        embed_dim=embed_dim,
+        spatial_size=spatial_size,
+        temporal_size=temporal_size,
+        spatial_interpolation_scale=spatial_interpolation_scale,
+        temporal_interpolation_scale=temporal_interpolation_scale,
+    )
+
+
 def get_2d_sincos_pos_embed(
     embed_dim,
     grid_size,
@@ -32,70 +48,14 @@ def get_2d_sincos_pos_embed(
     interpolation_scale=1.0,
     base_size=16,
 ):
-    """
-    grid_size: int of the grid height and width return: pos_embed: [grid_size*grid_size, embed_dim] or
-    [1+grid_size*grid_size, embed_dim] (w/ or w/o cls_token)
-    """
-    if isinstance(grid_size, int):
-        grid_size = (grid_size, grid_size)
-
-    grid_h = (
-        ops.arange(0, grid_size[0], 1)()
-        / (grid_size[0] / base_size)
-        / interpolation_scale
+    return ops.get_2d_sincos_pos_embed()(
+        embed_dim=embed_dim,
+        grid_size=grid_size,
+        cls_token=cls_token,
+        extra_tokens=extra_tokens,
+        interpolation_scale=interpolation_scale,
+        base_size=base_size,
     )
-    grid_w = (
-        ops.arange(0, grid_size[1], 1)()
-        / (grid_size[1] / base_size)
-        / interpolation_scale
-    )
-    grid = ops.meshgrid()(grid_w, grid_h)  # here w goes first
-    grid = ops.stack()(grid, dim=0)
-
-    grid = ops.reshape()(grid, [2, 1, grid_size[1], grid_size[0]])
-    pos_embed = get_2d_sincos_pos_embed_from_grid(embed_dim, grid)
-    if cls_token and extra_tokens > 0:
-        pos_embed = ops.concatenate()(
-            [ops.full()([extra_tokens, embed_dim], fill_value=0.0), pos_embed], dim=0
-        )
-    return pos_embed
-
-
-def get_2d_sincos_pos_embed_from_grid(embed_dim, grid):
-    if embed_dim % 2 != 0:
-        raise ValueError("embed_dim must be divisible by 2")
-
-    # use half of dimensions to encode grid_h
-    grid_0, grid_1 = ops.chunk()(grid, 2, dim=0)
-    emb_h = get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid_0)  # (H*W, D/2)
-    emb_w = get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid_1)  # (H*W, D/2)
-
-    emb = ops.concatenate()([emb_h, emb_w], dim=1)  # (H*W, D)
-    return emb
-
-
-def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
-    """
-    embed_dim: output dimension for each position pos: a list of positions to be encoded: size (M,) out: (M, D)
-    """
-    if embed_dim % 2 != 0:
-        raise ValueError("embed_dim must be divisible by 2")
-
-    omega = ops.arange(0, embed_dim // 2, 1)()
-    omega /= embed_dim / 2.0
-    omega = 1.0 / ops.pow(10000, omega)  # (D/2,)
-
-    pos = ops.reshape()(pos, [-1])  # (M,)
-    pos = ops.reshape()(pos, [-1, 1])  # (M, 1)
-    omega = ops.reshape()(omega, [1, -1])  # (1, D/2)
-
-    out = ops.gemm_rrr()(pos, omega)  # (M, D/2) outer product
-
-    emb_sin = ops.sin(out)  # (M, D/2)
-    emb_cos = ops.cos(out)  # (M, D/2)
-
-    emb = ops.concatenate()([emb_sin, emb_cos], dim=1)  # (M, D)
-    return emb
 
 
 def get_timestep_embedding(
@@ -282,9 +242,9 @@ class PixArtAlphaCombinedTimestepSizeEmbeddings(nn.Module):
         timesteps_emb = self.timestep_embedder(timesteps_proj)  # (N, D)
 
         if self.use_additional_conditions:
-            assert resolution is not None and aspect_ratio is not None, (
-                "Additional conditions are required."
-            )
+            assert (
+                resolution is not None and aspect_ratio is not None
+            ), "Additional conditions are required."
             resolution_emb = self.additional_condition_proj(ops.flatten()(resolution))
             resolution_emb = ops.reshape()(
                 self.resolution_embedder(resolution_emb), [batch_size, -1]
@@ -350,6 +310,7 @@ class PatchEmbed(nn.Module):
         self.height, self.width = height // patch_size, width // patch_size
         self.base_size = height // patch_size
         self.interpolation_scale = interpolation_scale
+        self.embed_dim = embed_dim
         if pos_embed_max_size:
             grid_size = pos_embed_max_size
         else:
@@ -370,34 +331,15 @@ class PatchEmbed(nn.Module):
 
     def cropped_pos_embed(self, height, width):
         """Crops positional embeddings for SD3 compatibility."""
-        if self.pos_embed_max_size is None:
-            raise ValueError("`pos_embed_max_size` must be set for cropping.")
-
-        height = height / self.patch_size
-        width = width / self.patch_size
-        if any([value > self.pos_embed_max_size for value in height._attrs["values"]]):
-            raise ValueError(
-                f"Height ({height}) cannot be greater than `pos_embed_max_size`: {self.pos_embed_max_size}."
-            )
-        if any([value > self.pos_embed_max_size for value in width._attrs["values"]]):
-            raise ValueError(
-                f"Width ({width}) cannot be greater than `pos_embed_max_size`: {self.pos_embed_max_size}."
-            )
-
-        top = (self.pos_embed_max_size - height) / 2
-        left = (self.pos_embed_max_size - width) / 2
-        spatial_pos_embed = ops.reshape()(
-            self.pos_embed, [1, self.pos_embed_max_size, self.pos_embed_max_size, -1]
+        return ops.cropped_pos_embed()(
+            embed_dim=self.embed_dim,
+            pos_embed_max_size=self.pos_embed_max_size,
+            base_size=self.base_size,
+            interpolation_scale=self.interpolation_scale,
+            patch_size=self.patch_size,
+            height=height,
+            width=width,
         )
-        top_indices = ops.cast()(ops.arange(top, top + height, 1)(), "int64")
-        left_indices = ops.cast()(ops.arange(left, left + width, 1)(), "int64")
-        spatial_pos_embed = ops.index_select(dim=1)(spatial_pos_embed, top_indices)
-        spatial_pos_embed = ops.index_select(dim=2)(spatial_pos_embed, left_indices)
-        spatial_pos_embed = ops.reshape()(
-            spatial_pos_embed, [1, -1, ops.size()(spatial_pos_embed, dim=-1)]
-        )
-
-        return spatial_pos_embed
 
     def forward(self, latent: Tensor):
         # Directly accessing shape rather than ops.size to keep the named IntVar
@@ -415,9 +357,7 @@ class PatchEmbed(nn.Module):
         else:
             if self.height != height or self.width != width:
                 pos_embed = get_2d_sincos_pos_embed(
-                    embed_dim=ops.size()(self.pos_embed, dim=-1)
-                    ._attrs["int_var"]
-                    .symbolic_value(),
+                    embed_dim=self.embed_dim,
                     grid_size=(height, width),
                     base_size=self.base_size,
                     interpolation_scale=self.interpolation_scale,
@@ -426,7 +366,6 @@ class PatchEmbed(nn.Module):
             else:
                 pos_embed = self.pos_embed
 
-        pos_embed._attrs["shape"] = latent._attrs["shape"]
         return latent + pos_embed
 
 

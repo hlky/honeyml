@@ -134,9 +134,7 @@ __global__ void sincos_pos_embed_2d_kernel(
     return;
   }
 
-  const int64_t idx = row - (int64_t)prepend; // in [0, grid_w*grid_h)
-  // flatten order matches torch meshgrid(grid_w, grid_h) flatten: w-major,
-  // h-fastest
+  const int64_t idx = row - (int64_t)prepend;
   const int w = (int)(idx % (int64_t)grid_w);
   const int h = (int)(idx / (int64_t)grid_w);
 
@@ -156,11 +154,8 @@ __global__ void sincos_pos_embed_2d_kernel(
   for (int d = (int)threadIdx.x; d < embed_dim; d += (int)blockDim.x) {
     float val = 0.0f;
     if (d < half_dim) {
-      // first half uses grid[0] (w) per reference
-      // get_2d_sincos_pos_embed_from_grid
       val = sincos_1d(pos_w, half_dim, d);
     } else {
-      // second half uses grid[1] (h)
       val = sincos_1d(pos_h, half_dim, d - half_dim);
     }
     out[row * (int64_t)embed_dim + (int64_t)d] = (T)val;
@@ -191,6 +186,78 @@ void invoke_sincos_pos_embed_2d(
       extra_tokens,
       interpolation_scale,
       base_size);
+}
+
+template <typename T>
+__global__ void cropped_pos_embed_kernel(
+    T* __restrict__ out,
+    const int embed_dim,
+    const int pos_embed_max_size, // M
+    const int base_size,
+    const float interpolation_scale,
+    const int patch_size,
+    const int height,
+    const int width) {
+  const int Hc = height / patch_size;
+  const int Wc = width / patch_size;
+
+  const int top = (pos_embed_max_size - Hc) / 2;
+  const int left = (pos_embed_max_size - Wc) / 2;
+
+  const int64_t idx = (int64_t)blockIdx.x; // [0, Hc*Wc)
+  const int w_local = (int)(idx % (int64_t)Wc);
+  const int h_local = (int)(idx / (int64_t)Wc);
+
+  const int h = top + h_local;
+  const int w = left + w_local;
+
+  // match get_2d_sincos_pos_embed scaling for grid_size=(M,M)
+  const float scale =
+      ((float)pos_embed_max_size / (float)base_size) * interpolation_scale;
+  const float pos_h = (float)h / scale;
+  const float pos_w = (float)w / scale;
+
+  const int half_dim = embed_dim >> 1;
+
+  for (int d = (int)threadIdx.x; d < embed_dim; d += (int)blockDim.x) {
+    float val = 0.0f;
+    if (d < half_dim) {
+      // first half uses grid[0] == w
+      val = sincos_1d(pos_w, half_dim, d);
+    } else {
+      // second half uses grid[1] == h
+      val = sincos_1d(pos_h, half_dim, d - half_dim);
+    }
+    // out is shaped [1, Hc*Wc, D] -> contiguous like [Hc*Wc, D]
+    out[idx * (int64_t)embed_dim + (int64_t)d] = (T)val;
+  }
+}
+
+template <typename T>
+void invoke_cropped_pos_embed(
+    void* out,
+    int embed_dim,
+    int pos_embed_max_size,
+    int base_size,
+    float interpolation_scale,
+    int patch_size,
+    int height,
+    int width,
+    dinoml::DeviceStream stream) {
+  const int Hc = height / patch_size;
+  const int Wc = width / patch_size;
+  const int64_t blocks = (int64_t)Hc * (int64_t)Wc;
+  const int threads = std::min(embed_dim, 1024);
+
+  dinoml::cropped_pos_embed_kernel<T><<<blocks, threads, 0, stream>>>(
+      static_cast<T*>(out),
+      embed_dim,
+      pos_embed_max_size,
+      base_size,
+      interpolation_scale,
+      patch_size,
+      height,
+      width);
 }
 
 } // namespace dinoml

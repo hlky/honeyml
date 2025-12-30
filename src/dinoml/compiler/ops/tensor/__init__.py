@@ -24,6 +24,7 @@ from dinoml.compiler.ops.tensor.cast import cast
 from dinoml.compiler.ops.tensor.chunk import chunk
 from dinoml.compiler.ops.tensor.concatenate import concatenate
 from dinoml.compiler.ops.tensor.concatenate_tanh import concatenate_tanh
+from dinoml.compiler.ops.tensor.cropped_pos_embed import cropped_pos_embed
 from dinoml.compiler.ops.tensor.dynamic_slice import dynamic_slice
 from dinoml.compiler.ops.tensor.expand import expand
 from dinoml.compiler.ops.tensor.full import full
