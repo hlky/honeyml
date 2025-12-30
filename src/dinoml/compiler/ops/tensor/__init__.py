@@ -32,6 +32,7 @@ from dinoml.compiler.ops.tensor.gather import gather
 from dinoml.compiler.ops.tensor.gelu_new import gelu_new
 from dinoml.compiler.ops.tensor.get_3d_sincos_pos_embed import get_3d_sincos_pos_embed
 from dinoml.compiler.ops.tensor.get_2d_sincos_pos_embed import get_2d_sincos_pos_embed
+from dinoml.compiler.ops.tensor.get_timestep_embedding import get_timestep_embedding
 from dinoml.compiler.ops.tensor.identity import identity
 from dinoml.compiler.ops.tensor.index_select import index_select
 from dinoml.compiler.ops.tensor.jagged_to_padded_dense import jagged_to_padded_dense
