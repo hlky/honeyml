@@ -113,4 +113,84 @@ void invoke_sincos_pos_embed_3d(
       temporal_interpolation_scale);
 }
 
+template <typename T>
+__global__ void sincos_pos_embed_2d_kernel(
+    T* __restrict__ out,
+    const int embed_dim,
+    const int grid_h, // grid_size[0] in reference code
+    const int grid_w, // grid_size[1] in reference code
+    const int cls_token, // 0/1
+    const int extra_tokens,
+    const float interpolation_scale,
+    const int base_size) {
+  const int64_t row = (int64_t)blockIdx.x; // each row in output
+  const int prepend = (cls_token != 0 && extra_tokens > 0) ? extra_tokens : 0;
+
+  // Optional prefix zeros
+  if (row < prepend) {
+    for (int d = (int)threadIdx.x; d < embed_dim; d += (int)blockDim.x) {
+      out[row * (int64_t)embed_dim + (int64_t)d] = (T)0;
+    }
+    return;
+  }
+
+  const int64_t idx = row - (int64_t)prepend; // in [0, grid_w*grid_h)
+  // flatten order matches torch meshgrid(grid_w, grid_h) flatten: w-major,
+  // h-fastest
+  const int w = (int)(idx % (int64_t)grid_w);
+  const int h = (int)(idx / (int64_t)grid_w);
+
+  // match reference scaling
+  // grid_h: arange(H)/(H/base)/interp ; grid_w: arange(W)/(W/base)/interp
+  const float scale_h =
+      ((float)grid_h / (float)base_size) * interpolation_scale;
+  const float scale_w =
+      ((float)grid_w / (float)base_size) * interpolation_scale;
+
+  const float pos_h = (float)h / scale_h; // grid[1]
+  const float pos_w = (float)w / scale_w; // grid[0]
+
+  // 2D uses embed_dim/2 for w-part then embed_dim/2 for h-part
+  const int half_dim = embed_dim >> 1;
+
+  for (int d = (int)threadIdx.x; d < embed_dim; d += (int)blockDim.x) {
+    float val = 0.0f;
+    if (d < half_dim) {
+      // first half uses grid[0] (w) per reference
+      // get_2d_sincos_pos_embed_from_grid
+      val = sincos_1d(pos_w, half_dim, d);
+    } else {
+      // second half uses grid[1] (h)
+      val = sincos_1d(pos_h, half_dim, d - half_dim);
+    }
+    out[row * (int64_t)embed_dim + (int64_t)d] = (T)val;
+  }
+}
+
+template <typename T>
+void invoke_sincos_pos_embed_2d(
+    void* out,
+    int embed_dim,
+    int grid_h,
+    int grid_w,
+    int cls_token,
+    int extra_tokens,
+    float interpolation_scale,
+    int base_size,
+    dinoml::DeviceStream stream) {
+  const int prepend = (cls_token != 0 && extra_tokens > 0) ? extra_tokens : 0;
+  const int64_t rows = (int64_t)grid_h * (int64_t)grid_w + (int64_t)prepend;
+
+  const int threads = std::min(embed_dim, 1024);
+  dinoml::sincos_pos_embed_2d_kernel<T><<<rows, threads, 0, stream>>>(
+      static_cast<T*>(out),
+      embed_dim,
+      grid_h,
+      grid_w,
+      cls_token,
+      extra_tokens,
+      interpolation_scale,
+      base_size);
+}
+
 } // namespace dinoml
