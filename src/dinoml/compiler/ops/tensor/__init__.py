@@ -24,11 +24,14 @@ from dinoml.compiler.ops.tensor.cast import cast
 from dinoml.compiler.ops.tensor.chunk import chunk
 from dinoml.compiler.ops.tensor.concatenate import concatenate
 from dinoml.compiler.ops.tensor.concatenate_tanh import concatenate_tanh
+from dinoml.compiler.ops.tensor.cropped_pos_embed import cropped_pos_embed
 from dinoml.compiler.ops.tensor.dynamic_slice import dynamic_slice
 from dinoml.compiler.ops.tensor.expand import expand
 from dinoml.compiler.ops.tensor.full import full
 from dinoml.compiler.ops.tensor.gather import gather
 from dinoml.compiler.ops.tensor.gelu_new import gelu_new
+from dinoml.compiler.ops.tensor.get_3d_sincos_pos_embed import get_3d_sincos_pos_embed
+from dinoml.compiler.ops.tensor.get_2d_sincos_pos_embed import get_2d_sincos_pos_embed
 from dinoml.compiler.ops.tensor.identity import identity
 from dinoml.compiler.ops.tensor.index_select import index_select
 from dinoml.compiler.ops.tensor.jagged_to_padded_dense import jagged_to_padded_dense
