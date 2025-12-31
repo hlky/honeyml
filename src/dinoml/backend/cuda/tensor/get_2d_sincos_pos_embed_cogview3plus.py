@@ -1,0 +1,130 @@
+from typing import Any, Dict, List
+
+import jinja2
+
+from dinoml.backend import registry
+from dinoml.backend.backend_spec import CUDASpec
+from dinoml.compiler.base import IntImm, IntVar
+
+
+SRC_TEMPLATE = jinja2.Template(
+    r"""
+#include <dinoml/device.h>
+#include <ops/positional_embeddings.h>
+
+void {{function_name}}(
+    void* out,
+    const void* pos_table,
+    int hidden_size,
+    int pos_embed_max_size,
+    int height,
+    int width,
+    int text_length,
+    dinoml::DeviceStream stream
+) {
+    dinoml::invoke_cogview3plus_joint_pos_embed<{{elem_type}}>(
+        out,
+        pos_table,
+        hidden_size,
+        pos_embed_max_size,
+        height,
+        width,
+        text_length,
+        stream
+    );
+}
+"""
+)
+
+FUNC_DECL_TEMPLATE = jinja2.Template(
+    r"""
+void {{func_name}}(
+    void*,
+    const void*,
+    int,
+    int,
+    int,
+    int,
+    int,
+    dinoml::DeviceStream
+);
+"""
+)
+
+FUNC_CALL_TEMPLATE = jinja2.Template(
+    r"""
+{{indent}}{{func_name}}(
+{{indent}}    {{output}},
+{{indent}}    {{pos_table}},
+{{indent}}    {{hidden_size}},
+{{indent}}    {{pos_embed_max_size}},
+{{indent}}    {{height}},
+{{indent}}    {{width}},
+{{indent}}    {{text_length}},
+{{indent}}    stream
+{{indent}});
+"""
+)
+
+
+def _to_int_expr(x) -> str:
+    if isinstance(x, IntImm):
+        return str(x.value())
+    if isinstance(x, IntVar):
+        return x._attrs["name"]
+    if isinstance(x, int):
+        return str(x)
+    raise RuntimeError(f"Expected IntImm/IntVar/int, got {type(x)}")
+
+
+def gen_function_call(func_attrs: Dict[str, Any], indent="  ") -> str:
+    pos = func_attrs["inputs"][0]
+    y = func_attrs["outputs"][0]
+
+    return FUNC_CALL_TEMPLATE.render(
+        func_name=func_attrs["name"],
+        output=y._attrs["name"],
+        pos_table=pos._attrs["name"],
+        hidden_size=_to_int_expr(func_attrs["hidden_size"]),
+        pos_embed_max_size=_to_int_expr(func_attrs["pos_embed_max_size"]),
+        height=_to_int_expr(func_attrs["height"]),
+        width=_to_int_expr(func_attrs["width"]),
+        text_length=_to_int_expr(func_attrs["text_length"]),
+        indent=indent,
+    )
+
+
+def gen_function(func_attrs, backend_spec):
+    func_name = func_attrs["name"]
+    backend_spec = CUDASpec()
+
+    # output dtype == pos_table dtype
+    elem_type = backend_spec.dtype_to_backend_type(
+        func_attrs["outputs"][0]._attrs["dtype"]
+    )
+
+    return SRC_TEMPLATE.render(
+        function_name=func_name,
+        elem_type=elem_type,
+    )
+
+
+def gen_function_decl(func_attrs: Dict[str, Any], backend_spec) -> str:
+    return FUNC_DECL_TEMPLATE.render(func_name=func_attrs["name"])
+
+
+@registry.reg("cuda.get_2d_sincos_pos_embed_cogview3plus.gen_function")
+def cuda_get_2d_sincos_pos_embed_cogview3plus_gen_function(func_attrs):
+    return gen_function(func_attrs, CUDASpec())
+
+
+@registry.reg("cuda.get_2d_sincos_pos_embed_cogview3plus.func_decl")
+def cuda_get_2d_sincos_pos_embed_cogview3plus_gen_function_decl(
+    func_attrs: Dict[str, Any],
+) -> str:
+    return gen_function_decl(func_attrs, CUDASpec())
+
+
+@registry.reg("cuda.get_2d_sincos_pos_embed_cogview3plus.func_call")
+def cuda_get_2d_sincos_pos_embed_cogview3plus_func_call(func_attrs, indent="  "):
+    return gen_function_call(func_attrs, indent)
