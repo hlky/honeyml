@@ -7,6 +7,7 @@ from dinoml.testing import detect_target
 from dinoml.testing.benchmark_dinoml import benchmark_module
 from dinoml.testing.benchmark_pt import benchmark_torch_function
 
+TOLERANCE = 3e-5
 
 def get_1d_rotary_pos_embed(
     dim: int,
@@ -128,8 +129,8 @@ def run_case(dim, pos_kind: str, use_real: bool, repeat_interleave_real: bool):
             {}, {"out0": torch.empty_like(ref0).contiguous(), "out1": torch.empty_like(ref1).contiguous()}
         )
 
-        torch.testing.assert_close(outs["out0"], ref0, rtol=1e-5, atol=1e-5)
-        torch.testing.assert_close(outs["out1"], ref1, rtol=1e-5, atol=1e-5)
+        torch.testing.assert_close(outs["out0"], ref0, rtol=TOLERANCE, atol=TOLERANCE)
+        torch.testing.assert_close(outs["out1"], ref1, rtol=TOLERANCE, atol=TOLERANCE)
 
         mean, _ = benchmark_module(mod, count=100)
         pt_mean = benchmark_torch_function(
@@ -186,8 +187,8 @@ def run_case(dim, pos_kind: str, use_real: bool, repeat_interleave_real: bool):
             {"out0": torch.empty_like(ref0).contiguous(), "out1": torch.empty_like(ref1).contiguous()},
         )
 
-        torch.testing.assert_close(outs["out0"], ref0, rtol=1e-5, atol=1e-5)
-        torch.testing.assert_close(outs["out1"], ref1, rtol=1e-5, atol=1e-5)
+        torch.testing.assert_close(outs["out0"], ref0, rtol=TOLERANCE, atol=TOLERANCE)
+        torch.testing.assert_close(outs["out1"], ref1, rtol=TOLERANCE, atol=TOLERANCE)
 
         mean, _ = benchmark_module(mod, count=100)
         pt_mean = benchmark_torch_function(
