@@ -17,6 +17,7 @@ def get_1d_rotary_pos_embed(
     ntk_factor=1.0,
     repeat_interleave_real=True,
     freqs_dtype=torch.float32,  #  torch.float32, torch.float64 (flux)
+    device = None,
 ):
     """
     Precompute the frequency tensor for complex exponentials (cis) with given dimensions.
@@ -47,7 +48,7 @@ def get_1d_rotary_pos_embed(
     assert dim % 2 == 0
 
     if isinstance(pos, int):
-        pos = torch.arange(pos)
+        pos = torch.arange(pos, device=device)
 
     theta = theta * ntk_factor
     freqs = (
@@ -100,6 +101,7 @@ def run_case(dim, pos_kind: str, use_real: bool, repeat_interleave_real: bool):
             linear_factor=linear_factor,
             ntk_factor=ntk_factor,
             repeat_interleave_real=repeat_interleave_real,
+            device="cuda",
         )
         out0, out1 = ops.get_1d_rotary_pos_embed()(
             dim=dim,
@@ -123,7 +125,7 @@ def run_case(dim, pos_kind: str, use_real: bool, repeat_interleave_real: bool):
             f"get_1d_rope_int_{use_real}_{repeat_interleave_real}",
         )
         outs = mod.run_with_tensors(
-            {}, {"out0": torch.empty_like(ref0), "out1": torch.empty_like(ref1)}
+            {}, {"out0": torch.empty_like(ref0).contiguous(), "out1": torch.empty_like(ref1).contiguous()}
         )
 
         torch.testing.assert_close(outs["out0"], ref0, rtol=1e-5, atol=1e-5)
@@ -140,6 +142,7 @@ def run_case(dim, pos_kind: str, use_real: bool, repeat_interleave_real: bool):
             linear_factor=linear_factor,
             ntk_factor=ntk_factor,
             repeat_interleave_real=repeat_interleave_real,
+            device="cuda",
         )
         print("DinoML mean:", mean, "PT mean:", pt_mean, "speedup:", pt_mean / mean)
 
@@ -179,8 +182,8 @@ def run_case(dim, pos_kind: str, use_real: bool, repeat_interleave_real: bool):
             f"get_1d_rope_tensor_{use_real}_{repeat_interleave_real}",
         )
         outs = mod.run_with_tensors(
-            {"pos": pos_pt},
-            {"out0": torch.empty_like(ref0), "out1": torch.empty_like(ref1)},
+            {"pos": pos_pt.contiguous()},
+            {"out0": torch.empty_like(ref0).contiguous(), "out1": torch.empty_like(ref1).contiguous()},
         )
 
         torch.testing.assert_close(outs["out0"], ref0, rtol=1e-5, atol=1e-5)
