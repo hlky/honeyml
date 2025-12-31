@@ -231,7 +231,6 @@ cos, sin = ops.get_3d_rotary_pos_embed()(
     use_real=True,
     grid_type="linspace",
     max_size=None,
-    device=None,
     dtype="float32",
 )
 
