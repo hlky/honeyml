@@ -109,7 +109,6 @@ def run_case(dim, pos_kind: str, use_real: bool, repeat_interleave_real: bool):
             linear_factor=linear_factor,
             ntk_factor=ntk_factor,
             repeat_interleave_real=repeat_interleave_real,
-            freqs_dtype="float32",
             dtype="float32",
         )
         out0._attrs["name"] = "out0"
@@ -166,7 +165,6 @@ def run_case(dim, pos_kind: str, use_real: bool, repeat_interleave_real: bool):
             linear_factor=linear_factor,
             ntk_factor=ntk_factor,
             repeat_interleave_real=repeat_interleave_real,
-            freqs_dtype="float32",
             dtype="float32",
         )
         out0._attrs["name"] = "out0"
