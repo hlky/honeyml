@@ -1,5 +1,6 @@
 from typing import Union
 import torch
+
 from dinoml.compiler import compile_model, ops
 from dinoml.testing import detect_target
 from dinoml.testing.benchmark_dinoml import benchmark_module
@@ -9,7 +10,6 @@ from dinoml.testing.benchmark_pt import benchmark_torch_function
 def get_2d_rotary_pos_embed_lumina(
     embed_dim, len_h, len_w, linear_factor=1.0, ntk_factor=1.0, device=None
 ):
-    # NOTE: runs on CPU in Diffusers
     assert embed_dim % 4 == 0
 
     emb_h = get_1d_rotary_pos_embed(
@@ -89,9 +89,6 @@ def get_1d_rotary_pos_embed(
         / linear_factor
     )  # [D/2]
     freqs = torch.outer(pos, freqs)  # type: ignore   # [S, D/2]
-    is_npu = freqs.device.type == "npu"
-    if is_npu:
-        freqs = freqs.float()
     if use_real and repeat_interleave_real:
         # flux, hunyuan-dit, cogvideox
         freqs_cos = (
@@ -118,46 +115,57 @@ def get_1d_rotary_pos_embed(
         return freqs_cis
 
 
-H, W = 12, 16
-EMBED = 128
+torch.manual_seed(0)
 
-ref_cos, ref_sin = get_2d_rotary_pos_embed_lumina(EMBED, H, W).to("cuda")
+EMBED_DIM = 256
+LEN_H = 24
+LEN_W = 32
+LINEAR = 1
+NTK = 1
 
-cos, sin = ops.get_2d_rotary_pos_embed_lumina()(
-    embed_dim=EMBED,
-    grid_size=(H, W),
-    linear_factor=1.0,
-    ntk_factor=1.0,
+ref = get_2d_rotary_pos_embed_lumina(
+    EMBED_DIM, LEN_H, LEN_W, linear_factor=LINEAR, ntk_factor=NTK, device="cuda"
+)
+ref_real = ref.real.float()
+ref_imag = ref.imag.float()
+
+real, imag = ops.get_2d_rotary_pos_embed_lumina()(
+    embed_dim=EMBED_DIM,
+    len_h=LEN_H,
+    len_w=LEN_W,
+    linear_factor=LINEAR,
+    ntk_factor=NTK,
+    dtype="float32",
+)
+real._attrs["name"] = "real"
+imag._attrs["name"] = "imag"
+real._attrs["is_output"] = True
+imag._attrs["is_output"] = True
+
+module = compile_model(
+    [real, imag], detect_target(), "./tmp", "get_2d_rotary_pos_embed_lumina"
 )
 
-cos._attrs["name"] = "cos"
-sin._attrs["name"] = "sin"
-
-module = compile_model([cos, sin], detect_target(), "./tmp", "rotary2d_lumina")
-out = module.run_with_tensors(
-    {}, {"cos": torch.empty_like(ref_cos), "sin": torch.empty_like(ref_sin)}
+outs = module.run_with_tensors(
+    {},
+    {
+        "real": torch.empty_like(ref_real).contiguous(),
+        "imag": torch.empty_like(ref_imag).contiguous(),
+    },
 )
 
-torch.testing.assert_close(out["cos"], ref_cos, atol=1e-5, rtol=1e-5)
-torch.testing.assert_close(out["sin"], ref_sin, atol=1e-5, rtol=1e-5)
-
+torch.testing.assert_close(outs["real"], ref_real, rtol=1e-5, atol=1e-5)
+torch.testing.assert_close(outs["imag"], ref_imag, rtol=1e-5, atol=1e-5)
 
 mean, _ = benchmark_module(module, count=100)
-
-pt_mean_cpu = benchmark_torch_function(100, get_2d_rotary_pos_embed_lumina, EMBED, H, W)
-
-pt_mean_cuda = benchmark_torch_function(
-    100, get_2d_rotary_pos_embed_lumina, EMBED, H, W, device="cuda"
+pt_mean = benchmark_torch_function(
+    100,
+    get_2d_rotary_pos_embed_lumina,
+    EMBED_DIM,
+    LEN_H,
+    LEN_W,
+    linear_factor=LINEAR,
+    ntk_factor=NTK,
+    device="cuda",
 )
-print(
-    "DinoML mean:",
-    mean,
-    "PT mean CPU:",
-    pt_mean_cpu,
-    "speedup vs cpu:",
-    pt_mean_cpu / mean,
-    "PT mean CUDA:",
-    pt_mean_cuda,
-    "speedup vs CUDA:",
-    pt_mean_cuda / mean,
-)
+print("DinoML mean:", mean, "PT mean:", pt_mean, "speedup:", pt_mean / mean)

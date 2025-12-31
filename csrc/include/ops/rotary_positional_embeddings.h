@@ -172,8 +172,8 @@ void invoke_get_3d_rotary_pos_embed(
 
 template <typename T>
 __global__ void get_2d_rotary_pos_embed_kernel(
-    T* __restrict__ out_cos,  // [HW, embed_dim]
-    T* __restrict__ out_sin,  // [HW, embed_dim]
+    T* __restrict__ out_cos, // [HW, embed_dim]
+    T* __restrict__ out_sin, // [HW, embed_dim]
     const int embed_dim,
     // crops_coords: (start_h,start_w), (stop_h,stop_w)
     const float crop_start_h,
@@ -194,7 +194,8 @@ __global__ void get_2d_rotary_pos_embed_kernel(
   const int w = (int)(idx - (int64_t)h * (int64_t)grid_w);
 
   // positions:
-  // grid_h uses start[0]..stop[0]*(H-1)/H ; grid_w uses start[1]..stop[1]*(W-1)/W
+  // grid_h uses start[0]..stop[0]*(H-1)/H ; grid_w uses
+  // start[1]..stop[1]*(W-1)/W
   const float stop_h = crop_stop_h * ((float)(grid_h - 1) / (float)grid_h);
   const float stop_w = crop_stop_w * ((float)(grid_w - 1) / (float)grid_w);
   const float pos_h = linspace_pos(crop_start_h, stop_h, grid_h, h);
@@ -259,59 +260,90 @@ void invoke_get_2d_rotary_pos_embed(
       theta);
 }
 
+__device__ __forceinline__ float rope_inv_freq_1d(
+    float log_theta,
+    int k,
+    int dim) {
+  const float exponent = -log_theta * ((2.0f * (float)k) / (float)dim);
+  return expf(exponent);
+}
+
 template <typename T>
 __global__ void get_2d_rotary_pos_embed_lumina_kernel(
-    T* __restrict__ out,
-    int embed_dim,
-    int grid_h,
-    int grid_w,
-    float linear_factor,
-    float ntk_factor) {
+    T* __restrict__ out_real, // [H, W, embed_dim/2]
+    T* __restrict__ out_imag, // [H, W, embed_dim/2]
+    const int embed_dim,
+    const int len_h,
+    const int len_w,
+    const float linear_factor,
+    const float ntk_factor,
+    const float theta) {
+  const int64_t idx = (int64_t)blockIdx.x; // over H*W
+  const int64_t HW = (int64_t)len_h * (int64_t)len_w;
+  if (idx >= HW) {
+    return;
+  }
 
-  const int idx = (int)blockIdx.x;
-  const int hw = grid_h * grid_w;
-  if (idx >= hw) return;
+  const int h = (int)(idx / (int64_t)len_w);
+  const int w = (int)(idx - (int64_t)h * (int64_t)len_w);
 
-  const int h = idx / grid_w;
-  const int w = idx % grid_w;
+  // 1D dim used in get_1d_rotary_pos_embed calls:
+  // dim_1d = embed_dim/2
+  const int dim_1d = embed_dim >> 1;
+  const int out_cols = dim_1d; // final complex last-dim count (embed_dim/2)
 
-  const int half = embed_dim / 2;
-  const float inv_theta = 1.0f / (float)pow(10000.0f, 1.0f / (float)half);
+  const float theta_eff = theta * ntk_factor;
+  const float log_theta = logf(theta_eff);
 
-  for (int i = threadIdx.x; i < embed_dim; i += blockDim.x) {
-    int k = i >> 1;
-    float freq = powf(inv_theta, (float)k) / linear_factor;
+  // output index base for [H, W, out_cols] contiguous
+  const int64_t base =
+      ((int64_t)h * (int64_t)len_w + (int64_t)w) * (int64_t)out_cols;
 
-    float angle = (i < half)
-        ? (float)h * freq
-        : (float)w * freq;
+  // d in [0, out_cols) corresponds to flattened last two dims:
+  // k in [0, dim_1d/2) and axis in {0,1}
+  // d = k*2 + axis
+  for (int d = (int)threadIdx.x; d < out_cols; d += (int)blockDim.x) {
+    const int axis = d & 1; // 0 -> emb_h, 1 -> emb_w
+    const int k = d >> 1; // frequency index in [0, dim_1d/2)
+    const float pos = (axis == 0) ? (float)h : (float)w;
 
-    float val = (i & 1) ? sinf(angle) : cosf(angle);
-    out[idx * embed_dim + i] = (T)val;
+    // inv_freq per Lumina 1D complex path:
+    // inv_freq = 1 / theta_eff^((2k)/dim_1d) / linear_factor
+    const float invf = rope_inv_freq_1d(log_theta, k, dim_1d) / linear_factor;
+    const float angle = pos * invf;
+
+    const float re = cosf(angle);
+    const float im = sinf(angle);
+
+    out_real[base + (int64_t)d] = (T)re;
+    out_imag[base + (int64_t)d] = (T)im;
   }
 }
 
 template <typename T>
 void invoke_get_2d_rotary_pos_embed_lumina(
-    void* out,
+    void* out_real,
+    void* out_imag,
     int embed_dim,
-    int grid_h,
-    int grid_w,
+    int len_h,
+    int len_w,
     float linear_factor,
     float ntk_factor,
     dinoml::DeviceStream stream) {
+  const int64_t blocks = (int64_t)len_h * (int64_t)len_w;
+  const int threads = std::min(std::max(embed_dim / 2, 1), 1024);
+  const float theta = 10000.0f; // matches reference default
 
-  const int total = grid_h * grid_w;
-  const int threads = std::min(embed_dim, 1024);
-
-  get_2d_rotary_pos_embed_lumina_kernel<T><<<total, threads, 0, stream>>>(
-      (T*)out,
-      embed_dim,
-      grid_h,
-      grid_w,
-      linear_factor,
-      ntk_factor);
+  dinoml::get_2d_rotary_pos_embed_lumina_kernel<T>
+      <<<blocks, threads, 0, stream>>>(
+          static_cast<T*>(out_real),
+          static_cast<T*>(out_imag),
+          embed_dim,
+          len_h,
+          len_w,
+          linear_factor,
+          ntk_factor,
+          theta);
 }
-
 
 } // namespace dinoml

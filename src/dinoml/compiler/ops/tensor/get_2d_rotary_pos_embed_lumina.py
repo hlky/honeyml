@@ -1,6 +1,6 @@
 from dinoml import backend
 from dinoml.backend import registry
-from dinoml.compiler.base import Operator, Tensor
+from dinoml.compiler.base import IntImm, Operator, Tensor
 from dinoml.compiler.dtype import normalize_dtype
 
 
@@ -14,33 +14,44 @@ class get_2d_rotary_pos_embed_lumina(Operator):
     def __call__(
         self,
         embed_dim: int,
-        grid_size,
+        len_h: int,
+        len_w: int,
         linear_factor: float = 1.0,
         ntk_factor: float = 1.0,
         dtype: str = "float32",
     ):
-        h, w = grid_size
-
         self._attrs["embed_dim"] = embed_dim
-        self._attrs["grid_h"] = h
-        self._attrs["grid_w"] = w
+        self._attrs["len_h"] = len_h
+        self._attrs["len_w"] = len_w
         self._attrs["linear_factor"] = float(linear_factor)
         self._attrs["ntk_factor"] = float(ntk_factor)
-        self._attrs["dtype"] = normalize_dtype(dtype)
         self._attrs["inputs"] = []
+        self._attrs["dtype"] = normalize_dtype(dtype)
 
         self._set_depth()
 
-        y = Tensor(
-            [h * w, embed_dim],
+        if isinstance(embed_dim, int):
+            out_cols = int(embed_dim) // 2
+        else:
+            out_cols = embed_dim / 2
+
+        real = Tensor(
+            [len_h, len_w, out_cols],
             src_ops={self},
             dtype=self._attrs["dtype"],
             skip_constant_folding=True,
         )
-        self._attrs["outputs"] = [y]
-        return y
+        imag = Tensor(
+            [len_h, len_w, out_cols],
+            src_ops={self},
+            dtype=self._attrs["dtype"],
+            skip_constant_folding=True,
+        )
 
-    def gen_function(self):
+        self._attrs["outputs"] = [real, imag]
+        return real, imag
+
+    def gen_function(self) -> str:
         target = backend.target.Target.current()
         func_key = f"{target.name()}.{self._attrs['op']}.gen_function"
         func = registry.get(func_key)
