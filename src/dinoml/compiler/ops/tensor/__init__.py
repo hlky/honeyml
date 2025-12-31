@@ -31,7 +31,19 @@ from dinoml.compiler.ops.tensor.full import full
 from dinoml.compiler.ops.tensor.gather import gather
 from dinoml.compiler.ops.tensor.gelu_new import gelu_new
 from dinoml.compiler.ops.tensor.get_3d_sincos_pos_embed import get_3d_sincos_pos_embed
+from dinoml.compiler.ops.tensor.get_3d_sincos_pos_embed_cogvideox import (
+    get_3d_sincos_pos_embed_cogvideox,
+)
+from dinoml.compiler.ops.tensor.get_2d_sincos_pos_embed_cogview3plus import (
+    get_2d_sincos_pos_embed_cogview3plus,
+)
 from dinoml.compiler.ops.tensor.get_2d_sincos_pos_embed import get_2d_sincos_pos_embed
+from dinoml.compiler.ops.tensor.get_3d_rotary_pos_embed import get_3d_rotary_pos_embed
+from dinoml.compiler.ops.tensor.get_2d_rotary_pos_embed import get_2d_rotary_pos_embed
+from dinoml.compiler.ops.tensor.get_2d_rotary_pos_embed_lumina import (
+    get_2d_rotary_pos_embed_lumina,
+)
+from dinoml.compiler.ops.tensor.get_1d_rotary_pos_embed import get_1d_rotary_pos_embed
 from dinoml.compiler.ops.tensor.get_timestep_embedding import get_timestep_embedding
 from dinoml.compiler.ops.tensor.identity import identity
 from dinoml.compiler.ops.tensor.index_select import index_select

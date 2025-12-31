@@ -114,6 +114,97 @@ void invoke_sincos_pos_embed_3d(
 }
 
 template <typename T>
+__global__ void sincos_pos_embed_3d_cogvideox_joint_kernel(
+    T* __restrict__ out, // [1, total_len, D] contiguous
+    const int embed_dim,
+    const int spatial_w,
+    const int spatial_h,
+    const int temporal_size,
+    const int max_text_seq_length,
+    const float spatial_interpolation_scale,
+    const float temporal_interpolation_scale) {
+  const int64_t out_pos = (int64_t)blockIdx.x; // in [0, total_len)
+  const int64_t hw_size = (int64_t)spatial_w * (int64_t)spatial_h;
+  const int64_t num_patches = (int64_t)temporal_size * hw_size;
+  const int64_t total_len = (int64_t)max_text_seq_length + num_patches;
+
+  if (out_pos >= total_len) {
+    return;
+  }
+
+  // If this is within the text prefix, it's zero.
+  if (out_pos < (int64_t)max_text_seq_length) {
+    for (int d = (int)threadIdx.x; d < embed_dim; d += (int)blockDim.x) {
+      out[out_pos * (int64_t)embed_dim + (int64_t)d] = (T)0;
+    }
+    return;
+  }
+
+  // Otherwise, map into patch index p in [0, num_patches)
+  const int64_t p = out_pos - (int64_t)max_text_seq_length;
+  const int t = (int)(p / hw_size);
+  const int hw = (int)(p - (int64_t)t * hw_size);
+
+  const int h = hw / spatial_w;
+  const int w = hw - h * spatial_w;
+
+  const float pos_t = (float)t / temporal_interpolation_scale;
+  const float pos_w = (float)w / spatial_interpolation_scale; // grid[0] (w)
+  const float pos_h = (float)h / spatial_interpolation_scale; // grid[1] (h)
+
+  const int embed_dim_temporal = embed_dim / 4;
+  const int embed_dim_spatial = 3 * embed_dim / 4;
+  const int embed_dim_1d_spatial = embed_dim_spatial / 2;
+
+  for (int d = (int)threadIdx.x; d < embed_dim; d += (int)blockDim.x) {
+    float val = 0.0f;
+
+    if (d < embed_dim_temporal) {
+      val = sincos_1d(pos_t, embed_dim_temporal, d);
+    } else {
+      const int ds = d - embed_dim_temporal;
+      if (ds < embed_dim_1d_spatial) {
+        val = sincos_1d(pos_w, embed_dim_1d_spatial, ds);
+      } else {
+        val = sincos_1d(pos_h, embed_dim_1d_spatial, ds - embed_dim_1d_spatial);
+      }
+    }
+
+    out[out_pos * (int64_t)embed_dim + (int64_t)d] = (T)val;
+  }
+}
+
+template <typename T>
+void invoke_sincos_pos_embed_3d_cogvideox_joint(
+    void* out,
+    int embed_dim,
+    int spatial_w,
+    int spatial_h,
+    int temporal_size,
+    int max_text_seq_length,
+    float spatial_interpolation_scale,
+    float temporal_interpolation_scale,
+    dinoml::DeviceStream stream) {
+  const int64_t hw_size = (int64_t)spatial_w * (int64_t)spatial_h;
+  const int64_t num_patches = (int64_t)temporal_size * hw_size;
+  const int64_t total_len = (int64_t)max_text_seq_length + num_patches;
+
+  const int64_t blocks = total_len; // one block per output position
+  const int threads = std::min(embed_dim, 1024);
+
+  dinoml::sincos_pos_embed_3d_cogvideox_joint_kernel<T>
+      <<<blocks, threads, 0, stream>>>(
+          static_cast<T*>(out),
+          embed_dim,
+          spatial_w,
+          spatial_h,
+          temporal_size,
+          max_text_seq_length,
+          spatial_interpolation_scale,
+          temporal_interpolation_scale);
+}
+
+template <typename T>
 __global__ void sincos_pos_embed_2d_kernel(
     T* __restrict__ out,
     const int embed_dim,
@@ -186,6 +277,71 @@ void invoke_sincos_pos_embed_2d(
       extra_tokens,
       interpolation_scale,
       base_size);
+}
+
+template <typename T>
+__global__ void cogview3plus_joint_pos_embed_kernel(
+    T* __restrict__ out, // [1, text_length + H*W, D]
+    const T* __restrict__ pos_table, // [P, P, D] contiguous
+    const int hidden_size,
+    const int pos_embed_max_size, // P
+    const int height, // H
+    const int width, // W
+    const int text_length) {
+  const int64_t row = (int64_t)blockIdx.x; // [0, text_length + H*W)
+  const int64_t hw = (int64_t)height * (int64_t)width;
+  const int64_t total = (int64_t)text_length + hw;
+
+  if (row >= total) {
+    return;
+  }
+
+  // Text prefix is zeros
+  if (row < (int64_t)text_length) {
+    for (int d = (int)threadIdx.x; d < hidden_size; d += (int)blockDim.x) {
+      out[row * (int64_t)hidden_size + (int64_t)d] = (T)0;
+    }
+    return;
+  }
+
+  // Image positions: flatten row-major (h major then w), matching:
+  //   image_pos_embed = pos_table[:H, :W].reshape(H*W, -1)
+  const int64_t p = row - (int64_t)text_length; // in [0, H*W)
+  const int h = (int)(p / (int64_t)width);
+  const int w = (int)(p - (int64_t)h * (int64_t)width);
+
+  // pos_table is indexed [h, w, d] with leading dim P (pos_embed_max_size)
+  const int64_t base = ((int64_t)h * (int64_t)pos_embed_max_size + (int64_t)w) *
+      (int64_t)hidden_size;
+
+  for (int d = (int)threadIdx.x; d < hidden_size; d += (int)blockDim.x) {
+    out[row * (int64_t)hidden_size + (int64_t)d] =
+        LDG(&pos_table[base + (int64_t)d]);
+  }
+}
+
+template <typename T>
+void invoke_cogview3plus_joint_pos_embed(
+    void* out,
+    const void* pos_table,
+    int hidden_size,
+    int pos_embed_max_size,
+    int height,
+    int width,
+    int text_length,
+    dinoml::DeviceStream stream) {
+  const int64_t hw = (int64_t)height * (int64_t)width;
+  const int64_t rows = (int64_t)text_length + hw;
+
+  const int threads = std::min(hidden_size, 1024);
+  dinoml::cogview3plus_joint_pos_embed_kernel<T><<<rows, threads, 0, stream>>>(
+      static_cast<T*>(out),
+      static_cast<const T*>(pos_table),
+      hidden_size,
+      pos_embed_max_size,
+      height,
+      width,
+      text_length);
 }
 
 template <typename T>
