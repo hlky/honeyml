@@ -50,10 +50,10 @@ FUNC_CALL_TEMPLATE = jinja2.Template(
     """
 {{indent}}{
     {{indent}}uint64_t {{func_name}}_n_elements = {{n}};
-    {{indent}}uint64_t {{func_name}}_seed = {% if seed is not none %}{{ seed }}{% else %}dinoml::make_seed(){% endif %};
+    {{indent}}uint64_t {{func_name}}_seed = {% if seed is not none %}{{ seed }}{% else %}dinoml::helpers::make_seed(){% endif %};
     {{indent}}uint64_t {{func_name}}_counter = {% if offset_groups is not none %}{{ offset_groups }}{% else %}global_counter_{% endif %};
     {{indent}}  auto [{{func_name}}_counter_offset, {{func_name}}_grid, {{func_name}}_block] =
-    {{indent}}      calc_execution_policy((int64_t){{func_name}}_n_elements, /*unroll_factor=*/4);
+    {{indent}}      dinoml::helpers::calc_execution_policy((int64_t){{func_name}}_n_elements, /*unroll_factor=*/4);
     {{indent}}{{func_name}}(
     {{indent}}    {{out_ptr}},
     {{indent}}    {{func_name}}_n_elements,

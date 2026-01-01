@@ -26,7 +26,7 @@ from dinoml.backend.backend_spec import CUDASpec
 
 EXEC_TEMPLATE = jinja2.Template(
     """
-{{indent}}upsampling_2d_launcher<{{dtype}}, int64_t, {{alignment}}, {{mode}}, {{align_corners}}, {{exact}}>(
+{{indent}}upsampling_2d_launcher<{{dtype}}, {{vec_type}}, int64_t, {{alignment}}, {{mode}}, {{align_corners}}, {{exact}}, {{has_residual}}>(
 {{indent}}    static_cast<const {{dtype}}*>(in_ptr),
 {{indent}}    static_cast<const {{dtype}}*>(res_ptr),
 {{indent}}    static_cast<{{dtype}}*>(out_ptr),
@@ -136,7 +136,8 @@ def gen_alignment(x):
     if in_channel % 8 == 0:
         tsize = 8
     elif in_channel % 4 == 0:
-        tsize = 4
+        # TODO
+        tsize = 2
     elif in_channel % 2 == 0:
         tsize = 2
     else:
@@ -190,11 +191,43 @@ def gen_function(
     shape_eval_template,
     shape_save_template,
     backend_spec,
+    bias_add: bool = False,
 ):
     func_name = func_attrs["name"]
     exec_path = func_attrs["exec_path"]
     x = func_attrs["inputs"][0]
     input_type = backend_spec.dtype_to_backend_type(x._attrs["dtype"])
+    alignment = gen_alignment(x)
+    if func_attrs["mode"] == "bilinear":
+        if alignment > 1:
+            alignment = 2
+        if input_type == "float":
+            vec_type = "float2"
+        elif input_type == "bfloat16":
+            vec_type = "bfloat162"
+        else:
+            vec_type = "half2"
+    else:
+        if input_type == "float":
+            if alignment > 1:
+                vec_type = "float2"
+                alignment = 2
+            else:
+                vec_type = "float"
+        elif input_type == "half":
+            if alignment == 8:
+                vec_type = "float4"
+            elif 1 < alignment < 8:
+                vec_type = "half2"
+            else:
+                vec_type = "half"
+        elif input_type == "bfloat16":
+            if alignment == 8:
+                vec_type = "float4"
+            elif 1 < alignment < 8:
+                vec_type = "bfloat162"
+            else:
+                vec_type = "bfloat16"
 
     args = {
         "indent": "    ",
@@ -233,13 +266,16 @@ def gen_function(
     else:
         align_corners = str(func_attrs["align_corners"]).lower()
     exact = str(func_attrs["mode"] == "nearest-exact").lower()
+    has_residual = str(bias_add).lower()
     for key in exec_path:
         program = EXEC_TEMPLATE.render(
             dtype=input_type,
-            alignment=gen_alignment(x),
+            vec_type=vec_type,
+            alignment=alignment,
             mode=mode,
             align_corners=align_corners,
             exact=exact,
+            has_residual=has_residual,
         )
         exec_inst = exec_cond_template.render(indent="  ", cond=key, program=program)
         exec_paths += exec_inst

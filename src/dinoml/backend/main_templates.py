@@ -25,6 +25,7 @@ MODEL_TEMPLATE = jinja2.Template(
 #include "debug_utility.h"
 {% endif %}
 #include <dinoml/device.h>
+#include <dinoml/helpers.h>
 #include "short_file.h"
 #include "logging.h"
 #include "device_functions-generated.h"

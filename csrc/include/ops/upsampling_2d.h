@@ -1,4 +1,5 @@
 #include <dinoml/device.h>
+#include <dinoml/helpers.h>
 #include <cstdint>
 #include <type_traits>
 
@@ -88,66 +89,25 @@ __global__ void bilinear_upsampling_2d_kernel(
                 channels +
             c);
 
-    float top_x;
-    float top_y;
-    float bottom_x;
-    float bottom_y;
-    if constexpr (std::is_same_v<ElemInputType, float>) {
-      top_x = HALF2DATA(top_left).x +
-          (HALF2DATA(top_right).x - HALF2DATA(top_left).x) * x_lerp;
-      top_y = HALF2DATA(top_left).y +
-          (HALF2DATA(top_right).y - HALF2DATA(top_left).y) * x_lerp;
-      bottom_x = HALF2DATA(bottom_left).x +
-          (HALF2DATA(bottom_right).x - HALF2DATA(bottom_left).x) * x_lerp;
-      bottom_y = HALF2DATA(bottom_left).y +
-          (HALF2DATA(bottom_right).y - HALF2DATA(bottom_left).y) * x_lerp;
-    } else if constexpr (std::is_same_v<ElemInputType, half>) {
-      top_x = __half2float(HALF2DATA(top_left).x) +
-          (__half2float(HALF2DATA(top_right).x) -
-           __half2float(HALF2DATA(top_left).x)) *
-              x_lerp;
-      top_y = __half2float(HALF2DATA(top_left).y) +
-          (__half2float(HALF2DATA(top_right).y) -
-           __half2float(HALF2DATA(top_left).y)) *
-              x_lerp;
-      bottom_x = __half2float(HALF2DATA(bottom_left).x) +
-          (__half2float(HALF2DATA(bottom_right).x) -
-           __half2float(HALF2DATA(bottom_left).x)) *
-              x_lerp;
-      bottom_y = __half2float(HALF2DATA(bottom_left).y) +
-          (__half2float(HALF2DATA(bottom_right).y) -
-           __half2float(HALF2DATA(bottom_left).y)) *
-              x_lerp;
-    } else if constexpr (std::is_same_v<ElemInputType, bfloat16>) {
-      top_x = __bfloat162float(HALF2DATA(top_left).x) +
-          (__bfloat162float(HALF2DATA(top_right).x) -
-           __bfloat162float(HALF2DATA(top_left).x)) *
-              x_lerp;
-      top_y = __bfloat162float(HALF2DATA(top_left).y) +
-          (__bfloat162float(HALF2DATA(top_right).y) -
-           __bfloat162float(HALF2DATA(top_left).y)) *
-              x_lerp;
-      bottom_x = __bfloat162float(HALF2DATA(bottom_left).x) +
-          (__bfloat162float(HALF2DATA(bottom_right).x) -
-           __bfloat162float(HALF2DATA(bottom_left).x)) *
-              x_lerp;
-      bottom_y = __bfloat162float(HALF2DATA(bottom_left).y) +
-          (__bfloat162float(HALF2DATA(bottom_right).y) -
-           __bfloat162float(HALF2DATA(bottom_left).y)) *
-              x_lerp;
-    }
+    const float2 tl =
+        dinoml::helpers::convert<float2, VectorType>::run(top_left);
+    const float2 tr =
+        dinoml::helpers::convert<float2, VectorType>::run(top_right);
+    const float2 bl =
+        dinoml::helpers::convert<float2, VectorType>::run(bottom_left);
+    const float2 br =
+        dinoml::helpers::convert<float2, VectorType>::run(bottom_right);
+
+    const float top_x = tl.x + (tr.x - tl.x) * x_lerp;
+    const float top_y = tl.y + (tr.y - tl.y) * x_lerp;
+    const float bottom_x = bl.x + (br.x - bl.x) * x_lerp;
+    const float bottom_y = bl.y + (br.y - bl.y) * x_lerp;
 
     float2 out = {0.f, 0.f};
     out.x = top_x + (bottom_x - top_x) * y_lerp;
     out.y = top_y + (bottom_y - top_y) * y_lerp;
 
-    if constexpr (std::is_same_v<ElemInputType, float>) {
-      output[out_idx] = out;
-    } else if constexpr (std::is_same_v<ElemInputType, half>) {
-      output[out_idx] = __float22half2_rn(out);
-    } else if constexpr (std::is_same_v<ElemInputType, bfloat16>) {
-      output[out_idx] = __float22bfloat162_rn(out);
-    }
+    output[out_idx] = dinoml::helpers::convert<VectorType, float2>::run(out);
   }
 }
 
@@ -237,71 +197,25 @@ __global__ void bilinear_upsampling_2d_add_kernel(
                 channels +
             c);
 
-    float top_x;
-    float top_y;
-    float bottom_x;
-    float bottom_y;
-    if constexpr (std::is_same_v<ElemInputType, float>) {
-      top_x = HALF2DATA(top_left).x +
-          (HALF2DATA(top_right).x - HALF2DATA(top_left).x) * x_lerp;
-      top_y = HALF2DATA(top_left).y +
-          (HALF2DATA(top_right).y - HALF2DATA(top_left).y) * x_lerp;
-      bottom_x = HALF2DATA(bottom_left).x +
-          (HALF2DATA(bottom_right).x - HALF2DATA(bottom_left).x) * x_lerp;
-      bottom_y = HALF2DATA(bottom_left).y +
-          (HALF2DATA(bottom_right).y - HALF2DATA(bottom_left).y) * x_lerp;
-    } else if constexpr (std::is_same_v<ElemInputType, half>) {
-      top_x = __half2float(HALF2DATA(top_left).x) +
-          (__half2float(HALF2DATA(top_right).x) -
-           __half2float(HALF2DATA(top_left).x)) *
-              x_lerp;
-      top_y = __half2float(HALF2DATA(top_left).y) +
-          (__half2float(HALF2DATA(top_right).y) -
-           __half2float(HALF2DATA(top_left).y)) *
-              x_lerp;
-      bottom_x = __half2float(HALF2DATA(bottom_left).x) +
-          (__half2float(HALF2DATA(bottom_right).x) -
-           __half2float(HALF2DATA(bottom_left).x)) *
-              x_lerp;
-      bottom_y = __half2float(HALF2DATA(bottom_left).y) +
-          (__half2float(HALF2DATA(bottom_right).y) -
-           __half2float(HALF2DATA(bottom_left).y)) *
-              x_lerp;
-    } else if constexpr (std::is_same_v<ElemInputType, bfloat16>) {
-      top_x = __bfloat162float(HALF2DATA(top_left).x) +
-          (__bfloat162float(HALF2DATA(top_right).x) -
-           __bfloat162float(HALF2DATA(top_left).x)) *
-              x_lerp;
-      top_y = __bfloat162float(HALF2DATA(top_left).y) +
-          (__bfloat162float(HALF2DATA(top_right).y) -
-           __bfloat162float(HALF2DATA(top_left).y)) *
-              x_lerp;
-      bottom_x = __bfloat162float(HALF2DATA(bottom_left).x) +
-          (__bfloat162float(HALF2DATA(bottom_right).x) -
-           __bfloat162float(HALF2DATA(bottom_left).x)) *
-              x_lerp;
-      bottom_y = __bfloat162float(HALF2DATA(bottom_left).y) +
-          (__bfloat162float(HALF2DATA(bottom_right).y) -
-           __bfloat162float(HALF2DATA(bottom_left).y)) *
-              x_lerp;
-    }
+    const float2 tl =
+        dinoml::helpers::convert<float2, VectorType>::run(top_left);
+    const float2 tr =
+        dinoml::helpers::convert<float2, VectorType>::run(top_right);
+    const float2 bl =
+        dinoml::helpers::convert<float2, VectorType>::run(bottom_left);
+    const float2 br =
+        dinoml::helpers::convert<float2, VectorType>::run(bottom_right);
+
+    const float top_x = tl.x + (tr.x - tl.x) * x_lerp;
+    const float top_y = tl.y + (tr.y - tl.y) * x_lerp;
+    const float bottom_x = bl.x + (br.x - bl.x) * x_lerp;
+    const float bottom_y = bl.y + (br.y - bl.y) * x_lerp;
 
     float2 out = {0.f, 0.f};
     out.x = top_x + (bottom_x - top_x) * y_lerp;
     out.y = top_y + (bottom_y - top_y) * y_lerp;
 
-    if constexpr (std::is_same_v<ElemInputType, float>) {
-      const auto tmp = LDG(input_res + out_idx);
-      out.x += tmp.x;
-      out.y += tmp.y;
-      output[out_idx] = out;
-    } else if constexpr (std::is_same_v<ElemInputType, half>) {
-      output[out_idx] =
-          __hadd2(__float22half2_rn(out), LDG(input_res + out_idx));
-    } else if constexpr (std::is_same_v<ElemInputType, bfloat16>) {
-      output[out_idx] =
-          __hadd2(__float22bfloat162_rn(out), LDG(input_res + out_idx));
-    }
+    output[out_idx] = dinoml::helpers::add2(LDG(input_res + out_idx), out);
   }
 }
 
@@ -430,28 +344,10 @@ __global__ void nearest_upsampling_2d_add_kernel(
 
     const int idx = (in_y * in_width + in_x) * channels + c;
 
-    VectorType input_val = __ldg(bottom_data_n + idx);
-    VectorType input_res_val = __ldg(input_res + index);
-    if constexpr (std::is_same_v<ElemType, VectorType>) {
-      output[index] = input_val + input_res_val;
-    } else {
-      if (VectorSize == 8) {
-        VectorType output_val;
-        ElemType* pack_y = reinterpret_cast<ElemType*>(&output_val);
-        ElemType* pack_x = reinterpret_cast<ElemType*>(&input_val);
-        ElemType* pack_res = reinterpret_cast<ElemType*>(&input_res_val);
-        for (int k = 0; k < VectorSize; k++)
-          pack_y[k] = pack_x[k] + pack_res[k];
-        output[index] = output_val;
-      } else {
-        VectorType output_val;
-        HALF2DATA(output_val).x =
-            HALF2DATA(input_val).x + HALF2DATA(input_res_val).x;
-        HALF2DATA(output_val).y =
-            HALF2DATA(input_val).y + HALF2DATA(input_res_val).y;
-        output[index] = output_val;
-      }
-    }
+    VectorType input_val = LDG(bottom_data_n + idx);
+    VectorType input_res_val = LDG(input_res + index);
+    output[index] = dinoml::helpers::add_op2<VectorType, ElemType>::run(
+        input_val, input_res_val);
   }
 }
 
@@ -465,11 +361,13 @@ enum class Upsampling2dMode {
 
 template <
     typename ElemType,
+    typename VectorType,
     typename IndexType,
     int Alignment,
     dinoml::Upsampling2dMode Mode,
     bool AlignCorners,
-    bool Exact>
+    bool Exact,
+    bool HasResidual>
 void upsampling_2d_launcher(
     const ElemType* input,
     const ElemType* res,
@@ -484,278 +382,66 @@ void upsampling_2d_launcher(
   const int64_t output_size = N * (C)*HO * WO;
   dim3 grid(
       std::min(
-          dinoml::ceil_div(
+          dinoml::helpers::ceil_div(
               static_cast<int64_t>(output_size), static_cast<int64_t>(512)),
           static_cast<int64_t>(4096)));
   dim3 block(512);
 
-  if (Mode == dinoml::Upsampling2dMode::BILINEAR) {
-    if constexpr (std::is_same_v<ElemType, float>) {
-      if (res == nullptr) {
-        dinoml::bilinear_upsampling_2d_kernel<
-            ElemType,
-            float2,
-            IndexType,
-            AlignCorners>
-            <<<grid, block, 0, stream>>>(input, output, N, H, W, C / 2, HO, WO);
-      } else {
+  if constexpr (Mode == dinoml::Upsampling2dMode::BILINEAR) {
+    if constexpr (
+        std::is_same_v<VectorType, float2> ||
+        std::is_same_v<VectorType, half2> ||
+        std::is_same_v<VectorType, bfloat162>) {
+      if constexpr (HasResidual) {
         dinoml::bilinear_upsampling_2d_add_kernel<
             ElemType,
-            float2,
+            VectorType,
             IndexType,
             AlignCorners><<<grid, block, 0, stream>>>(
-            input, res, output, N, H, W, C / 2, HO, WO);
-      }
-    } else if constexpr (std::is_same_v<ElemType, half>) {
-      if (res == nullptr) {
+            input, res, output, N, H, W, C / Alignment, HO, WO);
+      } else {
         dinoml::bilinear_upsampling_2d_kernel<
             ElemType,
-            half2,
-            IndexType,
-            AlignCorners>
-            <<<grid, block, 0, stream>>>(input, output, N, H, W, C / 2, HO, WO);
-      } else {
-        dinoml::bilinear_upsampling_2d_add_kernel<
-            ElemType,
-            half2,
+            VectorType,
             IndexType,
             AlignCorners><<<grid, block, 0, stream>>>(
-            input, res, output, N, H, W, C / 2, HO, WO);
+            input, output, N, H, W, C / Alignment, HO, WO);
       }
-    } else if constexpr (std::is_same_v<ElemType, bfloat16>) {
-      if (res == nullptr) {
-        dinoml::bilinear_upsampling_2d_kernel<
-            ElemType,
-            bfloat162,
-            IndexType,
-            AlignCorners>
-            <<<grid, block, 0, stream>>>(input, output, N, H, W, C / 2, HO, WO);
-      } else {
-        dinoml::bilinear_upsampling_2d_add_kernel<
-            ElemType,
-            bfloat162,
-            IndexType,
-            AlignCorners><<<grid, block, 0, stream>>>(
-            input, res, output, N, H, W, C / 2, HO, WO);
-      }
-    } else {
-      throw std::runtime_error(
-          "Unsupported workload for this bilinear upsampling specialization.");
     }
-  } else if (
+  } else if constexpr (
       Mode == dinoml::Upsampling2dMode::NEAREST ||
       Mode == dinoml::Upsampling2dMode::NEAREST_EXACT) {
-    if constexpr (std::is_same_v<ElemType, float>) {
-      if (res == nullptr) {
-        if (Alignment == 1) {
-          dinoml::
-              nearest_upsampling_2d_kernel<ElemType, float, IndexType, 1, Exact>
-              <<<grid, block, 0, stream>>>(
-                  (const float*)input, (float*)output, N, H, W, C, HO, WO);
-        } else {
-          dinoml::nearest_upsampling_2d_kernel<
-              ElemType,
-              float2,
-              IndexType,
-              2,
-              Exact><<<grid, block, 0, stream>>>(
-              (const float2*)input, (float2*)output, N, H, W, C / 2, HO, WO);
-        }
-      } else {
-        if (Alignment == 1) {
-          dinoml::nearest_upsampling_2d_add_kernel<
-              ElemType,
-              float,
-              IndexType,
-              1,
-              Exact><<<grid, block, 0, stream>>>(
-              (const float*)input,
-              (const float*)res,
-              (float*)output,
-              N,
-              H,
-              W,
-              C,
-              HO,
-              WO);
-        } else {
-          dinoml::nearest_upsampling_2d_add_kernel<
-              ElemType,
-              float2,
-              IndexType,
-              2,
-              Exact><<<grid, block, 0, stream>>>(
-              (const float2*)input,
-              (const float2*)res,
-              (float2*)output,
-              N,
-              H,
-              W,
-              C / 2,
-              HO,
-              WO);
-        }
-      }
-    } else if constexpr (std::is_same_v<ElemType, half>) {
-      if (res == nullptr) {
-        if (Alignment == 1) {
-          dinoml::
-              nearest_upsampling_2d_kernel<ElemType, half, IndexType, 1, Exact>
-              <<<grid, block, 0, stream>>>(
-                  (const half*)input, (half*)output, N, H, W, C, HO, WO);
-        } else if (Alignment == 8) {
-          dinoml::nearest_upsampling_2d_kernel<
-              ElemType,
-              float4,
-              IndexType,
-              8,
-              Exact><<<grid, block, 0, stream>>>(
-              (const float4*)input, (float4*)output, N, H, W, C / 8, HO, WO);
-        } else {
-          dinoml::
-              nearest_upsampling_2d_kernel<ElemType, half2, IndexType, 2, Exact>
-              <<<grid, block, 0, stream>>>(
-                  (const half2*)input, (half2*)output, N, H, W, C / 2, HO, WO);
-        }
-      } else {
-        if (Alignment == 1) {
-          dinoml::nearest_upsampling_2d_add_kernel<
-              ElemType,
-              half,
-              IndexType,
-              1,
-              Exact><<<grid, block, 0, stream>>>(
-              (const half*)input,
-              (const half*)res,
-              (half*)output,
-              N,
-              H,
-              W,
-              C,
-              HO,
-              WO);
-        } else if (Alignment == 8) {
-          dinoml::nearest_upsampling_2d_add_kernel<
-              ElemType,
-              float4,
-              IndexType,
-              8,
-              Exact><<<grid, block, 0, stream>>>(
-              (const float4*)input,
-              (const float4*)res,
-              (float4*)output,
-              N,
-              H,
-              W,
-              C / 8,
-              HO,
-              WO);
-        } else {
-          dinoml::nearest_upsampling_2d_add_kernel<
-              ElemType,
-              half2,
-              IndexType,
-              2,
-              Exact><<<grid, block, 0, stream>>>(
-              (const half2*)input,
-              (const half2*)res,
-              (half2*)output,
-              N,
-              H,
-              W,
-              C / 2,
-              HO,
-              WO);
-        }
-      }
-    } else if constexpr (std::is_same_v<ElemType, bfloat16>) {
-      if (res == nullptr) {
-        if (Alignment == 1) {
-          dinoml::nearest_upsampling_2d_kernel<
-              ElemType,
-              bfloat16,
-              IndexType,
-              1,
-              Exact><<<grid, block, 0, stream>>>(
-              (const bfloat16*)input, (bfloat16*)output, N, H, W, C, HO, WO);
-        } else if (Alignment == 8) {
-          dinoml::nearest_upsampling_2d_kernel<
-              ElemType,
-              float4,
-              IndexType,
-              8,
-              Exact><<<grid, block, 0, stream>>>(
-              (const float4*)input, (float4*)output, N, H, W, C / 8, HO, WO);
-        } else {
-          dinoml::nearest_upsampling_2d_kernel<
-              ElemType,
-              bfloat162,
-              IndexType,
-              2,
-              Exact><<<grid, block, 0, stream>>>(
-              (const bfloat162*)input,
-              (bfloat162*)output,
-              N,
-              H,
-              W,
-              C / 2,
-              HO,
-              WO);
-        }
-      } else {
-        if (Alignment == 1) {
-          dinoml::nearest_upsampling_2d_add_kernel<
-              ElemType,
-              bfloat16,
-              IndexType,
-              1,
-              Exact><<<grid, block, 0, stream>>>(
-              (const bfloat16*)input,
-              (const bfloat16*)res,
-              (bfloat16*)output,
-              N,
-              H,
-              W,
-              C,
-              HO,
-              WO);
-        } else if (Alignment == 8) {
-          dinoml::nearest_upsampling_2d_add_kernel<
-              ElemType,
-              float4,
-              IndexType,
-              8,
-              Exact><<<grid, block, 0, stream>>>(
-              (const float4*)input,
-              (const float4*)res,
-              (float4*)output,
-              N,
-              H,
-              W,
-              C / 8,
-              HO,
-              WO);
-        } else {
-          dinoml::nearest_upsampling_2d_add_kernel<
-              ElemType,
-              bfloat162,
-              IndexType,
-              2,
-              Exact><<<grid, block, 0, stream>>>(
-              (const bfloat162*)input,
-              (const bfloat162*)res,
-              (bfloat162*)output,
-              N,
-              H,
-              W,
-              C / 2,
-              HO,
-              WO);
-        }
-      }
+    if constexpr (HasResidual) {
+      dinoml::nearest_upsampling_2d_add_kernel<
+          ElemType,
+          VectorType,
+          IndexType,
+          Alignment,
+          Exact><<<grid, block, 0, stream>>>(
+          (const VectorType*)input,
+          (const VectorType*)res,
+          (VectorType*)output,
+          N,
+          H,
+          W,
+          C / Alignment,
+          HO,
+          WO);
     } else {
-      throw std::runtime_error(
-          "Unsupported workload for this nearest upsampling specialization.");
+      dinoml::nearest_upsampling_2d_kernel<
+          ElemType,
+          VectorType,
+          IndexType,
+          Alignment,
+          Exact><<<grid, block, 0, stream>>>(
+          (const VectorType*)input,
+          (VectorType*)output,
+          N,
+          H,
+          W,
+          C / Alignment,
+          HO,
+          WO);
     }
   } else {
     throw std::runtime_error("Unsupported upsampling mode.");

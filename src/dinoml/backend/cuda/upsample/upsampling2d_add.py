@@ -36,6 +36,7 @@ def gen_function(
         shape_eval_template,
         shape_save_template,
         backend_spec=CUDASpec(),
+        bias_add=True,
     )
 
 
