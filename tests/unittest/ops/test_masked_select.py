@@ -81,7 +81,9 @@ class maskedSelectTestCase(unittest.TestCase):
         # y_dinoml contains the correct result. It points to the same memory blob as y, but has the correct shape
         self.assertTrue(torch.allclose(y_pt, y_dinoml, atol=1e-10, rtol=0))
         # y retained the original shape (x.numel(),), so needs to be cut before comparison
-        self.assertTrue(torch.allclose(y_pt, y[: y_dinoml.shape[0]], atol=1e-10, rtol=0))
+        self.assertTrue(
+            torch.allclose(y_pt, y[: y_dinoml.shape[0]], atol=1e-10, rtol=0)
+        )
 
         if benchmark:
             print(

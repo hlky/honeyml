@@ -255,7 +255,9 @@ def is_cmake_compilation() -> bool:
     """
 
     # todo: replace with more builders?
-    return os.getenv("DINOML_USE_CMAKE_COMPILATION", "1" if is_windows() else "0") == "1"
+    return (
+        os.getenv("DINOML_USE_CMAKE_COMPILATION", "1" if is_windows() else "0") == "1"
+    )
 
 
 def enable_standalone_exe_generation() -> bool:

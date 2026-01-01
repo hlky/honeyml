@@ -9,6 +9,7 @@ from dinoml.testing.benchmark_pt import benchmark_torch_function
 
 TOLERANCE = 3e-5
 
+
 def get_1d_rotary_pos_embed(
     dim: int,
     pos: Union[torch.Tensor, int],
@@ -18,7 +19,7 @@ def get_1d_rotary_pos_embed(
     ntk_factor=1.0,
     repeat_interleave_real=True,
     freqs_dtype=torch.float32,  #  torch.float32, torch.float64 (flux)
-    device = None,
+    device=None,
 ):
     """
     Precompute the frequency tensor for complex exponentials (cis) with given dimensions.
@@ -126,7 +127,11 @@ def run_case(dim, pos_kind: str, use_real: bool, repeat_interleave_real: bool):
             f"get_1d_rope_int_{use_real}_{repeat_interleave_real}",
         )
         outs = mod.run_with_tensors(
-            {}, {"out0": torch.empty_like(ref0).contiguous(), "out1": torch.empty_like(ref1).contiguous()}
+            {},
+            {
+                "out0": torch.empty_like(ref0).contiguous(),
+                "out1": torch.empty_like(ref1).contiguous(),
+            },
         )
 
         torch.testing.assert_close(outs["out0"], ref0, rtol=TOLERANCE, atol=TOLERANCE)
@@ -184,7 +189,10 @@ def run_case(dim, pos_kind: str, use_real: bool, repeat_interleave_real: bool):
         )
         outs = mod.run_with_tensors(
             {"pos": pos_pt.contiguous()},
-            {"out0": torch.empty_like(ref0).contiguous(), "out1": torch.empty_like(ref1).contiguous()},
+            {
+                "out0": torch.empty_like(ref0).contiguous(),
+                "out1": torch.empty_like(ref1).contiguous(),
+            },
         )
 
         torch.testing.assert_close(outs["out0"], ref0, rtol=TOLERANCE, atol=TOLERANCE)

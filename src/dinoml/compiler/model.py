@@ -299,7 +299,9 @@ class Model:
             raise RuntimeError(f"Didn't find 'lib_path' property in {d}")
         self.__init__(d["lib_path"])
 
-    def _convert_single_param_to_c_format(self, param: DinoMLData) -> _CFormatDinoMLData:
+    def _convert_single_param_to_c_format(
+        self, param: DinoMLData
+    ) -> _CFormatDinoMLData:
         pointer, shape, dtype = param
         c_pointer = ctypes.c_void_p(pointer)
         c_shape_data = (ctypes.c_longlong * len(shape))()
