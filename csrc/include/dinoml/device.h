@@ -1,7 +1,10 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
 #include <random>
+#include <type_traits>
+
 #ifdef DINOML_CUDA
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
@@ -17,13 +20,17 @@
 namespace dinoml {
 #ifdef DINOML_CUDA
 using bfloat16 = __nv_bfloat16;
+using bfloat162 = __nv_bfloat162;
 using DeviceStream = cudaStream_t;
 #define LDG(x) __ldg(x)
+#define HALF2DATA(x) x
 #endif
 #ifdef DINOML_HIP
 using bfloat16 = hip_bfloat16;
+using bfloat162 = __hip_bfloat162;
 using DeviceStream = hipStream_t;
 #define LDG(x) *(x)
+#define HALF2DATA(x) x.data
 #endif
 
 inline uint64_t make_seed() {
@@ -37,13 +44,22 @@ inline uint64_t make_seed() {
   return rd_seed ^ time_seed;
 }
 
+
+template <typename integer>
+constexpr __host__ __device__ inline integer ceil_div(integer n, integer m) {
+  return (n + m - 1) / m;
+}
+
+
 } // namespace dinoml
 
 #ifdef DINOML_CUDA
 using bfloat16 = __nv_bfloat16;
+using bfloat162 = __nv_bfloat162;
 #endif
 #ifdef DINOML_HIP
 using bfloat16 = hip_bfloat16;
+using bfloat162 = __hip_bfloat162;
 #endif
 
 #ifdef DINOML_CUDA

@@ -29,6 +29,8 @@ from parameterized import parameterized
 
 _DEFAULT_BATCH_SIZE = [1, 3]
 
+TOLERANCES = {"bfloat16": 2e-2, "float16": 1e-3, "float32": 1e-5}
+
 
 class UpsamplingTestCase(unittest.TestCase):
     def _test_single_op(
@@ -69,8 +71,8 @@ class UpsamplingTestCase(unittest.TestCase):
             torch.testing.assert_close(
                 y_transpose,
                 Y_pt.to(y.dtype),
-                rtol=1e-3,
-                atol=1e-3,
+                rtol=TOLERANCES[dtype],
+                atol=TOLERANCES[dtype],
                 msg=lambda msg: f"{msg}\n\n{test_name}\npt ({Y_pt.shape}):\n{Y_pt}\n\ndinoml ({y_transpose.shape}):\n{y_transpose}\n\n",
             )
 
@@ -84,21 +86,19 @@ class UpsamplingTestCase(unittest.TestCase):
         )
     )
     def test_upsampling2d_constructor(self, dinoml_dtype):
-        # Currently upsampling2d bilinear does not support bfloat16.
-        if dinoml_dtype != "bfloat16":
-            self._test_single_op(
-                scale_factor=3.5,
-                mode="bilinear",
-                test_name=f"bilinear_upsampling2d_{dinoml_dtype}",
-                dtype=dinoml_dtype,
-            )
-            self._test_single_op(
-                scale_factor=2.0,
-                mode="bilinear",
-                align_corners=True,
-                test_name=f"bilinear_align_corners_upsampling2d_{dinoml_dtype}",
-                dtype=dinoml_dtype,
-            )
+        self._test_single_op(
+            scale_factor=3.5,
+            mode="bilinear",
+            test_name=f"bilinear_upsampling2d_{dinoml_dtype}",
+            dtype=dinoml_dtype,
+        )
+        self._test_single_op(
+            scale_factor=2.0,
+            mode="bilinear",
+            align_corners=True,
+            test_name=f"bilinear_align_corners_upsampling2d_{dinoml_dtype}",
+            dtype=dinoml_dtype,
+        )
         self._test_single_op(
             scale_factor=2.0,
             mode="nearest-exact",
