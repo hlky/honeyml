@@ -77,7 +77,9 @@ def build_dinoml_module(
         (
             None
             if beta_is_none
-            else Tensor(shape=shape, dtype=dinoml_dtype, name=f"beta_{i}", is_input=True)
+            else Tensor(
+                shape=shape, dtype=dinoml_dtype, name=f"beta_{i}", is_input=True
+            )
         )
         for i, shape in enumerate(layernorm_weight_shapes)
     ]

@@ -28,8 +28,14 @@ from dinoml.compiler.ops.tensor.cropped_pos_embed import cropped_pos_embed
 from dinoml.compiler.ops.tensor.dynamic_slice import dynamic_slice
 from dinoml.compiler.ops.tensor.expand import expand
 from dinoml.compiler.ops.tensor.full import full
+from dinoml.compiler.ops.tensor.gaussian_fourier_projection import (
+    gaussian_fourier_projection,
+)
 from dinoml.compiler.ops.tensor.gather import gather
 from dinoml.compiler.ops.tensor.gelu_new import gelu_new
+from dinoml.compiler.ops.tensor.get_3d_rotary_pos_embed_allegro import (
+    get_3d_rotary_pos_embed_allegro,
+)
 from dinoml.compiler.ops.tensor.get_3d_sincos_pos_embed import get_3d_sincos_pos_embed
 from dinoml.compiler.ops.tensor.get_3d_sincos_pos_embed_cogvideox import (
     get_3d_sincos_pos_embed_cogvideox,
@@ -44,6 +50,9 @@ from dinoml.compiler.ops.tensor.get_2d_rotary_pos_embed_lumina import (
     get_2d_rotary_pos_embed_lumina,
 )
 from dinoml.compiler.ops.tensor.get_1d_rotary_pos_embed import get_1d_rotary_pos_embed
+from dinoml.compiler.ops.tensor.get_fourier_embeds_from_boundingbox import (
+    get_fourier_embeds_from_boundingbox,
+)
 from dinoml.compiler.ops.tensor.get_timestep_embedding import get_timestep_embedding
 from dinoml.compiler.ops.tensor.identity import identity
 from dinoml.compiler.ops.tensor.index_select import index_select
@@ -63,6 +72,9 @@ from dinoml.compiler.ops.tensor.randn import randn
 from dinoml.compiler.ops.tensor.relational import eq, ge, gt, le, lt, ne
 from dinoml.compiler.ops.tensor.relative_attention_bias import relative_attention_bias
 from dinoml.compiler.ops.tensor.repeat_interleave import repeat_interleave
+from dinoml.compiler.ops.tensor.sinusoidal_positional_embedding import (
+    sinusoidal_positional_embedding,
+)
 from dinoml.compiler.ops.tensor.size import size
 from dinoml.compiler.ops.tensor.slice_reshape_scatter import slice_reshape_scatter
 from dinoml.compiler.ops.tensor.slice_scatter import slice_scatter

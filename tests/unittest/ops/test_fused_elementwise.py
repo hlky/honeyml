@@ -420,7 +420,9 @@ class FusedElementwiseTestCase(unittest.TestCase):
     )
     def test_gelu(self, dinoml_dtype):
         self._test_gelu([1024, 22400], f"gelu_1_{dinoml_dtype}", dinoml_dtype)
-        self._test_gelu([1024, 70144], f"fast_gelu_1_{dinoml_dtype}", dinoml_dtype, True)
+        self._test_gelu(
+            [1024, 70144], f"fast_gelu_1_{dinoml_dtype}", dinoml_dtype, True
+        )
 
     def _test_min_max(
         self,

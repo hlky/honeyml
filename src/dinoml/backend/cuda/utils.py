@@ -83,6 +83,5 @@ def gen_ops(
         except AttributeError:
             _LOGGER.warning("Arch " + arch + " is not supported by extra ops.")
 
-
     operations = manifest.operations
     return operations

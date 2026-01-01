@@ -165,4 +165,6 @@ class TestRemoveNoOpSplits(unittest.TestCase):
                 should_remove_no_op_split,
             )
             for out_pt, out_dinoml in zip(outputs_pt, outputs_dinoml.values()):
-                self.assertTrue(torch.allclose(out_pt, out_dinoml, atol=1e-2, rtol=1e-3))
+                self.assertTrue(
+                    torch.allclose(out_pt, out_dinoml, atol=1e-2, rtol=1e-3)
+                )
