@@ -6,6 +6,7 @@
 #include <curand_kernel.h>
 
 #include "dinoml/device.h"
+#include "dinoml/helpers.h"
 
 namespace dinoml {
 
@@ -85,7 +86,7 @@ void invoke_randn(
       "Unsupported dtype for invoke_randn");
 
   auto [counter_offset, grid, block] =
-      calc_execution_policy(n, /*unroll_factor=*/4);
+      dinoml::helpers::calc_execution_policy(n, /*unroll_factor=*/4);
   dinoml::randn_philox<ElemOutputType><<<grid, block, 0, stream>>>(
       static_cast<ElemOutputType*>(out), n, mean, std, seed, offset_groups);
 }
