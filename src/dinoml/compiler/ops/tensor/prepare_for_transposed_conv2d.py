@@ -1,3 +1,4 @@
+from dinoml import backend
 from dinoml.compiler.base import Operator, Tensor
 from dinoml.backend import registry
 
@@ -24,5 +25,12 @@ class prepare_for_transposed_conv2d(Operator):
         self._attrs["outputs"] = [out]
         return out
 
-    def gen_function(self):
-        return registry.get(f"{self._attrs['op']}.gen_function")(self._attrs)
+    def gen_function(self) -> str:
+        target = backend.target.Target.current()
+        func_key = "{target}.{op}.gen_function".format(
+            target=target.name(), op=self._attrs["op"]
+        )
+        func = registry.get(func_key)
+        return func(
+            self._attrs,
+        )
