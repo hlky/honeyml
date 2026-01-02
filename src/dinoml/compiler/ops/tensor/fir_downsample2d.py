@@ -21,7 +21,7 @@ class fir_downsample2d(Operator):
 
         # NHWC shape
         N, H, W, C = x.shape()
-        y = Tensor([N, H // 2, W // 2, C], src_ops={self}, dtype=self._attrs["dtype"])
+        y = Tensor([N, H / 2, W / 2, C], src_ops={self}, dtype=self._attrs["dtype"])
         self._attrs["outputs"] = [y]
         return y
 
@@ -50,7 +50,7 @@ class fir_downsample2d_conv(Operator):
 
         N, H, W, C = x.shape()
         OC = weight.shape()[-1]
-        y = Tensor([N, H // 2, W // 2, OC], src_ops={self}, dtype=self._attrs["dtype"])
+        y = Tensor([N, H / 2, W / 2, OC], src_ops={self}, dtype=self._attrs["dtype"])
         self._attrs["outputs"] = [y]
         return y
 
