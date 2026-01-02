@@ -50,8 +50,8 @@ def test_fir_downsample2d():
     torch.testing.assert_close(
         y_out_nchw,
         y_ref,
-        rtol=1e-3,
-        atol=1e-3,
+        rtol=1e-5,
+        atol=1e-5,
     )
 
     mean, _ = benchmark_module(module, count=100)
@@ -90,8 +90,8 @@ def test_fir_downsample2d_with_conv():
 
     x_nhwc = x_pt.permute(0, 2, 3, 1).contiguous()
 
-    w = ref.conv.weight.detach()
-    b = ref.conv.bias.detach()
+    w = ref.Conv2d_0.weight.detach()
+    b = ref.Conv2d_0.bias.detach()
 
     w_hwio = w.permute(2, 3, 1, 0).contiguous()
 
@@ -115,8 +115,8 @@ def test_fir_downsample2d_with_conv():
     torch.testing.assert_close(
         y_out_nchw,
         y_ref,
-        rtol=2e-3,
-        atol=2e-3,
+        rtol=1e-5,
+        atol=1e-5,
     )
 
     mean, _ = benchmark_module(module, count=100)
