@@ -55,7 +55,7 @@ __global__ void fir_upsample2d_kernel(
           continue;
 
         const int64_t idx = ((int64_t)n * H + iy) * W + ix;
-        acc += (float)in[idx * C + c] * fir_coeff(fh, fw);
+        acc += (float)in[idx * C + c] * k2d(fh, fw);
       }
     }
 
