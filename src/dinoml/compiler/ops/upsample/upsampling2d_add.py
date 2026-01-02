@@ -19,7 +19,7 @@ Upsampling2d_add op.
 from typing import List
 
 from dinoml.compiler.base import Tensor
-from dinoml.compiler.ops.upsample.upsampling_common import upsampling2d_base
+from dinoml.compiler.ops.upsample.upsampling2d_base import upsampling2d_base
 
 
 # pylint: disable=C0103

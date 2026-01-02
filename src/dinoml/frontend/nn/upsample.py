@@ -21,6 +21,8 @@ from dinoml.compiler.ops import (
     upsampling1d_add,
     upsampling2d,
     upsampling2d_add,
+    upsampling3d,
+    upsampling3d_add,
 )
 from dinoml.frontend.nn.module import Module
 
@@ -88,6 +90,31 @@ class Upsampling1dAdd(Module):
     def __init__(self, scale_factor, mode, align_corners=False):
         super().__init__()
         self.op = upsampling1d_add(scale_factor, mode, align_corners)
+
+    def forward(self, *args):
+        assert len(args) == 2
+        x = args[0]
+        res = args[1]
+        return self.op(x, res)
+
+
+class Upsampling3d(Module):
+    def __init__(self, scale_factor, mode, align_corners=False):
+        super().__init__()
+        self.op = upsampling3d(scale_factor, mode, align_corners)
+
+    def forward(self, *args):
+        out = None
+        x = args[0]
+        if len(args) == 2:
+            out = args[1]
+        return self.op(x, out)
+
+
+class Upsampling3dAdd(Module):
+    def __init__(self, scale_factor, mode, align_corners=False):
+        super().__init__()
+        self.op = upsampling3d_add(scale_factor, mode, align_corners)
 
     def forward(self, *args):
         assert len(args) == 2

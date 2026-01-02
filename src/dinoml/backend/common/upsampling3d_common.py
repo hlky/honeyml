@@ -1,34 +1,17 @@
-#  Copyright 2025 hlky. All rights reserved.
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
-#
-"""
-Backend-agnostic function templates for upsampling2d.
-"""
-
 import jinja2
-
 
 EXEC_TEMPLATE = jinja2.Template(
     """
-{{indent}}upsampling_2d_launcher<{{dtype}}, {{vec_type}}, int64_t, {{alignment}}, {{mode}}, {{align_corners}}, {{exact}}, {{has_residual}}>(
+{{indent}}upsampling_3d_launcher<{{dtype}}, {{vec_type}}, int64_t, {{alignment}}, {{mode}}, {{align_corners}}, {{exact}}, {{has_residual}}>(
 {{indent}}    static_cast<const {{dtype}}*>(in_ptr),
 {{indent}}    static_cast<const {{dtype}}*>(res_ptr),
 {{indent}}    static_cast<{{dtype}}*>(out_ptr),
 {{indent}}    NI,
+{{indent}}    FI,
 {{indent}}    HI,
 {{indent}}    WI,
 {{indent}}    CI,
+{{indent}}    FO,
 {{indent}}    HO,
 {{indent}}    WO,
 {{indent}}    stream
@@ -40,17 +23,19 @@ EXEC_TEMPLATE = jinja2.Template(
 SRC_TEMPLATE = jinja2.Template(
     """
 #include <dinoml/device.h>
-#include <ops/upsampling_2d.h>
+#include <ops/upsampling_3d.h>
 
 void {{function_name}} (
     const void* in_ptr,
     const void* res_ptr,
     void* out_ptr,
     {{index_type}}* batch,
+    {{index_type}}* in_f,
     {{index_type}}* in_h,
     {{index_type}}* in_w,
     {{index_type}}* in_ch,
     {{index_type}}* out_batch,
+    {{index_type}}* out_f,
     {{index_type}}* out_h,
     {{index_type}}* out_w,
     dinoml::DeviceStream stream
@@ -60,12 +45,11 @@ void {{function_name}} (
 
   {{exec_paths}}
   throw std::runtime_error(
-      "Unsupported workload for this bilinear upsampling specialization."
+      "Unsupported workload for this upsampling3d specialization."
   );
 }
 """
 )
-
 
 FUNC_DECL_TEMPLATE = jinja2.Template(
     """
@@ -73,6 +57,8 @@ void {{func_name}}(
   const void*,
   const void*,
   void*,
+  {{index_type}}*,
+  {{index_type}}*,
   {{index_type}}*,
   {{index_type}}*,
   {{index_type}}*,
@@ -92,10 +78,12 @@ FUNC_CALL_TEMPLATE = jinja2.Template(
 {{indent}}    {{res_ptr}},
 {{indent}}    {{out_ptr}},
 {{indent}}    {{p_batch}},
+{{indent}}    {{p_in_f}},
 {{indent}}    {{p_in_h}},
 {{indent}}    {{p_in_w}},
 {{indent}}    {{p_in_ch}},
 {{indent}}    {{p_out_batch}},
+{{indent}}    {{p_out_f}},
 {{indent}}    {{p_out_h}},
 {{indent}}    {{p_out_w}},
 {{indent}}    stream
@@ -105,20 +93,6 @@ FUNC_CALL_TEMPLATE = jinja2.Template(
 
 
 def gen_function_decl(func_attrs, backend_spec):
-    """Function declaration generation
-
-    Parameters
-    ----------
-    func_attrs : Dict[str, Any]
-        It describes the operation attributes
-    backend_spec : custom class
-        It specifies the corresponding backend dtypes of pytorch dtypes for many operations
-
-    Returns
-    -------
-    str
-        Rendered function declaration stmt
-    """
     return FUNC_DECL_TEMPLATE.render(
         index_type=backend_spec.index_type,
         prefix=backend_spec.prefix,
@@ -131,7 +105,6 @@ def gen_alignment(x):
     if in_channel % 8 == 0:
         tsize = 8
     elif in_channel % 4 == 0:
-        # TODO
         tsize = 2
     elif in_channel % 2 == 0:
         tsize = 2
@@ -141,20 +114,6 @@ def gen_alignment(x):
 
 
 def gen_function_call(func_attrs, backend_spec, indent="  ", bias_add=False):
-    """Function call generation
-
-    Parameters
-    ----------
-    func_attrs : Dict[str, Any]
-        It describes the operation attributes
-    indent : str, optional
-        Indent for template, by default "  "
-
-    Returns
-    -------
-    str
-        Rendered function call
-    """
     x = func_attrs["inputs"][0]
     xshape = x._attrs["shape"]
     y = func_attrs["outputs"][0]
@@ -169,12 +128,14 @@ def gen_function_call(func_attrs, backend_spec, indent="  ", bias_add=False):
         out_ptr=y._attrs["name"],
         res_ptr=r,
         p_batch="&" + xshape[0]._attrs["name"],
-        p_in_ch="&" + xshape[3]._attrs["name"],
-        p_in_h="&" + xshape[1]._attrs["name"],
-        p_in_w="&" + xshape[2]._attrs["name"],
+        p_in_f="&" + xshape[1]._attrs["name"],
+        p_in_h="&" + xshape[2]._attrs["name"],
+        p_in_w="&" + xshape[3]._attrs["name"],
+        p_in_ch="&" + xshape[4]._attrs["name"],
         p_out_batch="&" + yshape[0]._attrs["name"],
-        p_out_h="&" + yshape[1]._attrs["name"],
-        p_out_w="&" + yshape[2]._attrs["name"],
+        p_out_f="&" + yshape[1]._attrs["name"],
+        p_out_h="&" + yshape[2]._attrs["name"],
+        p_out_w="&" + yshape[3]._attrs["name"],
         indent=indent,
     )
 
@@ -193,7 +154,8 @@ def gen_function(
     x = func_attrs["inputs"][0]
     input_type = backend_spec.dtype_to_backend_type(x._attrs["dtype"])
     alignment = gen_alignment(x)
-    if func_attrs["mode"] == "bilinear":
+
+    if func_attrs["mode"] == "trilinear":
         if alignment > 1:
             alignment = 2
         if input_type == "float":
@@ -229,39 +191,44 @@ def gen_function(
         "dtype": "int64_t ",
         "div": "/",
         "x_dim0": "*batch",
-        "x_dim1": "*in_h",
-        "x_dim2": "*in_w",
-        "x_dim3": "*in_ch",
+        "x_dim1": "*in_f",
+        "x_dim2": "*in_h",
+        "x_dim3": "*in_w",
+        "x_dim4": "*in_ch",
     }
     if func_attrs["out_shape"] is True:
+        args["out_f"] = "*out_f"
         args["out_h"] = "*out_h"
         args["out_w"] = "*out_w"
     else:
         args["scale_factor"] = func_attrs["scale_factor"]
-    shape_eval_func = shape_eval_template.render(
-        **args,
-    )
+
+    shape_eval_func = shape_eval_template.render(**args)
     shape_save_func = shape_save_template.render(
         indent="  ",
         y_dim0="*out_batch",
-        y_dim1="*out_h",
-        y_dim2="*out_w",
+        y_dim1="*out_f",
+        y_dim2="*out_h",
+        y_dim3="*out_w",
     )
     shape_func = shape_eval_func + shape_save_func
-    exec_paths = ""
 
     upsampling_mode = {
-        "bilinear": "dinoml::Upsampling2dMode::BILINEAR",
-        "nearest": "dinoml::Upsampling2dMode::NEAREST",
-        "nearest-exact": "dinoml::Upsampling2dMode::NEAREST_EXACT",
+        "trilinear": "dinoml::Upsampling3dMode::TRILINEAR",
+        "nearest": "dinoml::Upsampling3dMode::NEAREST",
+        "nearest-exact": "dinoml::Upsampling3dMode::NEAREST_EXACT",
     }
     mode = upsampling_mode[func_attrs["mode"]]
+
     if func_attrs["align_corners"] is None:
         align_corners = "false"
     else:
         align_corners = str(func_attrs["align_corners"]).lower()
+
     exact = str(func_attrs["mode"] == "nearest-exact").lower()
     has_residual = str(bias_add).lower()
+
+    exec_paths = ""
     for key in exec_path:
         program = EXEC_TEMPLATE.render(
             dtype=input_type,
@@ -271,9 +238,11 @@ def gen_function(
             align_corners=align_corners,
             exact=exact,
             has_residual=has_residual,
+            indent="    ",
         )
         exec_inst = exec_cond_template.render(indent="  ", cond=key, program=program)
         exec_paths += exec_inst
+
     return SRC_TEMPLATE.render(
         function_name=func_name,
         shape_function=shape_func,
