@@ -91,5 +91,5 @@ def cuda_kdownsample2d_weight_gen_decl(attrs):
 
 
 @registry.reg("cuda.kdownsample2d_weight.func_call")
-def cuda_kdownsample2d_weight_gen_function(attrs):
+def cuda_kdownsample2d_weight_gen_function_call(attrs, indent="  "):
     return gen_function_call(attrs, CUDASpec())
