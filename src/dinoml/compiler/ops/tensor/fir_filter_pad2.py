@@ -3,14 +3,16 @@ from dinoml.backend import registry
 from dinoml.compiler.base import Operator, Tensor
 
 
-class fir_downsample2d(Operator):
+class fir_filter_pad2(Operator):
     """
-    FIR downsample 2D (fixed kernel (1,3,3,1), factor=2), NHWC -> NHWC.
+    FIR filter stage for diffusers FirDownsample2D(use_conv=True):
+    NHWC [N,H,W,C] -> NHWC [N,H+1,W+1,C]
+    Uses fixed kernel (1,3,3,1) normalized, pad=2, stride=1, depthwise.
     """
 
     def __init__(self):
         super().__init__()
-        self._attrs["op"] = "fir_downsample2d"
+        self._attrs["op"] = "fir_filter_pad2"
         self._attrs["has_profiler"] = False
         self._attrs["nop"] = False
 
@@ -19,9 +21,8 @@ class fir_downsample2d(Operator):
         self._attrs["dtype"] = x._attrs["dtype"]
         self._set_depth()
 
-        # NHWC shape
         N, H, W, C = x.shape()
-        y = Tensor([N, H / 2, W / 2, C], src_ops={self}, dtype=self._attrs["dtype"])
+        y = Tensor([N, H + 1, W + 1, C], src_ops={self}, dtype=self._attrs["dtype"])
         self._attrs["outputs"] = [y]
         return y
 
@@ -29,4 +30,3 @@ class fir_downsample2d(Operator):
         target = backend.target.Target.current()
         func_key = f"{target.name()}.{self._attrs['op']}.gen_function"
         return registry.get(func_key)(self._attrs)
-

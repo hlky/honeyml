@@ -1,5 +1,4 @@
 from typing import Any, Dict
-
 import jinja2
 
 from dinoml.backend import registry
@@ -9,7 +8,7 @@ from dinoml.backend.backend_spec import CUDASpec
 SRC_TEMPLATE = jinja2.Template(
     r"""
 #include <dinoml/device.h>
-#include <ops/fir_downsample2d.h>
+#include <ops/fir_filter_pad2.h>
 
 void {{function_name}}(
     void* out,
@@ -17,11 +16,10 @@ void {{function_name}}(
     int N, int H, int W, int C,
     dinoml::DeviceStream stream
 ) {
-    invoke_fir_downsample2d<{{elem_type}}>(out, in, N, H, W, C, stream);
+    dinoml::invoke_fir_filter_pad2<{{elem_type}}>(out, in, N, H, W, C, stream);
 }
 """
 )
-
 
 FUNC_DECL_TEMPLATE = jinja2.Template(
     r"""
@@ -33,7 +31,6 @@ void {{func_name}}(
 );
 """
 )
-
 
 FUNC_CALL_TEMPLATE = jinja2.Template(
     r"""
@@ -67,7 +64,6 @@ def gen_decl(func_attrs: Dict[str, Any]) -> str:
 def gen_call(func_attrs: Dict[str, Any], indent="  ") -> str:
     x = func_attrs["inputs"][0]
     y = func_attrs["outputs"][0]
-    # NHWC: shape [N,H,W,C]
     N, H, W, C = x._attrs["shape"]
     return FUNC_CALL_TEMPLATE.render(
         func_name=func_attrs["name"],
@@ -81,16 +77,16 @@ def gen_call(func_attrs: Dict[str, Any], indent="  ") -> str:
     )
 
 
-@registry.reg("cuda.fir_downsample2d.gen_function")
-def cuda_fir_downsample2d_gen_function(func_attrs):
+@registry.reg("cuda.fir_filter_pad2.gen_function")
+def cuda_fir_filter_pad2_gen_function(func_attrs):
     return gen_function(func_attrs)
 
 
-@registry.reg("cuda.fir_downsample2d.func_decl")
-def cuda_fir_downsample2d_func_decl(func_attrs):
+@registry.reg("cuda.fir_filter_pad2.func_decl")
+def cuda_fir_filter_pad2_func_decl(func_attrs):
     return gen_decl(func_attrs)
 
 
-@registry.reg("cuda.fir_downsample2d.func_call")
-def cuda_fir_downsample2d_func_call(func_attrs, indent="  "):
+@registry.reg("cuda.fir_filter_pad2.func_call")
+def cuda_fir_filter_pad2_func_call(func_attrs, indent="  "):
     return gen_call(func_attrs, indent)

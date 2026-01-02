@@ -67,107 +67,71 @@ __global__ void fir_downsample2d_kernel_nhwc(
   }
 }
 
-template <typename T, typename Wt>
-__global__ void fir_downsample2d_conv_kernel_nhwc_ohwi(
+// FIR kernel fixed: (1,3,3,1) normalized -> [1/8, 3/8, 3/8, 1/8]
+__device__ __forceinline__ float fir_k1(int i) {
+  // i in [0,3]
+  return (i == 0 || i == 3) ? 0.125f : 0.375f;
+}
+
+template <typename T>
+__global__ void fir_filter_pad2_kernel_nhwc(
     T* __restrict__ out,
     const T* __restrict__ in,
-    const Wt* __restrict__ weight, // [OC, KH, KW, C]
-    const T* __restrict__ bias, // [OC]
-    int N,
-    int H,
-    int W,
-    int C,
-    int OC) {
-  const int OH = H >> 1;
-  const int OW = W >> 1;
+    int N, int H, int W, int C) {
 
-  const int block = blockIdx.x;
-  const int n = block / (OH * OW);
-  const int rem = block - n * (OH * OW);
-  const int oh = rem / OW;
-  const int ow = rem - oh * OW;
+  const int UH = H + 1;
+  const int UW = W + 1;
 
-  // Precompute FIR kernel (constant)
-  constexpr float k[4] = {1.f / 8.f, 3.f / 8.f, 3.f / 8.f, 1.f / 8.f};
+  const int64_t block = (int64_t)blockIdx.x;
+  const int64_t n  = block / (int64_t)(UH * UW);
+  const int64_t rem = block - n * (int64_t)(UH * UW);
+  const int64_t uh = rem / UW;
+  const int64_t uw = rem - uh * UW;
 
-  for (int oc = threadIdx.x; oc < OC; oc += blockDim.x) {
-    float acc = bias ? (float)bias[oc] : 0.0f;
+  for (int c = (int)threadIdx.x; c < C; c += (int)blockDim.x) {
+    float acc = 0.0f;
 
-// ---- convolution ----
-#pragma unroll
-    for (int ky = 0; ky < 3; ++ky) {
-      const int uh = oh * 2 + ky;
+    // FIR 4x4 with pad=2: in index = (uh + fh - 2, uw + fw - 2)
+    #pragma unroll
+    for (int fh = 0; fh < 4; ++fh) {
+      const int ih = (int)uh + fh - 2;
+      if ((unsigned)ih >= (unsigned)H) continue;
+      const float kh = fir_k1(fh);
 
-#pragma unroll
-      for (int kx = 0; kx < 3; ++kx) {
-        const int uw = ow * 2 + kx;
+      #pragma unroll
+      for (int fw = 0; fw < 4; ++fw) {
+        const int iw = (int)uw + fw - 2;
+        if ((unsigned)iw >= (unsigned)W) continue;
 
-        // FIR + channel accumulation
-        float sum = 0.f;
-
-#pragma unroll
-        for (int fh = 0; fh < 4; ++fh) {
-          const int ih = uh + fh - 2;
-          if ((unsigned)ih >= (unsigned)H)
-            continue;
-
-#pragma unroll
-          for (int fw = 0; fw < 4; ++fw) {
-            const int iw = uw + fw - 2;
-            if ((unsigned)iw >= (unsigned)W)
-              continue;
-
-            const float kf = k[fh] * k[fw];
-            const int base = ((n * H + ih) * W + iw) * C;
-
-#pragma unroll
-            for (int ic = 0; ic < C; ++ic) {
-              sum += (float)in[base + ic] * kf *
-                  (float)weight[((oc * 3 + ky) * 3 + kx) * C + ic];
-            }
-          }
-        }
-
-        acc += sum;
+        const float k = kh * fir_k1(fw);
+        const int64_t in_idx = (((int64_t)n * H + ih) * W + iw) * (int64_t)C + c;
+        acc += (float)LDG(&in[in_idx]) * k;
       }
     }
 
-    const int out_idx = ((n * OH + oh) * OW + ow) * OC + oc;
+    const int64_t out_idx = (((int64_t)n * UH + uh) * UW + uw) * (int64_t)C + c;
     out[out_idx] = (T)acc;
   }
 }
 
 } // namespace dinoml
 
-template <typename T, typename Wt>
-void invoke_fir_downsample2d_conv(
+template <typename T>
+void invoke_fir_filter_pad2(
     void* out,
     const void* in,
-    const void* weight,
-    const void* bias,
-    int N,
-    int H,
-    int W,
-    int C,
-    int OC,
+    int N, int H, int W, int C,
     dinoml::DeviceStream stream) {
-  const int OH = H >> 1;
-  const int OW = W >> 1;
-  const int64_t blocks = (int64_t)N * OH * OW;
-  const int threads = (int)std::min(OC, 1024);
 
-  dinoml::fir_downsample2d_conv_kernel_nhwc_ohwi<T, Wt>
-      <<<blocks, threads, 0, stream>>>(
-          (T*)out,
-          (const T*)in,
-          (const Wt*)weight,
-          (const T*)bias,
-          N,
-          H,
-          W,
-          C,
-          OC);
+  const int UH = H + 1;
+  const int UW = W + 1;
+  const int64_t blocks = (int64_t)N * UH * UW;
+  const int threads = (int)std::min(C, 1024);
+
+  dinoml::fir_filter_pad2_kernel_nhwc<T><<<blocks, threads, 0, stream>>>(
+      (T*)out, (const T*)in, N, H, W, C);
 }
+
 
 template <typename T>
 void invoke_fir_downsample2d(
