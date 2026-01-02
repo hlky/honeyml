@@ -67,26 +67,11 @@ __global__ void fir_downsample2d_kernel_nhwc(
   }
 }
 
-// -------------------------
-// Conv-fused path:
-// Implements (use_conv=True):
-// 1) upfirdn2d with pad=(2,2), down=1 (i.e. FIR-filtered output of size (H+1,
-// W+1)) 2) conv2d with kernel 3x3, stride=2, padding=0, plus bias
-//
-// Fused formula:
-// out[n,oh,ow,oc] = bias[oc] + sum_ic sum_ky,kx W[oc, ic, ky, kx] * U[n, ic,
-// ih, iw] where ih=oh*2+ky, iw=ow*2+kx, and U[n,ic,ih,iw] = sum_fh,fw in[n,ic,
-// (ih+fh-2), (iw+fw-2)] * fir_k2d_4x4(fh,fw)
-//
-// We assume weight layout is **HWIO** for NHWC conv convenience:
-// weight[ky, kx, ic, oc]
-// bias[oc]
-// -------------------------
 template <typename T, typename Wt>
-__global__ void fir_downsample2d_conv_kernel_nhwc_hwio(
+__global__ void fir_downsample2d_conv_kernel_nhwc_ohwi(
     T* __restrict__ out,
     const T* __restrict__ in,
-    const Wt* __restrict__ weight, // [3,3,C,OC]
+    const Wt* __restrict__ weight, // [OC, KH, KW, C]
     const T* __restrict__ bias, // [OC]
     int N,
     int H,
@@ -96,61 +81,58 @@ __global__ void fir_downsample2d_conv_kernel_nhwc_hwio(
   const int OH = H >> 1;
   const int OW = W >> 1;
 
-  const int64_t block = (int64_t)blockIdx.x;
-  const int64_t n = block / (int64_t)(OH * OW);
-  const int64_t rem = block - n * (int64_t)(OH * OW);
-  const int64_t oh = rem / OW;
-  const int64_t ow = rem - oh * OW;
+  const int block = blockIdx.x;
+  const int n = block / (OH * OW);
+  const int rem = block - n * (OH * OW);
+  const int oh = rem / OW;
+  const int ow = rem - oh * OW;
 
-  for (int oc = (int)threadIdx.x; oc < OC; oc += (int)blockDim.x) {
-    float acc = (bias != nullptr) ? (float)LDG(&bias[oc]) : 0.0f;
+  // Precompute FIR kernel (constant)
+  constexpr float k[4] = {1.f / 8.f, 3.f / 8.f, 3.f / 8.f, 1.f / 8.f};
 
-// conv 3x3, stride=2
+  for (int oc = threadIdx.x; oc < OC; oc += blockDim.x) {
+    float acc = bias ? (float)bias[oc] : 0.0f;
+
+// ---- convolution ----
 #pragma unroll
     for (int ky = 0; ky < 3; ++ky) {
-      const int uh = (int)(oh * 2 + ky); // index in U (size H+1)
-// uh valid: [0..H]
-// U computed from in with FIR pad=2 => in index (uh+fh-2)
+      const int uh = oh * 2 + ky;
+
 #pragma unroll
       for (int kx = 0; kx < 3; ++kx) {
-        const int uw = (int)(ow * 2 + kx); // index in U (size W+1)
+        const int uw = ow * 2 + kx;
 
-        // For each input channel, compute U value and multiply with weight
-        for (int ic = 0; ic < C; ++ic) {
-          float u = 0.0f;
-
-// FIR 4x4 with pad=2
-#pragma unroll
-          for (int fh = 0; fh < 4; ++fh) {
-            const int ih = uh + fh - 2;
-            const bool h_in = (unsigned)ih < (unsigned)H;
+        // FIR + channel accumulation
+        float sum = 0.f;
 
 #pragma unroll
-            for (int fw = 0; fw < 4; ++fw) {
-              const int iw = uw + fw - 2;
-              const bool w_in = (unsigned)iw < (unsigned)W;
+        for (int fh = 0; fh < 4; ++fh) {
+          const int ih = uh + fh - 2;
+          if ((unsigned)ih >= (unsigned)H)
+            continue;
 
-              if (h_in && w_in) {
-                const int64_t in_idx =
-                    (((int64_t)n * H + ih) * W + iw) * (int64_t)C + ic;
-                const float x = (float)LDG(&in[in_idx]);
-                u += x * fir_k2d_4x4(fh, fw);
-              }
+#pragma unroll
+          for (int fw = 0; fw < 4; ++fw) {
+            const int iw = uw + fw - 2;
+            if ((unsigned)iw >= (unsigned)W)
+              continue;
+
+            const float kf = k[fh] * k[fw];
+            const int base = ((n * H + ih) * W + iw) * C;
+
+#pragma unroll
+            for (int ic = 0; ic < C; ++ic) {
+              sum += (float)in[base + ic] * kf *
+                  (float)weight[((oc * 3 + ky) * 3 + kx) * C + ic];
             }
           }
-
-          // weight HWIO: [ky,kx,ic,oc]
-          const int64_t w_idx =
-              (((int64_t)ky * 3 + kx) * (int64_t)C + ic) * (int64_t)OC + oc;
-          const float wv = (float)LDG(&weight[w_idx]);
-
-          acc += u * wv;
         }
+
+        acc += sum;
       }
     }
 
-    const int64_t out_idx =
-        (((int64_t)n * OH + oh) * OW + ow) * (int64_t)OC + oc;
+    const int out_idx = ((n * OH + oh) * OW + ow) * OC + oc;
     out[out_idx] = (T)acc;
   }
 }
@@ -174,7 +156,7 @@ void invoke_fir_downsample2d_conv(
   const int64_t blocks = (int64_t)N * OH * OW;
   const int threads = (int)std::min(OC, 1024);
 
-  dinoml::fir_downsample2d_conv_kernel_nhwc_hwio<T, Wt>
+  dinoml::fir_downsample2d_conv_kernel_nhwc_ohwi<T, Wt>
       <<<blocks, threads, 0, stream>>>(
           (T*)out,
           (const T*)in,
