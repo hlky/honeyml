@@ -29,4 +29,3 @@ class fir_downsample2d(Operator):
         target = backend.target.Target.current()
         func_key = f"{target.name()}.{self._attrs['op']}.gen_function"
         return registry.get(func_key)(self._attrs)
-

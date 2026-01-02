@@ -170,7 +170,6 @@ def transposed_conv2d_func_call(
     )
 
 
-
 @registry.reg("cuda.transposed_conv2d.filter")
 def transposed_conv2d_filter(
     cfg,

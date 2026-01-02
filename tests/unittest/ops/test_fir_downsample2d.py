@@ -17,10 +17,14 @@ def test_fir_downsample2d():
     channels = 64
     x_pt = torch.randn([2, channels, 64, 64], device=device, dtype=torch.float32)
 
-    ref = FirDownsample2D(
-        channels=channels,
-        use_conv=False,
-    ).to(device, torch.float32).eval()
+    ref = (
+        FirDownsample2D(
+            channels=channels,
+            use_conv=False,
+        )
+        .to(device, torch.float32)
+        .eval()
+    )
 
     with torch.no_grad():
         y_ref = ref(x_pt)

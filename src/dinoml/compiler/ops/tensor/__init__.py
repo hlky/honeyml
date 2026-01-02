@@ -55,6 +55,7 @@ from dinoml.compiler.ops.tensor.get_fourier_embeds_from_boundingbox import (
 )
 from dinoml.compiler.ops.tensor.get_timestep_embedding import get_timestep_embedding
 from dinoml.compiler.ops.tensor.kdownsample2d_weight import kdownsample2d_weight
+from dinoml.compiler.ops.tensor.kupsample2d_weight import kupsample2d_weight
 from dinoml.compiler.ops.tensor.fir_downsample2d import fir_downsample2d
 from dinoml.compiler.ops.tensor.fir_filter_pad2 import fir_filter_pad2
 from dinoml.compiler.ops.tensor.fir_upsample2d import fir_upsample2d
@@ -89,4 +90,6 @@ from dinoml.compiler.ops.tensor.topk import topk
 from dinoml.compiler.ops.tensor.transpose import transpose
 from dinoml.compiler.ops.tensor.t5_layer_norm import t5_layer_norm
 from dinoml.compiler.ops.tensor.where import where
-from dinoml.compiler.ops.tensor.prepare_for_transposed_conv2d import prepare_for_transposed_conv2d
+from dinoml.compiler.ops.tensor.prepare_for_transposed_conv2d import (
+    prepare_for_transposed_conv2d,
+)

@@ -9,7 +9,7 @@ from dinoml.testing.benchmark_pt import benchmark_torch_function
 def kdownsample_weight(
     channels, device=None, dtype: torch.dtype = torch.float32
 ) -> torch.Tensor:
-    kernel_1d = torch.tensor([[1 / 8, 3 / 8, 3 / 8, 1 / 8]])
+    kernel_1d = torch.tensor([[1 / 8, 3 / 8, 3 / 8, 1 / 8]]) * 2
     kernel = kernel_1d.T @ kernel_1d
     weight = torch.zeros(
         [
@@ -36,12 +36,12 @@ for dtype, torch_dtype in [("float32", torch.float32), ("float16", torch.float16
 
         y_pt = kdownsample_weight(channels, "cuda", torch_dtype)
 
-        y = ops.kdownsample2d_weight()(channels, dtype)
+        y = ops.kupsample2d_weight()(channels, dtype)
         y._attrs["name"] = "y"
         y._attrs["is_output"] = True
 
         module = compile_model(
-            y, detect_target(), "./tmp", f"kdownsample2d_weight_{dtype}_{channels}"
+            y, detect_target(), "./tmp", f"kupsample2d_weight_{dtype}_{channels}"
         )
 
         out = module.run_with_tensors({}, {"y": torch.empty_like(y_pt).contiguous()})[
