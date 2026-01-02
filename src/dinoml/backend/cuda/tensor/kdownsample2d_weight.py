@@ -81,7 +81,7 @@ def gen_function(func_attrs, backend_spec):
 
 
 @registry.reg("cuda.kdownsample2d_weight.gen_function")
-def cuda_kdownsample2d_weight_gen_function(attrs):
+def cuda_kdownsample2d_weight_gen_function(attrs, indent="  "):
     return gen_function(attrs, CUDASpec())
 
 
