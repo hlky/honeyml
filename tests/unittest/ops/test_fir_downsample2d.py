@@ -20,7 +20,7 @@ def test_fir_downsample2d():
     ref = FirDownsample2D(
         channels=channels,
         use_conv=False,
-    ).to(device)
+    ).to(device, torch.float16).eval()
 
     with torch.no_grad():
         y_ref = ref(x_pt)
@@ -81,7 +81,7 @@ def test_fir_downsample2d_with_conv():
             out_channels=out_channels,
             use_conv=True,
         )
-        .to(device)
+        .to(device, torch.float16)
         .eval()
     )
 
