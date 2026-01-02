@@ -71,6 +71,7 @@ from dinoml.backend.cuda.tensor import (
     topk,
     t5_layer_norm,
     where,
+    prepare_for_transposed_conv2d,
 )
 
 __all__ = [
@@ -103,6 +104,7 @@ __all__ = [
     "fir_filter_pad2",
     "flip",
     "cropped_pos_embed",
+    "prepare_for_transposed_conv2d",
     "relational",
     "identity",
     "jagged_to_padded_dense",

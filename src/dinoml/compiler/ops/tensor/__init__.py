@@ -89,3 +89,4 @@ from dinoml.compiler.ops.tensor.topk import topk
 from dinoml.compiler.ops.tensor.transpose import transpose
 from dinoml.compiler.ops.tensor.t5_layer_norm import t5_layer_norm
 from dinoml.compiler.ops.tensor.where import where
+from dinoml.compiler.ops.tensor.prepare_for_transposed_conv2d import prepare_for_transposed_conv2d
