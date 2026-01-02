@@ -41,7 +41,7 @@ for dtype, torch_dtype in [("float32", torch.float32), ("float16", torch.float16
         y._attrs["name"] = "y"
         y._attrs["is_output"] = True
 
-        module = compile_model(y, detect_target(), "./tmp", "kdownsample2d_weight")
+        module = compile_model(y, detect_target(), "./tmp", f"kdownsample2d_weight_{dtype}_{channels}")
 
         out = module.run_with_tensors({}, {"y": torch.empty_like(y_pt).contiguous()})[
             "y"
