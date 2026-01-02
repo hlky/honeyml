@@ -93,7 +93,7 @@ def test_fir_downsample2d_with_conv():
     w = ref.Conv2d_0.weight.detach()
     b = ref.Conv2d_0.bias.detach()
 
-    w_hwio = w.permute(2, 3, 1, 0).contiguous()
+    w_hwio = w.permute(0, 2, 3, 1).contiguous()
 
     x = Tensor([*x_nhwc.shape], name="x", is_input=True, dtype="float32")
     w_t = Tensor(list(w_hwio.shape), name="w", is_input=True, dtype="float32")
