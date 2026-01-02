@@ -16,7 +16,7 @@ void {{function_name}}(
     int N, int H, int W, int C,
     dinoml::DeviceStream stream
 ) {
-    dinoml::invoke_fir_filter_pad2<{{elem_type}}>(out, in, N, H, W, C, stream);
+    invoke_fir_filter_pad2<{{elem_type}}>(out, in, N, H, W, C, stream);
 }
 """
 )
