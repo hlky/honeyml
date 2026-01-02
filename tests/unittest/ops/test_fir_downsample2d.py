@@ -15,12 +15,12 @@ def test_fir_downsample2d():
     torch.manual_seed(0)
     device = "cuda"
     channels = 64
-    x_pt = torch.randn([2, channels, 64, 64], device=device, dtype=torch.float16)
+    x_pt = torch.randn([2, channels, 64, 64], device=device, dtype=torch.float32)
 
     ref = FirDownsample2D(
         channels=channels,
         use_conv=False,
-    ).to(device, torch.float16).eval()
+    ).to(device, torch.float32).eval()
 
     with torch.no_grad():
         y_ref = ref(x_pt)
@@ -31,7 +31,7 @@ def test_fir_downsample2d():
         [x_nhwc.shape[0], x_nhwc.shape[1], x_nhwc.shape[2], x_nhwc.shape[3]],
         name="x",
         is_input=True,
-        dtype="float16",
+        dtype="float32",
     )
 
     y = ops.fir_downsample2d()(x)
@@ -73,7 +73,7 @@ def test_fir_downsample2d_with_conv():
     channels = 64
     out_channels = 96
 
-    x_pt = torch.randn([2, channels, 64, 64], device=device, dtype=torch.float16)
+    x_pt = torch.randn([2, channels, 64, 64], device=device, dtype=torch.float32)
 
     ref = (
         FirDownsample2D(
@@ -81,7 +81,7 @@ def test_fir_downsample2d_with_conv():
             out_channels=out_channels,
             use_conv=True,
         )
-        .to(device, torch.float16)
+        .to(device, torch.float32)
         .eval()
     )
 
@@ -95,9 +95,9 @@ def test_fir_downsample2d_with_conv():
 
     w_hwio = w.permute(2, 3, 1, 0).contiguous()
 
-    x = Tensor([*x_nhwc.shape], name="x", is_input=True, dtype="float16")
-    w_t = Tensor(list(w_hwio.shape), name="w", is_input=True, dtype="float16")
-    b_t = Tensor(list(b.shape), name="b", is_input=True, dtype="float16")
+    x = Tensor([*x_nhwc.shape], name="x", is_input=True, dtype="float32")
+    w_t = Tensor(list(w_hwio.shape), name="w", is_input=True, dtype="float32")
+    b_t = Tensor(list(b.shape), name="b", is_input=True, dtype="float32")
 
     y = ops.fir_downsample2d_conv()(x, w_t, b_t)
     y._attrs["name"] = "y"
