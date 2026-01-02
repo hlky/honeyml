@@ -20,46 +20,49 @@ __global__ void fir_upsample2d_kernel(
     int up,
     int pad0,
     int pad1) {
-  const int OH = H * up;
-  const int OW = W * up;
+  constexpr int KH = 4;
+  constexpr int KW = 4;
+
+  // Output size matches upfirdn2d_native (down=1): H*up + pad0 + pad1 - K + 1
+  const int OH = H * up + pad0 + pad1 - KH + 1;
+  const int OW = W * up + pad0 + pad1 - KW + 1;
 
   const int64_t block = (int64_t)blockIdx.x;
   const int64_t n = block / (int64_t)(OH * OW);
   const int64_t rem = block - n * (int64_t)(OH * OW);
   const int64_t oh = rem / OW;
-  const int64_t ow = rem % OW;
+  const int64_t ow = rem - oh * OW;
 
-  for (int c = threadIdx.x; c < C; c += blockDim.x) {
-    float acc = 0.f;
+  for (int c = (int)threadIdx.x; c < C; c += (int)blockDim.x) {
+    float acc = 0.0f;
 
 #pragma unroll
-    for (int fh = 0; fh < 4; ++fh) {
-      int py = oh + fh - pad0;
-      if ((unsigned)py >= (unsigned)(OH + pad1))
+    for (int fh = 0; fh < KH; ++fh) {
+      const int uy = (int)oh + fh - pad0; // coord in upsampled (unpadded) grid
+      // Must land on an original sample location
+      if (uy % up != 0)
         continue;
-      if (py & 1)
-        continue;
-      int iy = py >> 1;
+      const int iy = uy / up;
       if ((unsigned)iy >= (unsigned)H)
         continue;
 
 #pragma unroll
-      for (int fw = 0; fw < 4; ++fw) {
-        int px = ow + fw - pad0;
-        if ((unsigned)px >= (unsigned)(OW + pad1))
+      for (int fw = 0; fw < KW; ++fw) {
+        const int ux = (int)ow + fw - pad0;
+        if (ux % up != 0)
           continue;
-        if (px & 1)
-          continue;
-        int ix = px >> 1;
+        const int ix = ux / up;
         if ((unsigned)ix >= (unsigned)W)
           continue;
 
-        const int64_t idx = ((int64_t)n * H + iy) * W + ix;
-        acc += (float)in[idx * C + c] * k2d(fh, fw);
+        const int64_t in_idx =
+            (((int64_t)n * H + iy) * W + ix) * (int64_t)C + c;
+        acc += (float)LDG(&in[in_idx]) * k2d(fh, fw);
       }
     }
 
-    out[((n * OH + oh) * OW + ow) * C + c] = (T)acc;
+    const int64_t out_idx = (((int64_t)n * OH + oh) * OW + ow) * (int64_t)C + c;
+    out[out_idx] = (T)acc;
   }
 }
 
@@ -77,11 +80,15 @@ void invoke_fir_upsample2d(
     int pad0,
     int pad1,
     dinoml::DeviceStream stream) {
-  const int OH = H * up;
-  const int OW = W * up;
+  constexpr int KH = 4;
+  constexpr int KW = 4;
+
+  const int OH = H * up + pad0 + pad1 - KH + 1;
+  const int OW = W * up + pad0 + pad1 - KW + 1;
+
   const int64_t blocks = (int64_t)N * OH * OW;
   const int threads = (int)std::min(C, 1024);
 
-  dinoml::fir_upsample2d_kernel<T>
-      <<<blocks, threads, 0, stream>>>((T*)out, (const T*)in, N, H, W, C, up, pad0, pad1);
+  dinoml::fir_upsample2d_kernel<T><<<blocks, threads, 0, stream>>>(
+      (T*)out, (const T*)in, N, H, W, C, up, pad0, pad1);
 }

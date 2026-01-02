@@ -50,7 +50,7 @@ inline void invoke_prepare_for_transposed_conv2d(
     int64_t stride_w,
     dinoml::DeviceStream stream) {
   int64_t total = N * H * W * C;
-  int threads = 256;
+  int threads = 1024;
   int blocks = (total + threads - 1) / threads;
 
   prepare_for_transposed_conv2d_kernel<T><<<blocks, threads, 0, stream>>>(

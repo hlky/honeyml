@@ -95,15 +95,8 @@ def test_fir_upsample2d_with_conv():
     w_t = Tensor(list(w_ohwi.shape), name="w", is_input=True, dtype="float32")
     b_t = Tensor(list(b.shape), name="b", is_input=True, dtype="float32")
 
-    inC = w_t.shape()[3]
-    num_groups = x.shape()[-1] / inC
-    convH, convW = w_t.shape()[1], w_t.shape()[2]
-    weight = ops.reshape()(w_t, (num_groups, -1, w_t.shape()[1], w_t.shape()[2], w_t.shape()[3]))
-    weight = ops.flip(dims=[2, 3])(weight)
-    weight = ops.permute()(weight, [0, 4, 2, 3, 1])
-    weight = ops.reshape()(weight, [num_groups * inC, convH, convW, -1])
-
-    x = ops.transposed_conv2d(stride=2, pad=0, bias=False)(x, weight)
+    x = ops.prepare_for_transposed_conv2d((2, 2))(x)
+    x = ops.conv2d(stride=1, pad=2, bias=False)(x, w_t)
     y = ops.fir_upsample2d()(x, up=1, pad0=1, pad1=1)
     y = y + ops.reshape()(b_t, [1, 1, 1, -1])
 
