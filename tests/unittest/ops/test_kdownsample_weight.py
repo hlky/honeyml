@@ -24,7 +24,6 @@ def kdownsample_weight(
     indices = torch.arange(
         channels,
         device=device,
-        dtype=dtype,
     )
     kernel = kernel.to(weight)[None, :].expand(channels, -1, -1)
     weight[indices, indices] = kernel
