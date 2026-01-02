@@ -27,7 +27,7 @@ void {{function_name}}(
     {%- endfor %}
     };
 
-    dinoml::invoke_flip<{{elem_output_type}}, {{rank}}, {{flip_dims|join(", ")}}>(
+    invoke_flip<{{elem_output_type}}, {{rank}}, {{flip_dims|join(", ")}}>(
         out,
         in,
         n,
