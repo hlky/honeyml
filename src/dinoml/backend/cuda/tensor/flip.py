@@ -20,18 +20,26 @@ void {{function_name}}(
 {%- endfor %}
     dinoml::DeviceStream stream
 ) {
-    // pack sizes on host stack and pass values as kernel params via invoke_flip
     int64_t sizes[{{rank}}] = {
     {%- for i in range(rank) %}
         d{{i}}{{ "," if not loop.last else "" }}
     {%- endfor %}
     };
 
-    invoke_flip<{{elem_output_type}}, {{rank}}, {{flip_dims|join(", ")}}>(
+    int64_t flip_dims[] = {
+    {%- for d in flip_dims %}
+        {{d}}{{ "," if not loop.last else "" }}
+    {%- endfor %}
+    };
+
+    invoke_flip<{{elem_output_type}}>(
         out,
         in,
         n,
         sizes,
+        flip_dims,
+        {{rank}},
+        {{flip_dims | length}},
         stream
     );
 }
