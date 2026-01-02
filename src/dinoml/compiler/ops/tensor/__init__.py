@@ -55,6 +55,7 @@ from dinoml.compiler.ops.tensor.get_fourier_embeds_from_boundingbox import (
 )
 from dinoml.compiler.ops.tensor.get_timestep_embedding import get_timestep_embedding
 from dinoml.compiler.ops.tensor.kdownsample2d_weight import kdownsample2d_weight
+from dinoml.compiler.ops.tensor.fir_downsample2d import fir_downsample2d, fir_downsample2d_conv
 from dinoml.compiler.ops.tensor.identity import identity
 from dinoml.compiler.ops.tensor.index_select import index_select
 from dinoml.compiler.ops.tensor.jagged_to_padded_dense import jagged_to_padded_dense
