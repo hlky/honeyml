@@ -100,7 +100,7 @@ def test_fir_downsample2d_with_conv():
     b_t = Tensor(list(b.shape), name="b", is_input=True, dtype="float32")
 
     u = ops.fir_filter_pad2()(x)
-    y = ops.conv2d(stride=2, padding=0, bias=False)(u, w_t)
+    y = ops.conv2d(stride=2, bias=False)(u, w_t)
     b_reshaped = ops.reshape()(b_t, [1, 1, 1, out_channels])
     y = y + b_reshaped
     y._attrs["name"] = "y"
