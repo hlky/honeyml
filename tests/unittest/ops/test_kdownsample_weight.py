@@ -31,7 +31,7 @@ def kdownsample_weight(
 
 
 for dtype, torch_dtype in [("float32", torch.float32), ("float16", torch.float16)]:
-    for channels in [320, 640, 1280]:
+    for channels in [384, 768]:
 
         torch.manual_seed(0)
 
