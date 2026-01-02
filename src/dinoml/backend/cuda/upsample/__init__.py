@@ -21,6 +21,15 @@ from dinoml.backend.cuda.upsample import (
     upsampling1d_add,
     upsampling2d,
     upsampling2d_add,
+    upsampling3d,
+    upsampling3d_add,
 )
 
-__all__ = ["upsampling1d", "upsampling1d_add", "upsampling2d", "upsampling2d_add"]
+__all__ = [
+    "upsampling1d",
+    "upsampling1d_add",
+    "upsampling2d",
+    "upsampling2d_add",
+    "upsampling3d",
+    "upsampling3d_add",
+]

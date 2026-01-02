@@ -12,31 +12,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-"""
-Upsampling2d op.
-"""
 
-from dinoml.compiler.ops.upsample.upsampling2d_base import upsampling2d_base
+from dinoml.compiler.ops.upsample.upsampling3d_base import upsampling3d_base
 
 
-# pylint: disable=C0103
-class upsampling2d(upsampling2d_base):
-    """
-    Applies a 2D bilinear upsampling to an input signal composed of several input
-    channels.
-
-    To specify the scale, it takes the :attr:`scale_factor` as it's constructor argument.
-
-    * :attr:`scale_factor` (float): multiplier for spatial size.
-
-    Args:
-        input (Tensor [N, H, W, C]): the input data.
-
-    Return:
-        Tensor [N, H_out, W_out, C].
-    """
-
+class upsampling3d(upsampling3d_base):
     def __init__(self, scale_factor, mode, align_corners=False) -> None:
         super().__init__(scale_factor, mode, align_corners)
-        self._attrs["op"] = "upsampling2d"
+        self._attrs["op"] = "upsampling3d"
         self._attrs["mode"] = mode

@@ -20,6 +20,14 @@ from dinoml.compiler.ops.upsample.upsampling1d import upsampling1d
 from dinoml.compiler.ops.upsample.upsampling1d_add import upsampling1d_add
 from dinoml.compiler.ops.upsample.upsampling2d import upsampling2d
 from dinoml.compiler.ops.upsample.upsampling2d_add import upsampling2d_add
+from dinoml.compiler.ops.upsample.upsampling3d import upsampling3d
+from dinoml.compiler.ops.upsample.upsampling3d_add import upsampling3d_add
 
-
-__all__ = ["upsampling1d", "upsampling1d_add", "upsampling2d", "upsampling2d_add"]
+__all__ = [
+    "upsampling1d",
+    "upsampling1d_add",
+    "upsampling2d",
+    "upsampling2d_add",
+    "upsampling3d",
+    "upsampling3d_add",
+]
