@@ -614,6 +614,7 @@ def conv_dw_instance(op_def):
 
 def conv_transpose_instance(op_def):
     tmp = op_def.replace("DefaultConv2dFprop", "DefaultConv2dDgrad")
+    tmp = tmp.replace("cutlass::conv::StrideSupport::kUnity", "cutlass::conv::StrideSupport::kStrided")
     tmp = re.sub(
         r"cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<\d>",
         "cutlass::conv::threadblock::StridedDgradIdentityThreadblockSwizzle<1>",
