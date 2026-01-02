@@ -22,6 +22,7 @@ def test_prepare_for_transposed_conv2d():
     x_t = Tensor([batch, h, w, in_channels], is_input=True, name="x")
     y = ops.prepare_for_transposed_conv2d(stride)(x_t)
     y._attrs["name"] = "y"
+    y._attrs["is_output"] = True
 
     mod = compile_model(y, detect_target(), "./tmp", "prep_transpose")
     out = mod.run_with_tensors({"x": x.permute(0, 2, 3, 1).contiguous()}, {"y": torch.empty_like(upsampled).permute(0, 2, 3, 1).contiguous()})["y"]
