@@ -14,10 +14,6 @@ from dinoml.testing.benchmark_pt import benchmark_torch_function
 def test_fir_downsample2d():
     torch.manual_seed(0)
     device = "cuda"
-
-    # ------------------------------------------------------------
-    # Create reference module (Diffusers)
-    # ------------------------------------------------------------
     channels = 64
     x_pt = torch.randn([2, channels, 64, 64], device=device, dtype=torch.float16)
 
@@ -29,9 +25,6 @@ def test_fir_downsample2d():
     with torch.no_grad():
         y_ref = ref(x_pt)
 
-    # ------------------------------------------------------------
-    # Convert input to NHWC for DinoML
-    # ------------------------------------------------------------
     x_nhwc = x_pt.permute(0, 2, 3, 1).contiguous()
 
     x = Tensor(
@@ -52,7 +45,6 @@ def test_fir_downsample2d():
         {"y": torch.empty_like(y_ref).contiguous()},
     )["y"]
 
-    # Convert output back to NCHW for comparison
     y_out_nchw = y_out.permute(0, 3, 1, 2).contiguous()
 
     torch.testing.assert_close(
@@ -83,7 +75,6 @@ def test_fir_downsample2d_with_conv():
 
     x_pt = torch.randn([2, channels, 64, 64], device=device, dtype=torch.float16)
 
-    # Reference module
     ref = (
         FirDownsample2D(
             channels=channels,
@@ -97,15 +88,11 @@ def test_fir_downsample2d_with_conv():
     with torch.no_grad():
         y_ref = ref(x_pt)
 
-    # Convert inputs to NHWC
     x_nhwc = x_pt.permute(0, 2, 3, 1).contiguous()
 
-    # Extract conv weights
-    # PyTorch conv weight: [out, in, kH, kW]
     w = ref.conv.weight.detach()
     b = ref.conv.bias.detach()
 
-    # Convert to HWIO for DinoML
     w_hwio = w.permute(2, 3, 1, 0).contiguous()
 
     x = Tensor([*x_nhwc.shape], name="x", is_input=True, dtype="float16")
@@ -123,7 +110,6 @@ def test_fir_downsample2d_with_conv():
         {"y": torch.empty_like(y_ref)},
     )["y"]
 
-    # Compare in NCHW
     y_out_nchw = y_out.permute(0, 3, 1, 2).contiguous()
 
     torch.testing.assert_close(
