@@ -1,23 +1,50 @@
 #pragma once
-
 #include <cstdint>
 #include "dinoml/device.h"
 
 namespace dinoml {
 
-template <typename T>
+template <typename T, int MAX_RANK = 16>
 __global__ void flip_kernel(
     T* __restrict__ out,
     const T* __restrict__ in,
     int64_t n,
-    const int64_t* __restrict__ sizes,
-    const int64_t* __restrict__ flip_dims,
     int ndims,
-    int nflip) {
+    int nflip,
+    // flattened parameter lists
+    int64_t s0,
+    int64_t s1,
+    int64_t s2,
+    int64_t s3,
+    int64_t s4,
+    int64_t s5,
+    int64_t s6,
+    int64_t s7,
+    int64_t s8,
+    int64_t s9,
+    int64_t s10,
+    int64_t s11,
+    int64_t s12,
+    int64_t s13,
+    int64_t s14,
+    int64_t s15,
+    int f0,
+    int f1,
+    int f2,
+    int f3,
+    int f4,
+    int f5,
+    int f6,
+    int f7) {
+  int64_t sizes[MAX_RANK] = {
+      s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15};
+
+  int flips[8] = {f0, f1, f2, f3, f4, f5, f6, f7};
+
   for (int64_t idx = blockIdx.x * blockDim.x + threadIdx.x; idx < n;
        idx += blockDim.x * gridDim.x) {
-    int64_t tmp = idx;
     int64_t coords[16];
+    int64_t tmp = idx;
 
 #pragma unroll
     for (int i = ndims - 1; i >= 0; --i) {
@@ -25,17 +52,15 @@ __global__ void flip_kernel(
       tmp /= sizes[i];
     }
 
-    // apply flips
+#pragma unroll
     for (int j = 0; j < nflip; ++j) {
-      int d = flip_dims[j];
+      int d = flips[j];
       coords[d] = sizes[d] - 1 - coords[d];
     }
 
-    // recompute linear index
     int64_t in_idx = 0;
-    for (int i = 0; i < ndims; ++i) {
+    for (int i = 0; i < ndims; ++i)
       in_idx = in_idx * sizes[i] + coords[i];
-    }
 
     out[idx] = LDG(&in[in_idx]);
   }
@@ -55,15 +80,37 @@ inline void invoke_flip(
     dinoml::DeviceStream stream) {
   constexpr int threads = 256;
   int blocks = (n + threads - 1) / threads;
-  if (blocks > 65535)
-    blocks = 65535;
 
   dinoml::flip_kernel<T><<<blocks, threads, 0, stream>>>(
       static_cast<T*>(out),
       static_cast<const T*>(in),
       n,
-      sizes,
-      flip_dims,
       ndims,
-      nflip);
+      nflip,
+      // sizes
+      sizes[0],
+      sizes[1],
+      sizes[2],
+      sizes[3],
+      sizes[4],
+      sizes[5],
+      sizes[6],
+      sizes[7],
+      sizes[8],
+      sizes[9],
+      sizes[10],
+      sizes[11],
+      sizes[12],
+      sizes[13],
+      sizes[14],
+      sizes[15],
+      // flip dims
+      flip_dims[0],
+      flip_dims[1],
+      flip_dims[2],
+      flip_dims[3],
+      flip_dims[4],
+      flip_dims[5],
+      flip_dims[6],
+      flip_dims[7]);
 }
