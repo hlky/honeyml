@@ -9,8 +9,11 @@ class fir_upsample2d(Operator):
         self._attrs["op"] = "fir_upsample2d"
         self._attrs["has_profiler"] = False
 
-    def __call__(self, x: Tensor):
+    def __call__(self, x: Tensor, up: int = 2, pad0: int = 2, pad1: int = 1):
         self._attrs["inputs"] = [x]
+        self._attrs["up"] = up
+        self._attrs["pad0"] = pad0
+        self._attrs["pad1"] = pad1
         self._set_depth()
         self._attrs["dtype"] = x._attrs["dtype"]
         N, H, W, C = x.shape()

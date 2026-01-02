@@ -2,12 +2,11 @@
 #include <dinoml/device.h>
 
 namespace dinoml {
-
-// Fixed FIR kernel: [1,3,3,1] normalized and scaled
-__device__ __forceinline__ float fir_coeff(int i, int j) {
-  const int a = (i == 0 || i == 3) ? 1 : 3;
-  const int b = (j == 0 || j == 3) ? 1 : 3;
-  return (float)(a * b) * (1.0f / 16.0f);
+// v=[1,3,3,1]; outer sum=64; scaled by factor^2=4 => scale=4/64 = 1/16
+__device__ __forceinline__ float k2d(int r, int c) {
+  const int vr = (r == 0 || r == 3) ? 1 : 3;
+  const int vc = (c == 0 || c == 3) ? 1 : 3;
+  return (float)(vr * vc) * (1.0f / 16.0f);
 }
 
 template <typename T>
@@ -17,46 +16,50 @@ __global__ void fir_upsample2d_kernel(
     int N,
     int H,
     int W,
-    int C) {
-  const int OH = H * 2;
-  const int OW = W * 2;
+    int C,
+    int up,
+    int pad0,
+    int pad1) {
+  const int OH = H * up;
+  const int OW = W * up;
 
-  const int idx = blockIdx.x;
-  const int n = idx / (OH * OW);
-  const int rem = idx - n * (OH * OW);
-  const int oh = rem / OW;
-  const int ow = rem % OW;
+  const int64_t block = (int64_t)blockIdx.x;
+  const int64_t n = block / (int64_t)(OH * OW);
+  const int64_t rem = block - n * (int64_t)(OH * OW);
+  const int64_t oh = rem / OW;
+  const int64_t ow = rem % OW;
 
   for (int c = threadIdx.x; c < C; c += blockDim.x) {
     float acc = 0.f;
 
-// FIR convolution
 #pragma unroll
     for (int fh = 0; fh < 4; ++fh) {
-      int ih = oh - fh + 2;
-      if ((unsigned)ih >= (unsigned)(2 * H))
+      int py = oh + fh - pad0;
+      if ((unsigned)py >= (unsigned)(OH + pad1))
         continue;
-      if (ih & 1)
-        continue; // skip non-sampled positions
-      ih >>= 1;
+      if (py & 1)
+        continue;
+      int iy = py >> 1;
+      if ((unsigned)iy >= (unsigned)H)
+        continue;
 
 #pragma unroll
       for (int fw = 0; fw < 4; ++fw) {
-        int iw = ow - fw + 2;
-        if ((unsigned)iw >= (unsigned)(2 * W))
+        int px = ow + fw - pad0;
+        if ((unsigned)px >= (unsigned)(OW + pad1))
           continue;
-        if (iw & 1)
+        if (px & 1)
           continue;
-        iw >>= 1;
+        int ix = px >> 1;
+        if ((unsigned)ix >= (unsigned)W)
+          continue;
 
-        float w = fir_coeff(fh, fw);
-        int idx_in = ((n * H + ih) * W + iw) * C + c;
-        acc += w * (float)in[idx_in];
+        const int64_t idx = ((int64_t)n * H + iy) * W + ix;
+        acc += (float)in[idx * C + c] * fir_coeff(fh, fw);
       }
     }
 
-    int out_idx = ((n * OH + oh) * OW + ow) * C + c;
-    out[out_idx] = (T)acc;
+    out[((n * OH + oh) * OW + ow) * C + c] = (T)acc;
   }
 }
 
@@ -70,12 +73,15 @@ void invoke_fir_upsample2d(
     int H,
     int W,
     int C,
+    int up,
+    int pad0,
+    int pad1,
     dinoml::DeviceStream stream) {
-  const int OH = H * 2;
-  const int OW = W * 2;
+  const int OH = H * up;
+  const int OW = W * up;
   const int64_t blocks = (int64_t)N * OH * OW;
-  const int threads = 256;
+  const int threads = (int)std::min(C, 1024);
 
   dinoml::fir_upsample2d_kernel<T>
-      <<<blocks, threads, 0, stream>>>((T*)out, (const T*)in, N, H, W, C);
+      <<<blocks, threads, 0, stream>>>((T*)out, (const T*)in, N, H, W, C, up, pad0, pad1);
 }

@@ -11,17 +11,17 @@ SRC = jinja2.Template(
 void {{name}}(
     void* out,
     const void* in,
-    int N, int H, int W, int C,
+    int N, int H, int W, int C, int up, int pad0, int pad1,
     dinoml::DeviceStream stream
 ) {
-    invoke_fir_upsample2d<{{dtype}}>(out, in, N, H, W, C, stream);
+    invoke_fir_upsample2d<{{dtype}}>(out, in, N, H, W, C, up, pad0, pad1, stream);
 }
 """
 )
 
 DECL = jinja2.Template(
     """
-void {{name}}(void*, const void*, int, int, int, int, dinoml::DeviceStream);
+void {{name}}(void*, const void*, int, int, int, int, int, int, int, dinoml::DeviceStream);
 """
 )
 
@@ -35,6 +35,9 @@ FUNC_CALL_TEMPLATE = jinja2.Template(
 {{indent}}    {{H}},
 {{indent}}    {{W}},
 {{indent}}    {{C}},
+{{indent}}    {{up}},
+{{indent}}    {{pad0}},
+{{indent}}    {{pad1}},
 {{indent}}    stream
 {{indent}});
 """
@@ -65,6 +68,9 @@ def gen_call(func_attrs: Dict[str, Any], indent="  ") -> str:
         H=H._attrs["name"],
         W=W._attrs["name"],
         C=C._attrs["name"],
+        up=func_attrs["up"],
+        pad0=func_attrs["pad0"],
+        pad1=func_attrs["pad1"],
         indent=indent,
     )
 
