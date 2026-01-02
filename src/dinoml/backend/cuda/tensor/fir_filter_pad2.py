@@ -8,7 +8,7 @@ from dinoml.backend.backend_spec import CUDASpec
 SRC_TEMPLATE = jinja2.Template(
     r"""
 #include <dinoml/device.h>
-#include <ops/fir_filter_pad2.h>
+#include <ops/fir_downsample2d.h>
 
 void {{function_name}}(
     void* out,
