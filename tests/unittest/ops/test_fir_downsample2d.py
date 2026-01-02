@@ -93,10 +93,10 @@ def test_fir_downsample2d_with_conv():
     w = ref.Conv2d_0.weight.detach()
     b = ref.Conv2d_0.bias.detach()
 
-    w_hwio = w.permute(0, 2, 3, 1).contiguous()
+    w_ohwi = w.permute(0, 2, 3, 1).contiguous()
 
     x = Tensor([*x_nhwc.shape], name="x", is_input=True, dtype="float32")
-    w_t = Tensor(list(w_hwio.shape), name="w", is_input=True, dtype="float32")
+    w_t = Tensor(list(w_ohwi.shape), name="w", is_input=True, dtype="float32")
     b_t = Tensor(list(b.shape), name="b", is_input=True, dtype="float32")
 
     y = ops.fir_downsample2d_conv()(x, w_t, b_t)
@@ -106,7 +106,7 @@ def test_fir_downsample2d_with_conv():
     module = compile_model(y, detect_target(), "./tmp", "fir_downsample2d_conv")
 
     y_out = module.run_with_tensors(
-        {"x": x_nhwc, "w": w_hwio, "b": b},
+        {"x": x_nhwc, "w": w_ohwi, "b": b},
         {"y": torch.empty_like(y_ref)},
     )["y"]
 

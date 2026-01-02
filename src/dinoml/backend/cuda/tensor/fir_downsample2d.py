@@ -149,7 +149,7 @@ def gen_call_conv(func_attrs: Dict[str, Any], indent="  ") -> str:
     y = func_attrs["outputs"][0]
     N, H, Wd, C = x._attrs["shape"]
     # weight HWIO: [3,3,C,OC]
-    OC = w._attrs["shape"][-1]
+    OC = w._attrs["shape"][0]
     return FUNC_CALL_TEMPLATE_CONV.render(
         func_name=func_attrs["name"],
         output=y._attrs["name"],
