@@ -170,44 +170,6 @@ def transposed_conv2d_func_call(
     )
 
 
-def function_filter(
-    cfg,
-    func_attrs,
-    x_shape,
-):
-    """Generates function filter.
-
-    Parameters
-    ----------
-    cfg: str
-        The filename generated for profiler.
-    func_attrs : Dict
-        Stores the operation attributes.
-    x_shape:
-        Input shapes.
-
-    Returns
-    -------
-    bool
-        If input cfg should be filtered.
-    """
-    dtype = func_attrs["inputs"][0]._attrs["dtype"]
-    ab_alignment = common._cal_align_ab(x_shape, dtype=dtype)
-
-    tmp = cfg.split("_")
-    align_c = int(tmp[-1])
-    align_ab = int(tmp[-2])
-
-    if "cutlass_s1688" in cfg:
-        return False
-
-    if align_c != func_attrs["epilogue_alignment"]:
-        return False
-    if align_ab != ab_alignment:
-        return False
-
-    return True
-
 
 @registry.reg("cuda.transposed_conv2d.filter")
 def transposed_conv2d_filter(
@@ -231,7 +193,7 @@ def transposed_conv2d_filter(
     bool
         If input cfg should be filtered.
     """
-    return function_filter(
+    return common.function_filter(
         cfg=cfg,
         func_attrs=func_attrs,
         x_shape=x_shape,

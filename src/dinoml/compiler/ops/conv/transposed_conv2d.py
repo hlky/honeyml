@@ -100,7 +100,7 @@ class transposed_conv2d(conv2d):
     """
 
     def __init__(
-        self, stride, pad, dilate=1, group=1, bias=True, activation=None
+        self, stride, pad, dilate=1, group=1, bias=True, activation=None, **kwargs
     ) -> None:
         """Transposed_conv2d constructor.
 
