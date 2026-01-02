@@ -14,6 +14,7 @@ class kdownsample2d_weight(Operator):
 
     def __call__(self, channels: Union[int, IntVar, IntImm], dtype: str) -> Tensor:
         self._attrs["channels"] = channels
+        self._attrs["dtype"] = dtype
         self._set_depth()
         out = Tensor(
             [channels, channels, 4, 4],
