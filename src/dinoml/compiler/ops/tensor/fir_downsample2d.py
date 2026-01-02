@@ -49,7 +49,7 @@ class fir_downsample2d_conv(Operator):
         self._set_depth()
 
         N, H, W, C = x.shape()
-        OC = weight.shape()[-1]
+        OC = weight.shape()[0]
         y = Tensor([N, H / 2, W / 2, OC], src_ops={self}, dtype=self._attrs["dtype"])
         self._attrs["outputs"] = [y]
         return y
