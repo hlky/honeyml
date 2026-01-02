@@ -46,7 +46,7 @@ class Conv2dTransposeTestCase(unittest.TestCase):
             name="input_1",
             is_input=True,
         )
-        OP = ops.transposed_conv2d(stride=2, pad=0, dilate=1)
+        OP = ops.transposed_conv2d(stride=2, pad=0, dilate=1, bias=False)
         if copy_op:
             OP = ops.transposed_conv2d(**OP._get_op_attributes())
         Y = OP(X, W)

@@ -12,26 +12,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-"""
-CUDA upsampling module init
-"""
 
-from dinoml.backend.cuda.upsample import (
-    upsampling1d,
-    upsampling1d_add,
-    upsampling2d,
-    upsampling2d_add,
-    upsampling3d,
-    upsampling3d_add,
-    upsampling3d_compress_time,
-)
+from dinoml.compiler.ops.upsample.upsampling3d_base import upsampling3d_base
 
-__all__ = [
-    "upsampling1d",
-    "upsampling1d_add",
-    "upsampling2d",
-    "upsampling2d_add",
-    "upsampling3d",
-    "upsampling3d_add",
-    "upsampling3d_compress_time",
-]
+
+class upsampling3d_compress_time(upsampling3d_base):
+    def __init__(self) -> None:
+        super().__init__(scale_factor=2, mode="nearest")
+        self._attrs["op"] = "upsampling3d_compress_time"
