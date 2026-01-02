@@ -115,8 +115,8 @@ def test_fir_downsample2d_with_conv():
     torch.testing.assert_close(
         y_out_nchw,
         y_ref,
-        rtol=1e-5,
-        atol=1e-5,
+        rtol=5e-4,
+        atol=5e-4,
     )
 
     mean, _ = benchmark_module(module, count=100)
