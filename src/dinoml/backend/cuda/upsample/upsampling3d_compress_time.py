@@ -28,21 +28,15 @@ void {{function_name}} (
     {{index_type}}* out_w,
     dinoml::DeviceStream stream
 ) {
-  // Read runtime shapes (NFHWC)
   const {{index_type}} N  = *batch;
   const {{index_type}} F  = *in_f;
   const {{index_type}} H  = *in_h;
   const {{index_type}} W  = *in_w;
   const {{index_type}} C  = *in_ch;
 
-  // We implement scale_factor=2.0 behavior
   const {{index_type}} HO = H * 2;
   const {{index_type}} WO = W * 2;
 
-  // Output frames follow the PyTorch branching you showed:
-  // if F>1 and odd: FO = 2*F - 1 (first frame 2D, rest 3D)
-  // else if F>1:    FO = 2*F
-  // else:           FO = 1
   {{index_type}} FO;
   if (F > 1 && (F & 1)) {
     FO = 2 * F - 1;
@@ -51,128 +45,67 @@ void {{function_name}} (
   } else {
     FO = 1;
   }
+  const {{index_type}} channels = C / {{alignment}};
 
   *out_batch = N;
   *out_f = FO;
   *out_h = HO;
   *out_w = WO;
 
-  const {{dtype}}* in_t  = static_cast<const {{dtype}}*>(in_ptr);
-  {{dtype}}* out_t       = static_cast<{{dtype}}*>(out_ptr);
+  const {{vec_type}}* in_vec  = static_cast<const {{vec_type}}*>(in_ptr);
+  {{vec_type}}* out_vec       = static_cast<{{vec_type}}*>(out_ptr);
 
-  // NOTE: pointer offsets are in ElemType units (not VectorType units)
-  const int64_t in_frame_stride  = (int64_t)C * (int64_t)H  * (int64_t)W;
-  const int64_t out_frame_stride = (int64_t)C * (int64_t)HO * (int64_t)WO;
+  const int64_t in_frame_stride  = (int64_t)channels * (int64_t)H  * (int64_t)W;
+  const int64_t out_frame_stride = (int64_t)channels * (int64_t)HO * (int64_t)WO;
+  const int64_t in_batch_stride  = (int64_t)channels * F  * H  * W;
+  auto out_batch_stride_for = [&]({{index_type}} FO) {
+    return (int64_t)channels * FO * HO * WO;
+  };
 
+  auto launch = [&](const {{vec_type}}* in_ptr,
+                    {{vec_type}}* out_ptr,
+                    {{index_type}} inF,
+                    {{index_type}} outF,
+                    int64_t out_batch_stride) {
+    const int64_t total = (int64_t)N * outF * HO * WO * channels;
+    dim3 block(512);
+    dim3 grid(std::min((int64_t)dinoml::helpers::ceil_div(total, (int64_t)512), (int64_t)4096));
+
+    dinoml::nearest_upsampling_3d_kernel_strided<
+        {{dtype}}, {{vec_type}}, int64_t, {{alignment}}, {{exact}}>
+      <<<grid, block, 0, stream>>>(
+        in_ptr,
+        out_ptr,
+        N,
+        inF,
+        H,
+        W,
+        channels,
+        outF,
+        HO,
+        WO,
+        in_batch_stride,
+        out_batch_stride
+      );
+  };
   if (F == 1) {
-    // Treat as 3D with F=1 -> FO=1
-    upsampling_3d_launcher<
-        {{dtype}},
-        {{vec_type}},
-        int64_t,
-        {{alignment}},
-        {{mode}},
-        {{align_corners}},
-        {{exact}},
-        {{has_residual}}>
-    (
-      in_t,
-      static_cast<const {{dtype}}*>(res_ptr),
-      out_t,
-      N,
-      /*FI*/ 1,
-      H,
-      W,
-      C,
-      /*FO*/ 1,
-      HO,
-      WO,
-      stream
-    );
+    launch(in_vec, out_vec, 1, 1, out_batch_stride_for(FO));
     return;
   }
 
   if ((F & 1) == 0) {
-    // Even frames: one 3D upsample launch, FO = 2F
-    upsampling_3d_launcher<
-        {{dtype}},
-        {{vec_type}},
-        int64_t,
-        {{alignment}},
-        {{mode}},
-        {{align_corners}},
-        {{exact}},
-        {{has_residual}}>
-    (
-      in_t,
-      static_cast<const {{dtype}}*>(res_ptr),
-      out_t,
-      N,
-      /*FI*/ F,
-      H,
-      W,
-      C,
-      /*FO*/ ({{index_type}})(2 * F),
-      HO,
-      WO,
-      stream
-    );
+    launch(in_vec, out_vec, F, FO, out_batch_stride_for(FO));
     return;
   }
 
-  // Odd frames: two launches, no slice/concat
-  // A) first frame only: FI=1 -> FO=1
-  upsampling_3d_launcher<
-      {{dtype}},
-      {{vec_type}},
-      int64_t,
-      {{alignment}},
-      {{mode}},
-      {{align_corners}},
-      {{exact}},
-      {{has_residual}}>
-  (
-    in_t,
-    static_cast<const {{dtype}}*>(res_ptr),
-    out_t,
-    N,
-    /*FI*/ 1,
-    H,
-    W,
-    C,
-    /*FO*/ 1,
-    HO,
-    WO,
-    stream
-  );
+  launch(in_vec, out_vec, 1, 1, out_batch_stride_for(FO));
 
-  // B) rest frames: input offset by 1 frame, output offset by 1 output-frame
-  //    FI = F-1, FO = 2*(F-1)
-  const {{dtype}}* in_rest  = in_t  + in_frame_stride;
-  {{dtype}}* out_rest       = out_t + out_frame_stride;
-
-  upsampling_3d_launcher<
-      {{dtype}},
-      {{vec_type}},
-      int64_t,
-      {{alignment}},
-      {{mode}},
-      {{align_corners}},
-      {{exact}},
-      {{has_residual}}>
-  (
-    in_rest,
-    static_cast<const {{dtype}}*>(res_ptr), // residual (if any) is expected to match output; if you use residual here, you likely need matching offsets too
-    out_rest,
-    N,
-    /*FI*/ ({{index_type}})(F - 1),
-    H,
-    W,
-    C,
-    /*FO*/ ({{index_type}})(2 * (F - 1)),
-    HO,
-    WO,
-    stream
+  launch(
+      in_vec + in_frame_stride,
+      out_vec + out_frame_stride,
+      ({{index_type}})(F - 1),
+      ({{index_type}})(2 * (F - 1)),
+      out_batch_stride_for(FO)
   );
 
   return;

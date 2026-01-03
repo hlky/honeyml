@@ -52,8 +52,8 @@ class Upsampling3DCompressTimeTestCase(unittest.TestCase):
             shape=[
                 IntVar(values=batch_size, name="batch"),
                 IntVar([1, 8]),
-                IntVar([4, 16]),
-                IntVar([4, 16]),
+                IntVar([1, 16]),
+                IntVar([1, 16]),
                 channels,
             ],
             dtype=dtype,
@@ -87,7 +87,9 @@ class Upsampling3DCompressTimeTestCase(unittest.TestCase):
                     Y_pt,
                     rtol=TOLERANCES[dtype],
                     atol=TOLERANCES[dtype],
-                    msg=(f"{test_name}\nExpected:\n{Y_pt}\n\nGot:\n{y_out}"),
+                    msg=(
+                        f"{test_name} [{b}, {F}, {H}, {W}]\nExpected:\n{Y_pt}\n\nGot:\n{y_out}"
+                    ),
                 )
 
     @parameterized.expand(
@@ -108,5 +110,5 @@ class Upsampling3DCompressTimeTestCase(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    torch.manual_seed(0)
+    torch.manual_seed(42)
     unittest.main()
