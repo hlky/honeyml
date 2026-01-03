@@ -44,7 +44,7 @@ class Upsampling3DCompressTimeTestCase(unittest.TestCase):
         dtype="float16",
     ):
         channels = 64
-        H, W = 4, 8, 8
+        H, W = 8, 8
         target = detect_target()
 
         X = Tensor(
