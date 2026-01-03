@@ -18,7 +18,6 @@ __global__ void kdownsample2d_weight_kernel(T* out, int channels) {
   int c_in = tmp % channels;
   int c_out = tmp / channels;
 
-  // Only diagonal channels get kernel
   if (c_in != c_out) {
     out[idx] = (T)0;
     return;

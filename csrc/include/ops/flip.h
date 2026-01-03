@@ -11,7 +11,6 @@ __global__ void flip_kernel(
     int64_t n,
     int ndims,
     int nflip,
-    // flattened parameter lists
     int64_t s0,
     int64_t s1,
     int64_t s2,
@@ -87,7 +86,6 @@ inline void invoke_flip(
       n,
       ndims,
       nflip,
-      // sizes
       sizes[0],
       sizes[1],
       sizes[2],
@@ -104,7 +102,6 @@ inline void invoke_flip(
       sizes[13],
       sizes[14],
       sizes[15],
-      // flip dims
       flip_dims[0],
       flip_dims[1],
       flip_dims[2],

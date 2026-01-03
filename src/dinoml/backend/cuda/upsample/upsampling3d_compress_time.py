@@ -167,7 +167,6 @@ def _gen_alignment(x) -> int:
 
 def _pick_vec_type(input_type: str, alignment: int, mode: str) -> Tuple[str, int]:
     if mode == "trilinear":
-        # force vector2
         if alignment > 1:
             alignment = 2
         if input_type == "float":
@@ -176,7 +175,6 @@ def _pick_vec_type(input_type: str, alignment: int, mode: str) -> Tuple[str, int
             return "bfloat162", alignment
         return "half2", alignment
 
-    # nearest / nearest-exact
     if input_type == "float":
         if alignment > 1:
             return "float2", 2

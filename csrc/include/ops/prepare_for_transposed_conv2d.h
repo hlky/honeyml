@@ -19,7 +19,6 @@ __global__ void prepare_for_transposed_conv2d_kernel(
   if (idx >= total)
     return;
 
-  // NHWC indexing
   int64_t c = idx % C;
   int64_t tmp = idx / C;
   int64_t w = tmp % W;

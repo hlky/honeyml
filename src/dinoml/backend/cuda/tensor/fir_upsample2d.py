@@ -58,7 +58,6 @@ def gen_decl(attrs):
 def gen_call(func_attrs: Dict[str, Any], indent="  ") -> str:
     x = func_attrs["inputs"][0]
     y = func_attrs["outputs"][0]
-    # NHWC: shape [N,H,W,C]
     N, H, W, C = x._attrs["shape"]
     return FUNC_CALL_TEMPLATE.render(
         func_name=func_attrs["name"],

@@ -2,7 +2,6 @@
 #include <dinoml/device.h>
 
 namespace dinoml {
-// v=[1,3,3,1]; outer sum=64; scaled by factor^2=4 => scale=4/64 = 1/16
 __device__ __forceinline__ float k2d(int r, int c) {
   const int vr = (r == 0 || r == 3) ? 1 : 3;
   const int vc = (c == 0 || c == 3) ? 1 : 3;
@@ -23,7 +22,6 @@ __global__ void fir_upsample2d_kernel(
   constexpr int KH = 4;
   constexpr int KW = 4;
 
-  // Output size matches upfirdn2d_native (down=1): H*up + pad0 + pad1 - K + 1
   const int OH = H * up + pad0 + pad1 - KH + 1;
   const int OW = W * up + pad0 + pad1 - KW + 1;
 
@@ -38,8 +36,7 @@ __global__ void fir_upsample2d_kernel(
 
 #pragma unroll
     for (int fh = 0; fh < KH; ++fh) {
-      const int uy = (int)oh + fh - pad0; // coord in upsampled (unpadded) grid
-      // Must land on an original sample location
+      const int uy = (int)oh + fh - pad0;
       if (uy % up != 0)
         continue;
       const int iy = uy / up;
