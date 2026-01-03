@@ -347,7 +347,13 @@ def gen_function_call(
 
 
 @registry.reg("cuda.upsampling3d_compress_time.gen_function")
-def cuda_upsampling3d_compress_time_gen_function(func_attrs):
+def cuda_upsampling3d_compress_time_gen_function(
+    func_attrs,
+    template_path,
+    exec_cond_template,
+    shape_eval_template,
+    shape_save_template,
+):
     return gen_function(func_attrs, CUDASpec(), bias_add=False)
 
 
