@@ -98,7 +98,9 @@ def test_fir_upsample2d_with_conv():
     inC = w_t.shape()[3]
     num_groups = x.shape()[-1] / inC
     convH, convW = w_t.shape()[1], w_t.shape()[2]
-    weight = ops.reshape()(w_t, (num_groups, -1, w_t.shape()[1], w_t.shape()[2], w_t.shape()[3]))
+    weight = ops.reshape()(
+        w_t, (num_groups, -1, w_t.shape()[1], w_t.shape()[2], w_t.shape()[3])
+    )
     weight = ops.flip(dims=[2, 3])(weight)
     weight = ops.permute()(weight, [0, 4, 2, 3, 1])
     weight = ops.reshape()(weight, [num_groups * inC, convH, convW, -1])

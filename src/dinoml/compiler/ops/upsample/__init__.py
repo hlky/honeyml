@@ -22,6 +22,9 @@ from dinoml.compiler.ops.upsample.upsampling2d import upsampling2d
 from dinoml.compiler.ops.upsample.upsampling2d_add import upsampling2d_add
 from dinoml.compiler.ops.upsample.upsampling3d import upsampling3d
 from dinoml.compiler.ops.upsample.upsampling3d_add import upsampling3d_add
+from dinoml.compiler.ops.upsample.upsampling3d_compress_time import (
+    upsampling3d_compress_time,
+)
 
 __all__ = [
     "upsampling1d",
@@ -30,4 +33,5 @@ __all__ = [
     "upsampling2d_add",
     "upsampling3d",
     "upsampling3d_add",
+    "upsampling3d_compress_time",
 ]
