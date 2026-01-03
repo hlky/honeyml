@@ -33,6 +33,7 @@ def compress_time(inputs: torch.Tensor):
         inputs = inputs.squeeze(2)
         inputs = torch.nn.functional.interpolate(inputs, scale_factor=2.0)
         inputs = inputs[:, :, None, :, :]
+    return inputs
 
 
 class Upsampling3DCompressTimeTestCase(unittest.TestCase):
