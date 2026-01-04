@@ -113,51 +113,6 @@ struct ProfilerMemoryPool {
   rocrand_generator generator;
 };
 
-// hack for DeviceMem linking error
-// TODO fix this by making CK a header-only lib
-// <<< hack begin
-DeviceMem::DeviceMem(std::size_t mem_size) : mMemSize(mem_size)
-{
-  hipGetErrorString(hipMalloc(static_cast<void**>(&mpDeviceBuf), mMemSize));
-}
-void* DeviceMem::GetDeviceBuffer() const { return mpDeviceBuf; }
-void DeviceMem::ToDevice(const void* p) const
-{
-  hipGetErrorString(
-        hipMemcpy(mpDeviceBuf, const_cast<void*>(p), mMemSize, hipMemcpyHostToDevice));
-}
-void DeviceMem::FromDevice(void* p) const
-{
-  hipGetErrorString(hipMemcpy(p, mpDeviceBuf, mMemSize, hipMemcpyDeviceToHost));
-}
-DeviceMem::~DeviceMem() { hipGetErrorString(hipFree(mpDeviceBuf)); }
-struct KernelTimerImpl
-{
-  KernelTimerImpl() {
-    hipGetErrorString(hipEventCreate(&mStart));
-    hipGetErrorString(hipEventCreate(&mEnd));
-  }
-  ~KernelTimerImpl() {
-    hipGetErrorString(hipEventDestroy(mStart));
-    hipGetErrorString(hipEventDestroy(mEnd));
-  }
-  void Start() {
-    hipGetErrorString(hipDeviceSynchronize());
-    hipGetErrorString(hipEventRecord(mStart, nullptr));
-  }
-  void End() {
-    hipGetErrorString(hipEventRecord(mEnd, nullptr));
-    hipGetErrorString(hipEventSynchronize(mEnd));
-  }
-  float GetElapsedTime() const {
-    float time;
-    hipGetErrorString(hipEventElapsedTime(&time, mStart, mEnd));
-    return time;
-  }
-  hipEvent_t mStart, mEnd;
-};
-// >>> hack end
-
 """
 )
 
@@ -201,12 +156,12 @@ FUNC_TEMPLATE = jinja2.Template(
 #include <random>
 #include <rocrand/rocrand.h>
 #include "logging.h"
-#include "include/ck/utility/print.hpp"
-#include "library/include/ck/library/utility/device_memory.hpp"
-#include "library/include/ck/library/utility/host_tensor.hpp"
-#include "library/include/ck/library/utility/host_tensor_generator.hpp"
-#include "include/ck/tensor_operation/gpu/device/tensor_layout.hpp"
-#include "include/ck/utility/reduction_operator.hpp"
+//include "ck/utility/print.hpp"
+#include "ck/library/utility/device_memory.hpp"
+#include "ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor_generator.hpp"
+#include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
+#include "ck/utility/reduction_operator.hpp"
 {{extra_headers}}
 
 {{extra_code}}
@@ -255,7 +210,7 @@ def extract_config(func_attrs):
     Dict
         Extracted (operation name, operation instance) pair.
     """
-    import ck_lib
+    import dinoml.utils.ck_lib as ck_lib
 
     op_kind = ck_lib.library.OperationKind.Softmax
     extra_kind = len(func_attrs["inputs"][0]._attrs["shape"])
@@ -268,7 +223,7 @@ def extract_config(func_attrs):
 
 def emit_instance(op):
     """Emit instance"""
-    import ck_lib  # noqa: F401
+    import dinoml.utils.ck_lib as ck_lib  # noqa: F401
 
     op_def = op.emit()
     return op_def

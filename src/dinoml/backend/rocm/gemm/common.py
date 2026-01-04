@@ -75,7 +75,9 @@ EXEC_TEMPLATE = jinja2.Template(
 {{problem_args}}
 {{indent}});
 {{indent}}if(!op.IsSupportedArgument(argument)) {
-{{indent}}  LOG(FATAL) << "wrong! " << op.GetTypeString() << " with the specified compilation parameters does not support this Gemm problem.";
+{{indent}}  throw std::runtime_error(
+{{indent}}  "wrong! device_gemm with the specified compilation parameters does "
+{{indent}}  "not support this GEMM problem");
 {{indent}}}
 {% if is_profiler %}
 {{indent}}auto workspace_size = op.GetWorkSpaceSize(&argument);
@@ -116,12 +118,19 @@ SRC_TEMPLATE = jinja2.Template(
 #include <random>
 #include <rocrand/rocrand.h>
 #include "logging.h"
-#include "include/ck/utility/print.hpp"
-#include "library/include/ck/library/utility/device_memory.hpp"
-#include "library/include/ck/library/utility/host_tensor.hpp"
-#include "library/include/ck/library/utility/host_tensor_generator.hpp"
-#include "include/ck/tensor_operation/gpu/device/tensor_layout.hpp"
-#include "include/ck/tensor_operation/gpu/element/element_wise_operation.hpp"
+//#include "include/ck/utility/print.hpp"
+
+#include "ck/ck.hpp"
+#include "ck/tensor_operation/gpu/device/gemm_specialization.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle.hpp"
+#include "ck/tensor_operation/gpu/element/element_wise_operation.hpp"
+
+#include "ck/library/utility/check_err.hpp"
+#include "ck/library/utility/device_memory.hpp"
+#include "ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor_generator.hpp"
+#include "ck/library/utility/literals.hpp"
+
 {{extra_header}}
 
 
@@ -170,6 +179,37 @@ void {{function_name}}(
 }
 """
 )
+
+SRC_TEMPLATE_PROFILER = jinja2.Template(
+    """
+#include <iostream>
+#include <numeric>
+#include <initializer_list>
+#include <cstdlib>
+#include <stdlib.h>
+#include <random>
+#include <rocrand/rocrand.h>
+#include "logging.h"
+
+#include "ck/ck.hpp"
+#include "ck/tensor_operation/gpu/device/gemm_specialization.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle.hpp"
+#include "ck/tensor_operation/gpu/element/element_wise_operation.hpp"
+
+#include "ck/library/utility/check_err.hpp"
+#include "ck/library/utility/device_memory.hpp"
+#include "ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor_generator.hpp"
+#include "ck/library/utility/literals.hpp"
+
+{{extra_header}}
+
+{{extra_code}}
+
+{{instances}}
+"""
+)
+
 
 FUNC_CALL_TEMPLATE = jinja2.Template(
     """
@@ -348,11 +388,16 @@ struct ProfilerMemoryPool {
     strides.reserve(512);
     copies.reserve(512);
     ptrs.reserve(512);
+    rocrand_status st = rocrand_create_generator(&generator, ROCRAND_RNG_PSEUDO_DEFAULT);
+    if(st != ROCRAND_STATUS_SUCCESS) {
+      throw std::runtime_error("rocrand_create_generator failed");
+    }
   }
   ~ProfilerMemoryPool() {
     for(int i = 0; i < ptrs.size(); i++){
       hipFree(ptrs[i]);
     }
+    if(generator) rocrand_destroy_generator(generator);
   }
 
   template <typename DType>
@@ -405,29 +450,11 @@ struct ProfilerMemoryPool {
   rocrand_generator generator;
 };
 
-// hack for DeviceMem linking error
-// TODO fix this by making CK a header-only lib
-// <<< hack begin
-DeviceMem::DeviceMem(std::size_t mem_size) : mMemSize(mem_size)
-{
-  hipGetErrorString(hipMalloc(static_cast<void**>(&mpDeviceBuf), mMemSize));
-}
-void* DeviceMem::GetDeviceBuffer() const { return mpDeviceBuf; }
-void DeviceMem::ToDevice(const void* p) const
-{
-  hipGetErrorString(
-        hipMemcpy(mpDeviceBuf, const_cast<void*>(p), mMemSize, hipMemcpyHostToDevice));
-}
-void DeviceMem::FromDevice(void* p) const
-{
-  hipGetErrorString(hipMemcpy(p, mpDeviceBuf, mMemSize, hipMemcpyDeviceToHost));
-}
-DeviceMem::~DeviceMem() { hipGetErrorString(hipFree(mpDeviceBuf)); }
 struct KernelTimerImpl
 {
   KernelTimerImpl() {
-    hipGetErrorString(hipEventCreate(&mStart));
-    hipGetErrorString(hipEventCreate(&mEnd));
+    hipGetErrorString(hipEventCreateWithFlags(&mStart, hipEventDisableSystemFence));
+    hipGetErrorString(hipEventCreateWithFlags(&mEnd, hipEventDisableSystemFence));
   }
   ~KernelTimerImpl() {
     hipGetErrorString(hipEventDestroy(mStart));
@@ -448,7 +475,6 @@ struct KernelTimerImpl
   }
   hipEvent_t mStart, mEnd;
 };
-// >>> hack end
 
 """
 )
@@ -460,30 +486,84 @@ size_t GLOBAL_WORKSPACE_SIZE = 0;
 
 {{structs_def}}
 
-int main(int argc, char** argv) {
-  if (argc < 4) {
-    throw std::runtime_error("wrong params");
+template <typename GemmInstance>
+int benchmark_{{function_name}}(
+    GemmInstance& op,
+    const char* gemm_op_name,
+    ProfilerMemoryPool* memory_pool,
+    void * in_ptr,
+    void * weight_ptr,
+    void * out_ptr,
+{% if "bias" in gemm_flag or gemm_flag == "add" %}
+    void * bias_ptr,
+{% endif %}
+{% if has_d0 %}
+    void * d0_ptr,
+{% endif %}
+{% if has_d1 %}
+    void * d1_ptr,
+{% endif %}
+{% for idx in range(ndims) %}
+    int64_t* a_dim{{idx}},
+{% endfor %}
+{% for idx in range(ndims) %}
+    int64_t* b_dim{{idx}},
+{% endfor %}
+{% for idx in range(ndims) %}
+    int64_t* c_dim{{idx}},
+{% endfor %}
+{% for idx in range(pdims) %}
+    const int p_dim{{idx}},
+{% endfor %}
+    hipStream_t stream
+) {
+  {{shape_func}}
+  int64_t offset_a = 0;
+  int64_t offset_b = 0;
+  int64_t offset_c = 0;
+  {{extra_shape}}
+
+  auto invoker = op.MakeInvoker();
+  auto argument = op.MakeArgument(
+{{problem_args}}
+  );
+
+   if (!op.IsSupportedArgument(argument)) {
+     return 0; // not supported => skip (CUDA-style "try next")
+   }
+
+  GLOBAL_WORKSPACE_SIZE = op.GetWorkSpaceSize(&argument);
+
+  for (int i = 0; i < 10; ++i) {
+    invoker.Run(argument, StreamConfig{stream, false});
   }
+
+  KernelTimerImpl timer;
+  timer.Start();
+  for (int i = 0; i < 100; ++i) {
+    invoker.Run(argument, StreamConfig{stream, false});
+  }
+  timer.End();
+
+  std::cout << "OP:" << gemm_op_name << ",";
+  std::cout << "TIME:" << timer.GetElapsedTime() << ",";
+  std::cout << "WS:" << GLOBAL_WORKSPACE_SIZE << std::endl;
+
+  return 0;
+}
+
+int main(int argc, char** argv) {
+  if (argc < 4) throw std::runtime_error("wrong params");
+
   {{args_parse}}
   auto memory_pool = std::make_unique<ProfilerMemoryPool>();
   hipStream_t stream = nullptr;
+
   {{tensor_decl}}
-  // TODO: random init
-  // warmup
-  for(int i = 0; i < 3; ++i) {
-    {{func_call}}
-  }
-  // run
-  auto timer = new KernelTimerImpl();
-  timer->Start();
-  for(int i = 0; i < 5; ++i) {
-    {{func_call}}
-  }
-  timer->End();
-  std::cout << "OP:" << "{{op_name}}" << ",";
-  std::cout << "TIME:" << timer->GetElapsedTime() << ",";
-  std::cout << "WS:" << GLOBAL_WORKSPACE_SIZE << std::endl;
-  delete(timer);
+
+  {{benchmark_instances}}
+
+  return 0;
 }
 """
 )
@@ -521,6 +601,49 @@ void {{func_name}}(
 """
 )
 
+BENCHMARK_INSTANCE_TEMPLATE = jinja2.Template(
+    """
+{{indent}}{
+{{indent}}  {{instance_name}} op;
+{{indent}}  const char* gemm_op_name = "{{gemm_op_name}}";
+{{indent}}  int ret = 0;
+{{indent}}  try {
+{{indent}}    ret = benchmark_{{function_name}}(
+{{indent}}      op,
+{{indent}}      gemm_op_name,
+{{indent}}      memory_pool.get(),
+{{indent}}    {{in_ptr}},
+{{indent}}    {{weight_ptr}},
+{{indent}}    {{out_ptr}},
+{% if "bias" in gemm_flag or gemm_flag == "add" %}
+{{indent}}    {{bias_ptr}},
+{% endif %}
+{% if d0_ptr != "" %}
+{{indent}}    {{d0_ptr}},
+{% endif %}
+{% if d1_ptr != "" %}
+{{indent}}    {{d1_ptr}},
+{% endif %}
+{% for dim in adims %}
+{{indent}}      {{dim}},
+{% endfor %}
+{% for dim in bdims %}
+{{indent}}      {{dim}},
+{% endfor %}
+{% for dim in cdims %}
+{{indent}}      {{dim}},
+{% endfor %}
+{% for dim in pdims %}
+{{indent}}      {{dim}},
+{% endfor %}
+{{indent}}      stream
+{{indent}}    );
+{{indent}}  } catch (...) {}
+{{indent}}  if (ret != 0) return ret;
+{{indent}}}
+"""
+)
+
 
 def has_d0(func_attrs):
     return func_attrs.get("num_sources", 0) >= 1
@@ -532,7 +655,7 @@ def has_d1(func_attrs):
 
 def emit_instance(op):
     """Emit instance."""
-    import ck_lib  # noqa: F401
+    import dinoml.utils.ck_lib as ck_lib  # noqa: F401
 
     op_def = op.emit()
     return op_def
@@ -595,6 +718,17 @@ def extract_config_name(config):
     return match.groups()[0]
 
 
+def check_profiler_exists(workdir, op_type, profiler_filename):
+    prefix = os.path.join(workdir, "profiler", op_type)
+    obj_path = os.path.join(prefix, profiler_filename)
+    src_path = os.path.join(prefix, profiler_filename + ".cpp")
+    if os.path.exists(obj_path):
+        return True
+    if os.path.exists(src_path):
+        return True
+    return False
+
+
 def gen_profiler(
     func_attrs,
     workdir,
@@ -607,6 +741,7 @@ def gen_profiler(
     problem_args_template=PROBLEM_ARGS_TEMPLATE,
     extra_header_template=EXTRA_HEADER_TEMPLATE,
     tensor_decl_template=TENSOR_DECL_TEMPLATE,
+    profiler_name=None,
 ):
     """Generates standalone executables for profiler.
 
@@ -637,12 +772,16 @@ def gen_profiler(
         Tensor declaration template.
     """
     op_type = func_attrs["op"]
+    file_pairs = []
+    if check_profiler_exists(workdir, op_type, profiler_name):
+        return file_pairs
     op_instance = func_attrs["op_instance"]
     # shape function
     op_func_shape = gemm_common.gen_shape_eval_code(
         indent=2, dtype="ck::index_t", dim_info_dict=dim_info_dict, is_ptr=True
     )
-
+    prefix = os.path.join(workdir, "profiler", op_type)
+    os.makedirs(prefix, exist_ok=True)
     adims = ["&a_dim" + str(i) for i in range(ndims)]
     bdims = ["&b_dim" + str(i) for i in range(ndims)]
     cdims = ["&c_dim" + str(i) for i in range(ndims)]
@@ -653,83 +792,84 @@ def gen_profiler(
     file_pairs = []
     has_d0_flag = has_d0(func_attrs)
     has_d1_flag = has_d1(func_attrs)
+    instances = []
+    benchmark_instances = []
 
-    for op_name, op in op_instance.items():
+    for instance_idx, (op_name, op) in enumerate(op_instance.items()):
         config = emit_instance(op)
         config_name = extract_config_name(config)
-        instance = INSTANCE_TEMPLATE.render(
-            name="DeviceGemmInstance", config_name=config_name, config=config
-        )
-        problem_args = problem_args_template.render(
-            indent="  ",
-            gemm_flag=gemm_flag,
-            has_d0=has_d0_flag,
-            has_d1=has_d1_flag,
-        )
-        exec_program = EXEC_TEMPLATE.render(
-            indent="  ",
-            instance="DeviceGemmInstance",
-            problem_args=problem_args,
-            is_profiler=True,
-        )
-        extra_header = extra_header_template.render(
-            gemm_flag=gemm_flag, has_d0=has_d0_flag
-        )
-        op_func = SRC_TEMPLATE.render(
-            instances=instance,
-            function_name="gemm",
-            ndims=ndims,
-            pdims=len(pdims),
-            has_d0=has_d0_flag,
-            has_d1=has_d1_flag,
-            shape_func=op_func_shape,
-            extra_shape=extra_shape_func,
-            exec_paths=exec_program,
-            extra_code=extra_code,
-            gemm_flag=gemm_flag,
-            extra_header=extra_header,
-        )
-        structs_def = STRUCTS_DEF_TEMPLATE.render()
-        tensor_decl = tensor_decl_template.render(
-            gemm_flag=gemm_flag, has_d0=has_d0_flag, has_d1=has_d1_flag
-        )
-        func_call = FUNC_CALL_TEMPLATE.render(
-            func_name="gemm",
-            in_ptr="(void *) memory_pool->RequestHalfTensorByIdx(0)",
-            weight_ptr="(void *) memory_pool->RequestHalfTensorByIdx(1)",
-            out_ptr="(void *) memory_pool->RequestHalfTensorByIdx(2)",
-            bias_ptr="(void *) memory_pool->RequestHalfTensorByIdx(3)",
-            d0_ptr=(
-                "(void *) memory_pool->RequestHalfTensorByIdx(4)" if has_d0_flag else ""
-            ),
-            d1_ptr=(
-                "(void *) memory_pool->RequestHalfTensorByIdx(5)" if has_d1_flag else ""
-            ),
-            adims=adims,
-            bdims=bdims,
-            cdims=cdims,
-            pdims=pdims,
-            gemm_flag=gemm_flag,
+        inst_name = f"DeviceGemmInstance_{instance_idx}"
+
+        instances.append(
+            INSTANCE_TEMPLATE.render(
+                name=inst_name, config_name=config_name, config=config
+            )
         )
 
-        code = PROFILER_TEMPLATE.render(
-            structs_def=structs_def,
-            op_func=op_func,
-            args_parse=args_parse,
-            tensor_decl=tensor_decl,
-            func_call=func_call,
-            op_name=op_name,
+        benchmark_instances.append(
+            BENCHMARK_INSTANCE_TEMPLATE.render(
+                indent="  ",
+                instance_name=inst_name,
+                gemm_op_name=op_name,
+                function_name="gemm",
+                in_ptr="(void *) memory_pool->RequestHalfTensorByIdx(0)",
+                weight_ptr="(void *) memory_pool->RequestHalfTensorByIdx(1)",
+                out_ptr="(void *) memory_pool->RequestHalfTensorByIdx(2)",
+                bias_ptr="(void *) memory_pool->RequestHalfTensorByIdx(3)",
+                d0_ptr=(
+                    "(void *) memory_pool->RequestHalfTensorByIdx(4)"
+                    if has_d0_flag
+                    else ""
+                ),
+                d1_ptr=(
+                    "(void *) memory_pool->RequestHalfTensorByIdx(5)"
+                    if has_d1_flag
+                    else ""
+                ),
+                adims=adims,
+                bdims=bdims,
+                cdims=cdims,
+                pdims=pdims,
+                gemm_flag=gemm_flag,
+            )
         )
-        prefix = os.path.join(workdir, "profiler", op_type)
-        if not os.path.exists(prefix):
-            os.makedirs(prefix)
-        src_path = os.path.join(prefix, op_name + ".cpp")
-        obj_path = os.path.join(prefix, op_name)
-        if os.path.exists(obj_path):
-            continue
-        with open(src_path, "w") as fo:
-            fo.write(code)
-        file_pairs.append((src_path, obj_path))
+
+    extra_header = extra_header_template.render(gemm_flag=gemm_flag, has_d0=has_d0_flag)
+
+    op_func = SRC_TEMPLATE_PROFILER.render(
+        instances="\n".join(instances),
+        extra_code=extra_code,
+        extra_header=extra_header,
+    )
+
+    problem_args = problem_args_template.render(
+        indent="  ",
+        gemm_flag=gemm_flag,
+        has_d0=has_d0_flag,
+        has_d1=has_d1_flag,
+    )
+
+    code = PROFILER_TEMPLATE.render(
+        op_func=op_func,
+        structs_def=STRUCTS_DEF_TEMPLATE.render(),
+        args_parse=args_parse,
+        tensor_decl=tensor_decl_template.render(
+            gemm_flag=gemm_flag, has_d0=has_d0_flag, has_d1=has_d1_flag
+        ),
+        benchmark_instances="\n".join(benchmark_instances),
+        function_name="gemm",
+        ndims=ndims,
+        pdims=len(pdims),
+        shape_func=op_func_shape,
+        extra_shape=extra_shape_func,
+        problem_args=problem_args,
+        gemm_flag=gemm_flag,
+    )
+    src_path = os.path.join(prefix, f"{profiler_name}.cpp")
+    obj_path = os.path.join(prefix, f"{profiler_name}")
+    with open(src_path, "w") as fo:
+        fo.write(code)
+    file_pairs.append((src_path, obj_path))
     return file_pairs
 
 
@@ -963,7 +1103,7 @@ def default_fproc_f16(*, op, a_layout, b_layout, c_layout):
     """
     import copy
 
-    import ck_lib
+    import dinoml.utils.ck_lib as ck_lib
 
     ret = []
     data_type = ck_lib.library.DataType.f16

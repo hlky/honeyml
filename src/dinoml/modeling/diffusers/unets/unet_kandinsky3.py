@@ -3,20 +3,12 @@ from typing import Dict, Optional, Tuple, Union
 
 from dinoml.compiler import ops
 
-from dinoml.frontend import IntVar, nn, Tensor
+from dinoml.frontend import nn, Tensor
 
 from ..attention_processor import Attention, AttentionProcessor
 from ..embeddings import SiLU, TimestepEmbedding, Timesteps
 
 from ..utils import BaseOutput
-
-
-def get_shape(x):
-    shape = [
-        it.value() if not isinstance(it, IntVar) else it.symbolic_value()
-        for it in x._attrs["shape"]
-    ]
-    return shape
 
 
 @dataclass

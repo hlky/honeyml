@@ -25,7 +25,7 @@ from dinoml.backend.common.tensor import permute210_common
 Header_files = """
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
-#include "library/include/ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor.hpp"
 """
 
 

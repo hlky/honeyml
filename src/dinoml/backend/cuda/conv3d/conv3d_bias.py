@@ -70,6 +70,8 @@ SRC_TEMPLATE = jinja2.Template(
 #include <stdexcept>
 #include <cstdint>
 
+#include "dinoml/cutlass_global_override.h"
+
 #include "short_file.h"
 #include "cutlass/cutlass.h"
 #include "cutlass/conv/kernel/default_conv3d_fprop.h"

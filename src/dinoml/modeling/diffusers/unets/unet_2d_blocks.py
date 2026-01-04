@@ -10,14 +10,12 @@ from ..attention_processor import Attention  # , AttnAddedKVProcessor2_0
 from ..normalization import AdaGroupNorm
 from ..resnet import (
     Downsample2D,
-    FirDownsample2D,
-    FirUpsample2D,
-    KDownsample2D,
-    KUpsample2D,
     ResnetBlock2D,
     ResnetBlockCondNorm2D,
     Upsample2D,
 )
+from ..downsampling import FirDownsample2D, KDownsample2D
+from ..upsampling import FirUpsample2D, KUpsample2D
 from ..transformers.dual_transformer_2d import DualTransformer2DModel
 from ..transformers.transformer_2d import Transformer2DModel
 

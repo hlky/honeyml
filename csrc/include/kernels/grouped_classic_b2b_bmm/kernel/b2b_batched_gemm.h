@@ -38,6 +38,8 @@
 
 #pragma once
 
+#include "dinoml/cutlass_global_override.h"
+
 #include <cstddef>
 #include "cutlass/cutlass.h"
 

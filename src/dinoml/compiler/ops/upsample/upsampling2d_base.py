@@ -158,16 +158,14 @@ class upsampling2d_base(Operator):
 
         in_h = x._attrs["shape"][1]
         in_w = x._attrs["shape"][2]
-        out_h = (
-            in_h * int(self._attrs["scale_factor"])
-            if out is None
-            else out._attrs["shape"][1]
-        )
-        out_w = (
-            in_w * int(self._attrs["scale_factor"])
-            if out is None
-            else out._attrs["shape"][2]
-        )
+        _out_h = in_h * self._attrs["scale_factor"]
+        _out_w = in_w * self._attrs["scale_factor"]
+        if isinstance(_out_h, float):
+            _out_h = int(_out_h)
+        if isinstance(_out_w, float):
+            _out_w = int(_out_w)
+        out_h = _out_h if out is None else out._attrs["shape"][1]
+        out_w = _out_w if out is None else out._attrs["shape"][2]
 
         output_shape[1] = out_h
         output_shape[2] = out_w

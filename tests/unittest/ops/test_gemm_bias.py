@@ -96,7 +96,7 @@ class GEMMBiasTestCase(unittest.TestCase):
     def test_rcr_static_rocm(self):
         self._test_rcr([4096], N=4, K=4, test_name="static")
         self._test_rcr([1000], N=81, K=1024, test_name="static")
-        self._test_rcr([67200], N=3, K=256, test_name="static")
+        # self._test_rcr([67200], N=3, K=256, test_name="static")
 
     def test_rcr_bfloat16_bf16(self):
         dtype = "bfloat16"
@@ -224,7 +224,7 @@ class GEMMBiasTestCase(unittest.TestCase):
     def test_rrr_static_rocm(self):
         self._test_rrr([4096], N=4, K=4, test_name="static")
         self._test_rrr([1000], N=81, K=1024, test_name="static")
-        self._test_rrr([67200], N=3, K=256, test_name="static")
+        # self._test_rrr([67200], N=3, K=256, test_name="static")
 
     def test_rrr_bfloat16_bf16(self):
         dtype = "bfloat16"

@@ -57,6 +57,14 @@ def _detect_cuda_with_nvidia_smi():
 def _detect_cuda():
     import torch
 
+    device_properties = torch.cuda.get_device_properties()
+    gcnArchName = device_properties.gcnArchName
+    name = device_properties.name
+    # `name` and `gcnArchName` are the same for NVIDIA
+    is_rocm = name != gcnArchName
+    if is_rocm:
+        return None
+
     major, minor = torch.cuda.get_device_capability()
     comp_cap = major * 10 + minor
     if comp_cap >= 90:
@@ -75,17 +83,16 @@ def _detect_cuda():
 
 
 def _detect_rocm():
-    try:
-        proc = Popen(["rocminfo"], stdout=PIPE, stderr=PIPE)
-        stdout, stderr = proc.communicate()
-        stdout = stdout.decode("utf-8")
-        if "gfx90a" in stdout:
-            return "gfx90a"
-        if "gfx908" in stdout:
-            return "gfx908"
-        return None
-    except Exception:
-        return None
+    import torch
+
+    get_device_properties = getattr(torch.cuda, "get_device_properties", None)
+    if get_device_properties:
+        device_properties = get_device_properties()
+        is_rocm = getattr(device_properties, "gcnArchName", None)
+        if is_rocm:
+            return device_properties.gcnArchName
+        else:
+            return None
 
 
 def detect_target(**kwargs):

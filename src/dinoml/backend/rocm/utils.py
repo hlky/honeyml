@@ -47,7 +47,7 @@ class Args:
 
 @registry.reg("rocm.gen_ck_ops")
 def gen_ops(arch):
-    import ck_lib
+    import dinoml.utils.ck_lib as ck_lib
 
     args = Args(arch)
     manifest = ck_lib.manifest.Manifest(args)

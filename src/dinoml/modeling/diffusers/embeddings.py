@@ -6,7 +6,6 @@ import numpy as np
 from dinoml.compiler import ops
 
 from dinoml.frontend import IntVar, nn, Tensor
-from dinoml.modeling.diffusers.attention_processor import Attention
 
 from .activations import FP32SiLU, get_activation
 
@@ -1891,7 +1890,7 @@ class IPAdapterPlusImageProjectionBlock(nn.Module):
         dtype: str = "float16",
     ) -> None:
         super().__init__()
-        from .attention import FeedForward
+        from .attention import FeedForward, Attention
 
         self.ln0 = nn.LayerNorm(embed_dims, dtype=dtype)
         self.ln1 = nn.LayerNorm(embed_dims, dtype=dtype)
@@ -2108,7 +2107,7 @@ class IPAdapterTimeImageProjectionBlock(nn.Module):
         dtype: str = "float16",
     ) -> None:
         super().__init__()
-        from .attention import FeedForward
+        from .attention import FeedForward, Attention
 
         self.ln0 = nn.LayerNorm(hidden_dim, dtype=dtype)
         self.ln1 = nn.LayerNorm(hidden_dim, dtype=dtype)

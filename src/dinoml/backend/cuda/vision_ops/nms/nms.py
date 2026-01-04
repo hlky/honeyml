@@ -26,6 +26,8 @@ from dinoml.backend.common.vision_ops import nms_common
 
 header_files = """
 #include <cuda_fp16.h>
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/fast_math.h"
 #include <cub/cub.cuh>

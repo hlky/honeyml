@@ -28,7 +28,7 @@ EXTRA_HEADER = jinja2.Template(
     """
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
-#include "library/include/ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor.hpp"
 """
 )
 

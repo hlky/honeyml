@@ -35,6 +35,8 @@ from dinoml.compiler.base import IntImm, IntVar
 header_files = """
 #include "short_file.h"
 #include <cuda_fp16.h>
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/fast_math.h"
 #include <cub/cub.cuh>

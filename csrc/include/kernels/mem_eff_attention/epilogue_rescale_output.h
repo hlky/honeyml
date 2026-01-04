@@ -50,6 +50,8 @@
 #include <assert.h>
 #endif
 
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/aligned_buffer.h"
 #include "cutlass/array.h"
 #include "cutlass/cutlass.h"

@@ -100,6 +100,8 @@ SRC_TEMPLATE = jinja2.Template(
 #include <cstdio>
 #include <stdexcept>
 #include "short_file.h"
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 {% if is_transpose %}
 #include "cutlass/conv/kernel/default_conv2d_dgrad.h"
@@ -373,6 +375,8 @@ PROFILER_MAIN_TEMPLATE = jinja2.Template(
 #include <iostream>
 #include <string>
 #include <cstdint>
+
+#include "dinoml/cutlass_global_override.h"
 
 #include "cutlass/cutlass.h"
 

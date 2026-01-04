@@ -25,6 +25,8 @@ from dinoml.backend.common.tensor import permute021_common
 Header_files = """
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/util/host_tensor.h"
 #include "short_file.h"

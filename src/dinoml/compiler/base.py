@@ -86,6 +86,15 @@ class Node(ABC):
         pass
 
 
+def _maybe_int(value):
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        if round(value) == value:
+            return int(value)
+    return value
+
+
 class IntVar(Node):
     """
     An IntVar represents a dynamic dimension.
@@ -178,8 +187,8 @@ class IntVar(Node):
             raise NotImplementedError(f"Unable to do addition on {self} and {other}")
 
         new_values = [
-            self_values[0] + other_values[0],
-            self_values[-1] + other_values[-1],
+            _maybe_int(self_values[0] + other_values[0]),
+            _maybe_int(self_values[-1] + other_values[-1]),
         ]
         if new_values[0] == new_values[1]:
             return IntImm(new_values[0])
@@ -202,8 +211,8 @@ class IntVar(Node):
             raise NotImplementedError(f"Unable to do subtraction on {self} and {other}")
 
         new_values = [
-            max(0, self_values[0] - other_values[-1]),
-            max(0, self_values[-1] - other_values[0]),
+            _maybe_int(max(0, self_values[0] - other_values[-1])),
+            _maybe_int(max(0, self_values[-1] - other_values[0])),
         ]
         if new_values[0] == new_values[1]:
             return IntImm(new_values[0])
@@ -225,8 +234,8 @@ class IntVar(Node):
             )
 
         new_values = [
-            max(0, other_values[0] - self_values[-1]),
-            max(0, other_values[-1] - self_values[0]),
+            _maybe_int(max(0, other_values[0] - self_values[-1])),
+            _maybe_int(max(0, other_values[-1] - self_values[0])),
         ]
         if new_values[0] == new_values[1]:
             return IntImm(value=new_values[0])
@@ -248,8 +257,8 @@ class IntVar(Node):
             )
 
         new_values = [
-            self_values[0] * other_values[0],
-            self_values[-1] * other_values[-1],
+            _maybe_int(self_values[0] * other_values[0]),
+            _maybe_int(self_values[-1] * other_values[-1]),
         ]
         if new_values[0] == new_values[1]:
             return IntImm(value=new_values[0])
@@ -272,8 +281,8 @@ class IntVar(Node):
             raise NotImplementedError(f"Unable to do division on {self} and {other}")
 
         new_values = [
-            math.floor(self_values[0] / max(1, other_values[-1])),
-            math.ceil(self_values[-1] / max(1, other_values[0])),
+            _maybe_int(math.floor(self_values[0] / max(1, other_values[-1]))),
+            _maybe_int(math.ceil(self_values[-1] / max(1, other_values[0]))),
         ]
         if new_values[0] == new_values[1]:
             return IntImm(value=new_values[0])
@@ -293,8 +302,8 @@ class IntVar(Node):
             raise NotImplementedError(f"Unable to do r-division on {self} and {other}")
 
         new_values = [
-            math.floor(other_values[0] / max(1, self_values[-1])),
-            math.ceil(other_values[-1] / max(1, self_values[0])),
+            _maybe_int(math.floor(other_values[0] / max(1, self_values[-1]))),
+            _maybe_int(math.ceil(other_values[-1] / max(1, self_values[0]))),
         ]
         if new_values[0] == new_values[1]:
             return IntImm(value=new_values[0])

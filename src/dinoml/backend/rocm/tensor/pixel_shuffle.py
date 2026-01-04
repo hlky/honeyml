@@ -6,7 +6,7 @@ from dinoml.backend.common import pixel_shuffle_common
 Header_Files = """
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
-#include "library/include/ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor.hpp"
 """
 
 

@@ -20,7 +20,7 @@ from typing import List
 
 import jinja2
 
-import library
+from . import library
 
 class Conv2DSpecialization(enum.Enum):
     ConvFwdDefault = auto()

@@ -175,7 +175,7 @@ def bmm_softmax_bmm_permute_config(func_attrs, dtype="float16"):
         Extracted (operation name, operation instance) pair
         from all operation candidates.
     """
-    import ck_lib
+    import dinoml.utils.ck_lib as ck_lib
 
     op_kind = ck_lib.library.GemmKind.BatchGemmSoftmaxGemmPermute
     extra_kind = ck_lib.library.TensorOperation.PassThrough
@@ -198,7 +198,7 @@ def bmm_softmax_bmm_permute_causal_config(func_attrs, dtype="float16"):
         Extracted (operation name, operation instance) pair
         from all operation candidates.
     """
-    import ck_lib
+    import dinoml.utils.ck_lib as ck_lib
 
     op_kind = ck_lib.library.GemmKind.BatchGemmSoftmaxGemmPermute
     extra_kind = ck_lib.library.TensorOperation.CausalMask
@@ -207,7 +207,7 @@ def bmm_softmax_bmm_permute_causal_config(func_attrs, dtype="float16"):
 
 @registry.reg("rocm.bmm_softmax_bmm_permute.gen_profiler")
 @registry.reg("rocm.bmm_softmax_bmm_permute_causal.gen_profiler")
-def bmm_gen_profiler(func_attrs, workdir, dim_info_dict):
+def bmm_gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
     """Generates standalone executables for profiler.
 
     Parameters

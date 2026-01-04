@@ -477,7 +477,10 @@ class ROCMSpec(GPUBackendSpec):
     header_src_template = jinja2.Template(
         """
 #include <hip/hip_fp16.h>
+#include <hip/hip_bf16.h>
 #include <hip/hip_runtime.h>
+using bfloat16 = __hip_bfloat16;
+using bfloat162 = __hip_bfloat162;
 {{extra_header}}
         """
     )

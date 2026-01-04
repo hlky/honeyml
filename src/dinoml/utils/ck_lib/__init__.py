@@ -15,4 +15,4 @@
 
 # flake8: noqa
 
-import conv2d_operation, gemm_operation, generator, library, manifest
+from . import conv2d_operation, gemm_operation, generator, library, manifest

@@ -65,7 +65,7 @@ def gemm_config(func_attrs, dtype="float16"):
         Extracted (operation name, operation instance) pair
         from all operation candidates.
     """
-    import ck_lib  # noqa: F401
+    import dinoml.utils.ck_lib as ck_lib  # noqa: F401
 
     op_kind = ck_lib.library.GemmKind.GemmPermuteM2N3
     extra_kind = ck_lib.library.TensorOperation.PassThrough
@@ -73,7 +73,7 @@ def gemm_config(func_attrs, dtype="float16"):
 
 
 @registry.reg("rocm.gemm_rcr_permute_m2n3.gen_profiler")
-def gemm_gen_profiler(func_attrs, workdir, dim_info_dict):
+def gemm_gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
     """Generates standalone executables for profiler.
 
     Parameters
@@ -93,6 +93,7 @@ def gemm_gen_profiler(func_attrs, workdir, dim_info_dict):
         args_parse=ARGS_PARSER_TEMPLATE.render(),
         gemm_flag="permute_m2n3",
         extra_shape_template=permute_common.EXTRA_SHAPE_TEMPLATE_M2N3,
+        profiler_name=profiler_name,
     )
 
 

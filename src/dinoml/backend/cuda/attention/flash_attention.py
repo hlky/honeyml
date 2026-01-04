@@ -31,6 +31,9 @@ FUNC_CALL_FP32_PARAM_TEMPLATE = jinja2.Template("reinterpret_cast<float*>({{name
 FUNC_TEMPLATE = jinja2.Template(
     """
 #include <cuda_fp16.h>
+
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/fast_math.h"
 

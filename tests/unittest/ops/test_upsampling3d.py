@@ -5,6 +5,8 @@ import torch
 from dinoml.compiler import compile_model
 from dinoml.frontend import IntVar, nn, Tensor
 from dinoml.testing import detect_target
+from dinoml.testing.benchmark_dinoml import benchmark_module
+from dinoml.testing.benchmark_pt import benchmark_torch_function
 from dinoml.testing.test_utils import (
     filter_test_cases_by_params,
     get_random_torch_tensor,
@@ -13,7 +15,7 @@ from dinoml.testing.test_utils import (
 from parameterized import parameterized
 
 
-_DEFAULT_BATCH_SIZE = [1, 2]
+_DEFAULT_BATCH_SIZE = [8, 32]
 TOLERANCES = {"bfloat16": 2e-2, "float16": 1e-3, "float32": 1e-5}
 
 
@@ -80,6 +82,17 @@ class Upsampling3DTestCase(unittest.TestCase):
                 atol=TOLERANCES[dtype],
                 msg=(f"{test_name}\nExpected:\n{Y_pt}\n\nGot:\n{y_out}"),
             )
+
+            mean, _ = benchmark_module(module, count=1000, repeat=3)
+            pt_mean = benchmark_torch_function(
+                1000,
+                torch.nn.functional.interpolate,
+                X_pt,
+                scale_factor=scale_factor,
+                mode=mode,
+                align_corners=align_corners if mode == "trilinear" else None,
+            )
+            print("DinoML mean:", mean, "PT mean:", pt_mean, "speedup:", pt_mean / mean)
 
     @parameterized.expand(
         **filter_test_cases_by_params(

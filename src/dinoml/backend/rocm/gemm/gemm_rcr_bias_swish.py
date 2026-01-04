@@ -84,7 +84,7 @@ def gemm_config(func_attrs, dtype="float16"):
         Extracted (operation name, operation instance) pair
         from all operation candidates.
     """
-    import ck_lib  # noqa: F401
+    import dinoml.utils.ck_lib as ck_lib  # noqa: F401
 
     op_kind = ck_lib.library.GemmKind.Gemm
     extra_kind = ck_lib.library.TensorOperation.AddSwish
@@ -92,7 +92,7 @@ def gemm_config(func_attrs, dtype="float16"):
 
 
 @registry.reg("rocm.gemm_rcr_bias_swish.gen_profiler")
-def gemm_gen_profiler(func_attrs, workdir, dim_info_dict):
+def gemm_gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
     """Generates standalone executables for profiler.
 
     Parameters
@@ -112,6 +112,7 @@ def gemm_gen_profiler(func_attrs, workdir, dim_info_dict):
         args_parse=RCR.args_parse,
         gemm_flag="bias_swish",
         extra_code=EXTRA_CODE.render(),
+        profiler_name=profiler_name,
     )
 
 

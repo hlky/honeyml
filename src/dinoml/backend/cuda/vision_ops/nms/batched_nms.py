@@ -31,6 +31,8 @@ FUNC_CALL_INT64_PARAM_TEMPLATE = jinja2.Template("reinterpret_cast<int64_t*>({{n
 FUNC_TEMPLATE = jinja2.Template(
     """
 #include <cuda_fp16.h>
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/fast_math.h"
 #include <cub/cub.cuh>

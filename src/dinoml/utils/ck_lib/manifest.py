@@ -22,7 +22,7 @@
 import os.path
 import re
 
-from library import OperationKind, OperationKindNames
+from .library import OperationKind, OperationKindNames
 
 
 class Manifest:

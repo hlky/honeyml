@@ -38,7 +38,7 @@ def conv2d_config(func_attrs):
         Extracted (operation name, operation instance) pair
         from all operation candidates.
     """
-    import ck_lib
+    import dinoml.utils.ck_lib as ck_lib
 
     op_kind = ck_lib.library.Conv2dKind.GroupConv2dBiasRelu
     extra_kind = ck_lib.library.TensorOperation.PassThrough

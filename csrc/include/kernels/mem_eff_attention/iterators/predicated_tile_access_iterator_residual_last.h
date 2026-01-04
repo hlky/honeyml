@@ -45,6 +45,8 @@
 
 #pragma once
 
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/array.h"
 #include "cutlass/coord.h"
 #include "cutlass/cutlass.h"

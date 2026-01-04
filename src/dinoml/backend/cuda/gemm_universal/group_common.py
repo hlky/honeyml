@@ -145,6 +145,8 @@ ADAPTOR_FUNCTION_TEMPLATE = jinja2.Template(
 #include <random>
 #include <vector>
 #include "short_file.h"
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/gemm/device/gemm_universal.h"
 #include "cutlass/gemm/kernel/gemm_grouped.h"
@@ -323,6 +325,8 @@ SRC_TEMPLATE = jinja2.Template(
 #include <memory>
 #include <random>
 #include <vector>
+
+#include "dinoml/cutlass_global_override.h"
 
 #include "cutlass/cutlass.h"
 #include "cutlass/numeric_types.h"

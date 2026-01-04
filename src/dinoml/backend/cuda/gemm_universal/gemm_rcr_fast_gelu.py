@@ -34,6 +34,8 @@ from dinoml.backend.cuda.gemm_universal.layout import RCR
 
 EXTRA_CODE = jinja2.Template(
     """
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/numeric_types.h"
 #include "cutlass/constants.h"

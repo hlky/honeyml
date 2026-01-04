@@ -28,6 +28,8 @@ from dinoml.compiler.ops.tensor import concatenate
 KERNEL_SRC_TEMPLATE = jinja2.Template(
     """
 #include <cuda_fp16.h>
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/fast_math.h"
 #include "logging.h"

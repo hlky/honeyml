@@ -13,6 +13,7 @@ from dinoml.utils.build_utils import (
     get_device_name,
     get_sm,
 )
+from dinoml.utils.debug_settings import DinoMLDebugSettings
 from dinoml.utils.shape_utils import get_shape
 from dinoml.utils.torch_utils import torch_dtype_to_string
 
@@ -45,6 +46,8 @@ class Build:
         benchmark_after_compile: bool = True,
         store_constants_in_module: bool = True,
         check_outputs: bool = True,
+        debug: bool = False,
+        use_fp16_acc: bool = True,
     ):
         self.hf_hub = hf_hub
         self.label = label
@@ -56,6 +59,8 @@ class Build:
         self.benchmark_after_compile = benchmark_after_compile
         self.store_constants_in_module = store_constants_in_module
         self.check_outputs = check_outputs
+        self.debug = debug
+        self.use_fp16_acc = use_fp16_acc
 
     def _model_name(self):
         return {}
@@ -144,7 +149,11 @@ class Build:
             )
 
     def compile(self):
-        target = detect_target()
+        target = detect_target(use_fp16_acc=self.use_fp16_acc)
+        if self.debug:
+            debug = DinoMLDebugSettings(check_all_outputs=True, elements_to_check=10)
+        else:
+            debug = DinoMLDebugSettings()
         module = compile_model(
             self.output_tensors,
             target,
@@ -152,13 +161,27 @@ class Build:
             self.model_name,
             constants=self.constants,
             dll_name=f"{self.model_name}.so",
+            debug_settings=debug,
         )
         if self.benchmark_after_compile:
             if not self.store_constants_in_module:
                 print("`benchmark_after_compile` requires `store_constants_in_module`.")
             else:
+                count = 50
+                repeat = 3
+                check_outputs = self.check_outputs
+                if self.debug:
+                    print(
+                        "Debug enabled, override check_outputs = True, benchmark count = 0."
+                    )
+                    check_outputs = True
+                    count = 0
+                    repeat = 0
                 benchmark_module(
-                    module=module, count=50, repeat=3, check_outputs=self.check_outputs
+                    module=module,
+                    count=count,
+                    repeat=repeat,
+                    check_outputs=check_outputs,
                 )
         return module
 

@@ -26,7 +26,7 @@
 // actual_total_elements_from_stride_dim are the corresponding data member
 // values of TensorAccessor.
 template <typename DATA_T, typename READ_T, bool is_contiguous>
-__device__ __forceinline__ READ_T* get_strided_address(
+__device__ inline READ_T* get_strided_address(
     READ_T* data,
     int64_t idx,
     int64_t offset,

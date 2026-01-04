@@ -17,6 +17,8 @@
 #include <sstream>
 #include <string>
 
+#include "dinoml/cutlass_global_override.h"
+
 #include <cutlass/float8.h>
 #include "cutlass/conv/conv2d_problem_size.h"
 #include "cutlass/conv/device/implicit_gemm_convolution.h"

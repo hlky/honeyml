@@ -20,7 +20,7 @@ from typing import List
 
 import jinja2
 
-import library
+from . import library
 
 # import library
 

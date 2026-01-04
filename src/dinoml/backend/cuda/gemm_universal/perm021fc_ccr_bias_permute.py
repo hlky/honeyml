@@ -31,6 +31,8 @@ from dinoml.backend.cuda.gemm_universal import (
 
 EXTRA_CODE = """
 
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/gemm/device/gemm_universal_with_perm.h"
 
 #include "cutlass/cutlass.h"

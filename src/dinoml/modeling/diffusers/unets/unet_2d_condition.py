@@ -9,7 +9,7 @@ from ..activations import get_activation
 from ..attention_processor import AttentionProcessor
 from ..embeddings import (
     GaussianFourierProjection,
-    # GLIGENTextBoundingboxProjection,
+    GLIGENTextBoundingboxProjection,
     ImageHintTimeEmbedding,
     ImageProjection,
     ImageTimeEmbedding,
