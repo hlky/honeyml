@@ -1,29 +1,20 @@
 import math
 from functools import partial
-from typing import Annotated, cast, Optional, Tuple, Union
+from typing import Annotated, Optional, Tuple, Union
 
 from dinoml.compiler import ops
 
-from dinoml.compiler.base import IntVarTensor
-
-from dinoml.frontend import IntVar, nn, Tensor
+from dinoml.frontend import nn, Tensor
 
 from .activations import get_activation
 from .attention_processor import SpatialNorm
 from .downsampling import (  # noqa
-    Downsample1D,
     Downsample2D,
     downsample_2d,
-    FirDownsample2D,
-    KDownsample2D,
 )
 from .embeddings import SiLU
 from .normalization import AdaGroupNorm
 from .upsampling import (  # noqa
-    FirUpsample2D,
-    KUpsample2D,
-    upfirdn2d_native,
-    Upsample1D,
     Upsample2D,
     upsample_2d,
 )
@@ -32,18 +23,6 @@ from ...utils.build_utils import Shape, DimAdd, DimDiv, DimMul, DimSub
 
 def sigmoid(x):
     return 1 / (1 + math.exp(-x))
-
-
-def get_shape(x):
-    shape = [
-        (
-            it.value()
-            if not isinstance(it, IntVar)
-            else [it.lower_bound(), it.upper_bound()]
-        )
-        for it in x._attrs["shape"]
-    ]
-    return shape
 
 
 class ResnetBlockCondNorm2D(nn.Module):
@@ -344,7 +323,6 @@ class ResnetBlock2D(nn.Module):
         self.upsample = self.downsample = None
         if self.up:
             if kernel == "fir":
-                raise NotImplementedError("'fir' upsample_2d not implemented.")
                 fir_kernel = (1, 3, 3, 1)
                 self.upsample = lambda x: upsample_2d(x, kernel=fir_kernel)
             elif kernel == "sde_vp":
@@ -355,7 +333,6 @@ class ResnetBlock2D(nn.Module):
                 self.upsample = Upsample2D(in_channels, use_conv=False, dtype=dtype)
         elif self.down:
             if kernel == "fir":
-                raise NotImplementedError("'fir' downsample_2d not implemented.")
                 fir_kernel = (1, 3, 3, 1)
                 self.downsample = lambda x: downsample_2d(x, kernel=fir_kernel)
             elif kernel == "sde_vp":
@@ -877,7 +854,7 @@ class AlphaBlender(nn.Module):
                 )
             batch = ops.size()(image_only_indicator, dim=1)
             alpha = ops.where()(
-                image_only_indicator, 1.0, sigmoid(self.mix_factor), dtype="float16"
+                image_only_indicator, 1.0, sigmoid(self.mix_factor), dtype=self.dtype
             )
 
             # (batch, frames, height, width, channel)
