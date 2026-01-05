@@ -1,9 +1,9 @@
-from typing import Any, Dict, Iterable, Optional, Tuple, Union
+from typing import Optional, Tuple
 
 from dinoml.compiler import ops
 from dinoml.compiler.base import IntVarTensor
 
-from dinoml.frontend import IntVar, nn, Tensor
+from dinoml.frontend import nn, Tensor
 
 from .activations import get_activation
 
@@ -14,80 +14,144 @@ from .embeddings import (
 )
 
 
-def get_shape(x):
-    shape = [
-        (
-            it.value()
-            if not isinstance(it, IntVar)
-            else [it.lower_bound(), it.upper_bound()]
-        )
-        for it in x._attrs["shape"]
-    ]
-    return shape
-
-
-class RMSNorm(nn.Module):
-    def __init__(
-        self, dim, eps: float, elementwise_affine: bool = True, dtype: str = "float16"
-    ):
-        super().__init__()
-        self.dtype = dtype
-
-        self.eps = eps
-
-        if isinstance(dim, int):
-            dim = [dim]
-
-        if elementwise_affine:
-            self.weight = nn.Parameter(shape=dim, value=1.0, dtype=dtype)
-        else:
-            self.weight = None
-
-    def forward(self, hidden_states: Tensor):
-        input_dtype = hidden_states.dtype()
-
-        hidden_states = ops.cast()(hidden_states, "float32")
-        variance = ops.reduce_mean(-1, keepdim=True)(ops.pow(hidden_states, 2))
-        hidden_states = hidden_states * (1.0 / ops.sqrt(variance + self.eps))
-
-        if self.weight is not None:
-            # convert into half-precision if necessary
-            if self.weight.tensor().dtype() in ["float16", "bfloat16"]:
-                hidden_states = ops.cast()(hidden_states, self.weight.tensor().dtype())
-            elif self.dtype != input_dtype:
-                hidden_states = ops.cast()(hidden_states, input_dtype)
-            hidden_states = hidden_states * (
-                self.weight.tensor()
-                if hidden_states.dtype() == self.dtype
-                else ops.cast()(self.weight.tensor(), hidden_states.dtype())
-            )
-        else:
-            hidden_states = ops.cast()(hidden_states, input_dtype)
-
-        return hidden_states
-
-
 class AdaLayerNorm(nn.Module):
     r"""
     Norm layer modified to incorporate timestep embeddings.
 
     Parameters:
         embedding_dim (`int`): The size of each embedding vector.
+        num_embeddings (`int`, *optional*): The size of the embeddings dictionary.
+        output_dim (`int`, *optional*):
+        norm_elementwise_affine (`bool`, defaults to `False):
+        norm_eps (`bool`, defaults to `False`):
+        chunk_dim (`int`, defaults to `0`):
+    """
+
+    def __init__(
+        self,
+        embedding_dim: int,
+        num_embeddings: Optional[int] = None,
+        output_dim: Optional[int] = None,
+        norm_elementwise_affine: bool = False,
+        norm_eps: float = 1e-5,
+        chunk_dim: int = 0,
+        dtype: str = "float16",
+    ):
+        super().__init__()
+
+        self.chunk_dim = chunk_dim
+        output_dim = output_dim or embedding_dim * 2
+
+        if num_embeddings is not None:
+            self.emb = nn.Embedding([num_embeddings, embedding_dim], dtype=dtype)
+        else:
+            self.emb = None
+
+        self.silu = ops.silu
+        self.linear = nn.Linear(embedding_dim, output_dim, dtype=dtype)
+        self.norm = nn.LayerNorm(
+            output_dim // 2,
+            elementwise_affine=norm_elementwise_affine,
+            eps=norm_eps,
+            dtype=dtype,
+        )
+
+    def forward(self, x: Tensor, timestep: Tensor) -> Tensor:
+        if self.emb is not None:
+            temb = self.emb(ops.flatten()(timestep))
+
+        temb = self.linear(self.silu(temb))
+
+        if self.chunk_dim == 1:
+            shift, scale = ops.chunk()(temb, 2, dim=1)
+            shift = shift[:, None, :]
+            scale = scale[:, None, :]
+        else:
+            scale, shift = ops.chunk()(temb, 2, dim=0)
+
+        x = self.norm(x) * (1 + scale) + shift
+        return x
+
+
+class FP32LayerNorm(nn.LayerNorm):
+    def forward(self, inputs: Tensor) -> Tensor:
+        origin_dtype = inputs.dtype()
+        return ops.cast()(
+            ops.layernorm()(
+                ops.cast()(inputs, dtype="float32"),
+                ops.cast()(self.weight.tensor(), dtype="float32"),
+                ops.cast()(self.bias.tensor(), dtype="float32"),
+                self.dim,
+                self.eps,
+            ),
+            dtype=origin_dtype,
+        )
+
+
+class SD35AdaLayerNormZeroX(nn.Module):
+    r"""
+    Norm layer adaptive layer norm zero (AdaLN-Zero).
+
+    Parameters:
+        embedding_dim (`int`): The size of each embedding vector.
         num_embeddings (`int`): The size of the embeddings dictionary.
     """
 
-    def __init__(self, embedding_dim: int, num_embeddings: int, dtype: str = "float16"):
+    def __init__(
+        self,
+        embedding_dim: int,
+        norm_type: str = "layer_norm",
+        bias: bool = True,
+        dtype: str = "float16",
+    ) -> None:
         super().__init__()
-        self.emb = nn.Embedding([num_embeddings, embedding_dim], dtype=dtype)
-        self.silu = ops.silu
-        self.linear = nn.Linear(embedding_dim, embedding_dim * 2, dtype=dtype)
-        self.norm = nn.LayerNorm(embedding_dim, elementwise_affine=False, dtype=dtype)
 
-    def forward(self, x: Tensor, timestep: Tensor) -> Tensor:
-        emb = self.linear(self.silu(self.emb(ops.flatten()(timestep))))
-        scale, shift = ops.chunk()(emb, 2, dim=1)
-        x = self.norm(x) * (1 + scale) + shift
-        return x
+        self.silu = ops.silu
+        self.linear = nn.Linear(
+            embedding_dim, 9 * embedding_dim, bias=bias, dtype=dtype
+        )
+        if norm_type == "layer_norm":
+            self.norm = nn.LayerNorm(
+                embedding_dim, elementwise_affine=False, eps=1e-6, dtype=dtype
+            )
+        else:
+            raise ValueError(
+                f"Unsupported `norm_type` ({norm_type}) provided. Supported ones are: 'layer_norm'."
+            )
+
+    def forward(
+        self,
+        hidden_states: Tensor,
+        emb: Optional[Tensor] = None,
+    ) -> Tuple[Tensor, ...]:
+        emb = self.linear(self.silu(emb))
+        (
+            shift_msa,
+            scale_msa,
+            gate_msa,
+            shift_mlp,
+            scale_mlp,
+            gate_mlp,
+            shift_msa2,
+            scale_msa2,
+            gate_msa2,
+        ) = ops.chunk()(emb, 9, dim=1)
+        norm_hidden_states = self.norm(hidden_states)
+        hidden_states = (
+            norm_hidden_states * (1 + scale_msa[:, None]) + shift_msa[:, None]
+        )
+        norm_hidden_states2 = (
+            norm_hidden_states * (1 + scale_msa2[:, None]) + shift_msa2[:, None]
+        )
+        return (
+            hidden_states,
+            gate_msa,
+            shift_mlp,
+            scale_mlp,
+            gate_mlp,
+            norm_hidden_states2,
+            gate_msa2,
+        )
 
 
 class AdaLayerNormZero(nn.Module):
@@ -103,6 +167,8 @@ class AdaLayerNormZero(nn.Module):
         self,
         embedding_dim: int,
         num_embeddings: Optional[int] = None,
+        norm_type="layer_norm",
+        bias=True,
         dtype: str = "float16",
     ):
         super().__init__()
@@ -115,37 +181,115 @@ class AdaLayerNormZero(nn.Module):
 
         self.silu = ops.silu
         self.linear = nn.Linear(
-            embedding_dim, 6 * embedding_dim, bias=True, dtype=dtype
+            embedding_dim, 6 * embedding_dim, bias=bias, dtype=dtype
         )
-        self.norm = nn.LayerNorm(
-            embedding_dim, elementwise_affine=False, eps=1e-6, dtype=dtype
-        )
+        if norm_type == "layer_norm":
+            self.norm = nn.LayerNorm(
+                embedding_dim, elementwise_affine=False, eps=1e-6, dtype=dtype
+            )
+        elif norm_type == "fp32_layer_norm":
+            self.norm = FP32LayerNorm(
+                embedding_dim, elementwise_affine=False, bias=False
+            )
+        else:
+            raise ValueError(
+                f"Unsupported `norm_type` ({norm_type}) provided. Supported ones are: 'layer_norm', 'fp32_layer_norm'."
+            )
 
     def forward(
         self,
         x: Tensor,
         timestep: Optional[Tensor] = None,
         class_labels: Optional[Tensor] = None,
-        hidden_dtype: Optional[Any] = None,
         emb: Optional[Tensor] = None,
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         if self.emb is not None:
-            emb = self.emb(timestep, class_labels, hidden_dtype=hidden_dtype)
+            emb = self.emb(timestep, class_labels)
         emb = self.linear(self.silu(emb))
         shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = ops.chunk()(
             emb, chunks=6, dim=-1
         )
-        # TODO: why did we squeeze here? check tests and other usages of AdaLayerNormZero
-        # shift_msa = ops.squeeze(0)(shift_msa)
-        # scale_msa = ops.squeeze(0)(scale_msa)
-        # gate_msa = ops.squeeze(0)(gate_msa)
-        # shift_mlp = ops.squeeze(0)(shift_mlp)
-        # scale_mlp = ops.squeeze(0)(scale_mlp)
-        # gate_mlp = ops.squeeze(0)(gate_mlp)
         x = self.norm(x) * (1 + ops.unsqueeze(1)(scale_msa)) + ops.unsqueeze(1)(
             shift_msa
         )
         return x, gate_msa, shift_mlp, scale_mlp, gate_mlp
+
+
+class AdaLayerNormZeroSingle(nn.Module):
+    r"""
+    Norm layer adaptive layer norm zero (adaLN-Zero).
+    Parameters:
+        embedding_dim (`int`): The size of each embedding vector.
+        num_embeddings (`int`): The size of the embeddings dictionary.
+    """
+
+    def __init__(
+        self,
+        embedding_dim: int,
+        norm_type="layer_norm",
+        bias=True,
+        dtype: str = "float16",
+    ):
+        super().__init__()
+
+        self.silu = SiLU()
+        self.linear = nn.Linear(
+            embedding_dim, 3 * embedding_dim, bias=bias, dtype=dtype
+        )
+        if norm_type == "layer_norm":
+            self.norm = nn.LayerNorm(
+                embedding_dim, elementwise_affine=False, eps=1e-6, dtype=dtype
+            )
+        else:
+            raise ValueError(
+                f"Unsupported `norm_type` ({norm_type}) provided. Supported ones are: 'layer_norm', 'fp32_layer_norm'."
+            )
+
+    def forward(
+        self,
+        x: Tensor,
+        emb: Optional[Tensor] = None,
+    ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+        emb = self.linear(self.silu(emb))
+        shift_msa, scale_msa, gate_msa = ops.chunk()(emb, 3, dim=1)
+        x = self.norm(x) * (
+            1 + ops.unsqueeze(1)(scale_msa) + ops.unsqueeze(1)(shift_msa)
+        )
+        return x, gate_msa
+
+
+class LuminaRMSNormZero(nn.Module):
+    """
+    Norm layer adaptive RMS normalization zero.
+
+    Parameters:
+        embedding_dim (`int`): The size of each embedding vector.
+    """
+
+    def __init__(
+        self,
+        embedding_dim: int,
+        norm_eps: float,
+        norm_elementwise_affine: bool,
+        dtype: str = "float16",
+    ):
+        super().__init__()
+        self.silu = ops.silu
+        self.linear = nn.Linear(
+            min(embedding_dim, 1024), 4 * embedding_dim, bias=True, dtype=dtype
+        )
+        self.norm = RMSNorm(embedding_dim, eps=norm_eps, dtype=dtype)
+
+    def forward(
+        self,
+        x: Tensor,
+        emb: Optional[Tensor] = None,
+    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+        emb = self.linear(self.silu(emb))
+        scale_msa, gate_msa, scale_mlp, gate_mlp = ops.chunk()(emb, 4, dim=1)
+        x = self.norm(x) * (1 + scale_msa[:, None])
+
+        return x, gate_msa, scale_mlp, gate_mlp
 
 
 class AdaLayerNormSingle(nn.Module):
@@ -182,7 +326,6 @@ class AdaLayerNormSingle(nn.Module):
         resolution: Optional[Tensor] = None,
         aspect_ratio: Optional[Tensor] = None,
         batch_size: Optional[int] = None,
-        hidden_dtype: Optional[str] = None,
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         # No modulation happening here.
         embedded_timestep = self.emb(timestep, resolution, aspect_ratio, batch_size)
@@ -225,10 +368,8 @@ class AdaGroupNorm(nn.Module):
         channels: IntVarTensor = ops.size()(x, dim=-1)
         if self.act:
             emb = self.act(emb)
-        emb = self.linear(emb)
-        emb = ops.unsqueeze(1)(emb)
-        emb = ops.unsqueeze(1)(emb)
-        scale, shift = ops.chunk()(emb, chunks=2, dim=-1)
+        emb = self.linear(emb)[:, :, None, None]
+        scale, shift = ops.chunk()(emb, chunks=2, dim=1)
 
         x = ops.group_norm(self.num_groups, channels._attrs["symbolic_value"])(
             x, eps=self.eps
@@ -278,6 +419,239 @@ class AdaLayerNormContinuous(nn.Module):
         return x
 
 
+class LuminaLayerNormContinuous(nn.Module):
+    def __init__(
+        self,
+        embedding_dim: int,
+        conditioning_embedding_dim: int,
+        # NOTE: It is a bit weird that the norm layer can be configured to have scale and shift parameters
+        # because the output is immediately scaled and shifted by the projected conditioning embeddings.
+        # Note that AdaLayerNorm does not let the norm layer have scale and shift parameters.
+        # However, this is how it was implemented in the original code, and it's rather likely you should
+        # set `elementwise_affine` to False.
+        elementwise_affine=True,
+        eps=1e-5,
+        bias=True,
+        norm_type="layer_norm",
+        out_dim: Optional[int] = None,
+        dtype: str = "float16",
+    ):
+        super().__init__()
+
+        # AdaLN
+        self.silu = ops.silu
+        self.linear_1 = nn.Linear(
+            conditioning_embedding_dim, embedding_dim, bias=bias, dtype=dtype
+        )
+
+        if norm_type == "layer_norm":
+            self.norm = nn.LayerNorm(
+                embedding_dim, eps, elementwise_affine, bias, dtype=dtype
+            )
+        elif norm_type == "rms_norm":
+            self.norm = RMSNorm(
+                embedding_dim,
+                eps=eps,
+                elementwise_affine=elementwise_affine,
+                dtype=dtype,
+            )
+        else:
+            raise ValueError(f"unknown norm_type {norm_type}")
+
+        self.linear_2 = None
+        if out_dim is not None:
+            self.linear_2 = nn.Linear(embedding_dim, out_dim, bias=bias, dtype=dtype)
+
+    def forward(
+        self,
+        x: Tensor,
+        conditioning_embedding: Tensor,
+    ) -> Tensor:
+        # convert back to the original dtype in case `conditioning_embedding`` is upcasted to float32 (needed for hunyuanDiT)
+        emb = self.linear_1(ops.cast()(self.silu(conditioning_embedding), x.dtype()))
+        scale = emb
+        x = self.norm(x) * (1 + scale)[:, None, :]
+
+        if self.linear_2 is not None:
+            x = self.linear_2(x)
+
+        return x
+
+
+class CogView3PlusAdaLayerNormZeroTextImage(nn.Module):
+    r"""
+    Norm layer adaptive layer norm zero (adaLN-Zero).
+
+    Parameters:
+        embedding_dim (`int`): The size of each embedding vector.
+        num_embeddings (`int`): The size of the embeddings dictionary.
+    """
+
+    def __init__(
+        self,
+        embedding_dim: int,
+        dim: int,
+        dtype: str = "float16",
+    ):
+        super().__init__()
+
+        self.silu = ops.silu
+        self.linear = nn.Linear(embedding_dim, 12 * dim, bias=True, dtype=dtype)
+        self.norm_x = nn.LayerNorm(dim, elementwise_affine=False, eps=1e-5, dtype=dtype)
+        self.norm_c = nn.LayerNorm(dim, elementwise_affine=False, eps=1e-5, dtype=dtype)
+
+    def forward(
+        self,
+        x: Tensor,
+        context: Tensor,
+        emb: Optional[Tensor] = None,
+    ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+        emb = self.linear(self.silu(emb))
+        (
+            shift_msa,
+            scale_msa,
+            gate_msa,
+            shift_mlp,
+            scale_mlp,
+            gate_mlp,
+            c_shift_msa,
+            c_scale_msa,
+            c_gate_msa,
+            c_shift_mlp,
+            c_scale_mlp,
+            c_gate_mlp,
+        ) = ops.chunk()(emb, 12, dim=1)
+        normed_x = self.norm_x(x)
+        normed_context = self.norm_c(context)
+        x = normed_x * (1 + scale_msa[:, None]) + shift_msa[:, None]
+        context = normed_context * (1 + c_scale_msa[:, None]) + c_shift_msa[:, None]
+        return (
+            x,
+            gate_msa,
+            shift_mlp,
+            scale_mlp,
+            gate_mlp,
+            context,
+            c_gate_msa,
+            c_shift_mlp,
+            c_scale_mlp,
+            c_gate_mlp,
+        )
+
+
+class CogVideoXLayerNormZero(nn.Module):
+    def __init__(
+        self,
+        conditioning_dim: int,
+        embedding_dim: int,
+        elementwise_affine: bool = True,
+        eps: float = 1e-5,
+        bias: bool = True,
+        dtype: str = "float16",
+    ) -> None:
+        super().__init__()
+
+        self.silu = ops.silu
+        self.linear = nn.Linear(
+            conditioning_dim, 6 * embedding_dim, bias=bias, dtype=dtype
+        )
+        self.norm = nn.LayerNorm(
+            embedding_dim, eps=eps, elementwise_affine=elementwise_affine, dtype=dtype
+        )
+
+    def forward(
+        self, hidden_states: Tensor, encoder_hidden_states: Tensor, temb: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        shift, scale, gate, enc_shift, enc_scale, enc_gate = ops.chunk()(
+            self.linear(self.silu(temb)), 6, dim=1
+        )
+        hidden_states = (
+            self.norm(hidden_states) * (1 + scale)[:, None, :] + shift[:, None, :]
+        )
+        encoder_hidden_states = (
+            self.norm(encoder_hidden_states) * (1 + enc_scale)[:, None, :]
+            + enc_shift[:, None, :]
+        )
+        return (
+            hidden_states,
+            encoder_hidden_states,
+            gate[:, None, :],
+            enc_gate[:, None, :],
+        )
+
+
+class RMSNorm(nn.Module):
+    def __init__(
+        self, dim, eps: float, elementwise_affine: bool = True, dtype: str = "float16"
+    ):
+        super().__init__()
+        self.dtype = dtype
+
+        self.eps = eps
+
+        if isinstance(dim, int):
+            dim = [dim]
+
+        if elementwise_affine:
+            self.weight = nn.Parameter(shape=dim, dtype=dtype)
+        else:
+            self.weight = None
+
+    def forward(self, hidden_states: Tensor):
+        input_dtype = hidden_states.dtype()
+
+        hidden_states = ops.cast()(hidden_states, "float32")
+        variance = ops.reduce_mean(-1, keepdim=True)(ops.pow(hidden_states, 2))
+        hidden_states = hidden_states * (1.0 / ops.sqrt(variance + self.eps))
+
+        if self.weight is not None:
+            # convert into half-precision if necessary
+            if self.weight.tensor().dtype() in ["float16", "bfloat16"]:
+                hidden_states = ops.cast()(hidden_states, self.weight.tensor().dtype())
+            elif self.dtype != input_dtype:
+                hidden_states = ops.cast()(hidden_states, input_dtype)
+            hidden_states = hidden_states * (
+                self.weight.tensor()
+                if hidden_states.dtype() == self.dtype
+                else ops.cast()(self.weight.tensor(), hidden_states.dtype())
+            )
+        else:
+            hidden_states = ops.cast()(hidden_states, input_dtype)
+
+        return hidden_states
+
+
+class MochiRMSNorm(nn.Module):
+    def __init__(
+        self, dim, eps: float, elementwise_affine: bool = True, dtype: str = "float16"
+    ):
+        super().__init__()
+        self.dtype = dtype
+
+        self.eps = eps
+
+        if isinstance(dim, int):
+            dim = [dim]
+
+        if elementwise_affine:
+            self.weight = nn.Parameter(shape=dim, dtype=dtype)
+        else:
+            self.weight = None
+
+    def forward(self, hidden_states):
+        input_dtype = hidden_states.dtype()
+
+        hidden_states = ops.cast()(hidden_states, "float32")
+        variance = ops.reduce_mean(-1, keepdim=True)(ops.pow(hidden_states, 2))
+        hidden_states = hidden_states * (1.0 / ops.sqrt(variance + self.eps))
+
+        if self.weight is not None:
+            hidden_states = hidden_states * self.weight.tensor()
+        hidden_states = ops.cast()(hidden_states, input_dtype)
+
+        return hidden_states
+
+
 class GlobalResponseNorm(nn.Module):
     def __init__(self, dim: int, dtype: str = "float16"):
         super().__init__()
@@ -292,59 +666,37 @@ class GlobalResponseNorm(nn.Module):
         return self.gamma.tensor() * (x * nx) + self.beta.tensor() + x
 
 
-class FP32LayerNorm(nn.LayerNorm):
-    def forward(self, inputs: Tensor) -> Tensor:
-        origin_dtype = inputs.dtype()
-        return ops.cast()(
-            ops.layernorm()(
-                ops.cast()(inputs, dtype="float32"),
-                ops.cast()(self.weight.tensor(), dtype="float32"),
-                ops.cast()(self.bias.tensor(), dtype="float32"),
-                self.dim,
-                self.eps,
-            ),
-            dtype=origin_dtype,
-        )
-
-
-class AdaLayerNormZeroSingle(nn.Module):
-    r"""
-    Norm layer adaptive layer norm zero (adaLN-Zero).
-    Parameters:
-        embedding_dim (`int`): The size of each embedding vector.
-        num_embeddings (`int`): The size of the embeddings dictionary.
-    """
-
-    def __init__(
-        self,
-        embedding_dim: int,
-        norm_type="layer_norm",
-        bias=True,
-        dtype: str = "float16",
-    ):
+class LpNorm(nn.Module):
+    def __init__(self, p: int = 2, dim: int = -1, eps: float = 1e-12):
         super().__init__()
 
-        self.silu = SiLU()
-        self.linear = nn.Linear(
-            embedding_dim, 3 * embedding_dim, bias=bias, dtype=dtype
-        )
-        if norm_type == "layer_norm":
-            self.norm = nn.LayerNorm(
-                embedding_dim, elementwise_affine=False, eps=1e-6, dtype=dtype
-            )
-        else:
-            raise ValueError(
-                f"Unsupported `norm_type` ({norm_type}) provided. Supported ones are: 'layer_norm', 'fp32_layer_norm'."
-            )
+        self.p = p
+        self.dim = dim
+        self.eps = eps
 
-    def forward(
-        self,
-        x: Tensor,
-        emb: Optional[Tensor] = None,
-    ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
-        emb = self.linear(self.silu(emb))
-        shift_msa, scale_msa, gate_msa = ops.chunk()(emb, 3, dim=1)
-        x = self.norm(x) * (
-            1 + ops.unsqueeze(1)(scale_msa) + ops.unsqueeze(1)(shift_msa)
+    def forward(self, hidden_states: Tensor) -> Tensor:
+        raise NotImplementedError(__class__.__name__)
+        return F.normalize(hidden_states, p=self.p, dim=self.dim, eps=self.eps)
+
+
+def get_normalization(
+    norm_type: str = "batch_norm",
+    num_features: Optional[int] = None,
+    eps: float = 1e-5,
+    elementwise_affine: bool = True,
+    bias: bool = True,
+) -> nn.Module:
+    if norm_type == "rms_norm":
+        norm = RMSNorm(
+            num_features, eps=eps, elementwise_affine=elementwise_affine, bias=bias
         )
-        return x, gate_msa
+    elif norm_type == "layer_norm":
+        norm = nn.LayerNorm(
+            num_features, eps=eps, elementwise_affine=elementwise_affine, bias=bias
+        )
+    elif norm_type == "batch_norm":
+        raise NotImplementedError("BatchNorm2d")
+        norm = nn.BatchNorm2d(num_features, eps=eps, affine=elementwise_affine)
+    else:
+        raise ValueError(f"{norm_type=} is not supported.")
+    return norm
