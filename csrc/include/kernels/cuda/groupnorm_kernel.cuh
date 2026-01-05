@@ -1076,7 +1076,7 @@ cudaError_t invokeGroupNorm(
   // C_G must be even, or we can have misaligned address for cp.async
   // reserve some shared_mem for block reduction
   if (H > 0 && H % 8 == 0 && C_G % 2 == 0 && smem <= max_smem_size - 1000) {
-    constexpr int num_threads = 1024;
+    constexpr int num_threads = 256;
     auto kernel_func = group_norm_smem<
         TInput,
         FuseSwish,

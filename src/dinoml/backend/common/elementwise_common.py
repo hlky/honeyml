@@ -32,7 +32,7 @@ from dinoml.utils import alignment as alignment_utils, shape_utils
 
 CONSTANT_TEMPLATE = jinja2.Template(
     """
-#define FUSED_ELE_THREAD_SIZE 1024
+#define FUSED_ELE_THREAD_SIZE 256
 
 const int N_ELEMENTS_PER_THREAD = sizeof({{read_t}}) / sizeof({{data_t}});
 const int N_ELEMENTS_PER_READ = sizeof({{read_t}}) / sizeof({{data_t}});

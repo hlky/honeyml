@@ -16,7 +16,12 @@ def conv2d_permute(key: str, tensor: torch.Tensor, state_dict: Dict[str, torch.T
         return tensor
 
 
-def conv2d_pad(key: str, tensor: torch.Tensor, state_dict: Dict[str, torch.Tensor], pad_to_multiple_of: int = 4):
+def conv2d_pad(
+    key: str,
+    tensor: torch.Tensor,
+    state_dict: Dict[str, torch.Tensor],
+    pad_to_multiple_of: int = 4,
+):
     if (
         tensor.ndim == 4
         and "conv" in key

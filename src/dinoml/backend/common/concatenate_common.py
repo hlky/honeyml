@@ -710,11 +710,9 @@ def gen_function(
     strides = [_stride(i._attrs["shape"], concat_dim) for i in inputs]
     # the max number of elements in each concat loop iteration
     elems_per_iter = max(strides) if len(strides) > 0 else 0
-    threads_per_block = 1024
+    threads_per_block = 128
     # minimal number of elems per thread is 8, max is 480
-    elems_per_thread = (
-        480  # min(480, (int((elems_per_iter / threads_per_block + 8) / 8) * 8))
-    )
+    elems_per_thread = min(480, (int((elems_per_iter / threads_per_block + 8) / 8) * 8))
 
     input_accessors = []
     input_accessor_refs = []
