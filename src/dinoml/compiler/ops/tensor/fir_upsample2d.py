@@ -1,0 +1,35 @@
+from dinoml import backend
+from dinoml.backend import registry
+from dinoml.compiler.base import Operator, Tensor
+
+
+class fir_upsample2d(Operator):
+    def __init__(self):
+        super().__init__()
+        self._attrs["op"] = "fir_upsample2d"
+        self._attrs["has_profiler"] = False
+        self._attrs["nop"] = False
+
+    def __call__(self, x: Tensor, up: int = 2, pad0: int = 2, pad1: int = 1) -> Tensor:
+        self._attrs["inputs"] = [x]
+        self._attrs["up"] = up
+        self._attrs["pad0"] = pad0
+        self._attrs["pad1"] = pad1
+        self._set_depth()
+        self._attrs["dtype"] = x._attrs["dtype"]
+        N, H, W, C = x.shape()
+
+        KH = 4
+        KW = 4
+
+        outH = H * up + pad0 + pad1 - KH + 1
+        outW = W * up + pad0 + pad1 - KW + 1
+
+        y = Tensor([N, outH, outW, C], src_ops={self}, dtype=x._attrs["dtype"])
+        self._attrs["outputs"] = [y]
+        return y
+
+    def gen_function(self) -> str:
+        target = backend.target.Target.current()
+        func_key = f"{target.name()}.{self._attrs['op']}.gen_function"
+        return registry.get(func_key)(self._attrs)

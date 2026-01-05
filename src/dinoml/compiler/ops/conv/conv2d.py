@@ -202,7 +202,7 @@ class conv2d(Operator):
     def __init__(
         self,
         stride,
-        pad,
+        pad=0,
         dilate=1,
         group=1,
         bias=True,

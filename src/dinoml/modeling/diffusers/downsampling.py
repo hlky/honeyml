@@ -116,12 +116,12 @@ class Downsample2D(nn.Module):
                 stride=stride,
                 padding=padding,
                 dtype=dtype,
+                bias=bias,
             )
         else:
             assert self.channels == self.out_channels
             conv = nn.AvgPool2d(kernel_size=stride, stride=stride, padding=0)
 
-        # TODO(Suraj, Patrick) - clean up after weight dicts are correctly renamed
         if name == "conv":
             self.Conv2d_0 = conv
             self.conv = conv
@@ -183,91 +183,19 @@ class FirDownsample2D(nn.Module):
             self.Conv2d_0 = nn.Conv2d(
                 channels, out_channels, kernel_size=3, stride=1, padding=1
             )
+        assert fir_kernel == (1, 3, 3, 1), "ops have fused `fir_kernel`"
         self.fir_kernel = fir_kernel
         self.use_conv = use_conv
         self.out_channels = out_channels
 
-    def _downsample_2d(
-        self,
-        hidden_states: Tensor,
-        weight: Optional[Tensor] = None,
-        kernel: Optional[Tensor] = None,
-        factor: int = 2,
-        gain: float = 1,
-    ) -> Tensor:
-        """Fused `Conv2d()` followed by `downsample_2d()`.
-        Padding is performed only once at the beginning, not between the operations. The fused op is considerably more
-        efficient.
-
-        Args:
-            hidden_states (`Tensor`):
-                Input tensor of the shape `[N, H, W, C]`.
-            weight (`Tensor`, *optional*):
-                Weight tensor of the shape `[filterH, filterW, inChannels, outChannels]`. Grouped convolution can be
-                performed by `inChannels = x.shape[0] // numGroups`.
-            kernel (`Tensor`, *optional*):
-                FIR filter of the shape `[firH, firW]` or `[firN]` (separable). The default is `[1] * factor`, which
-                corresponds to average pooling.
-            factor (`int`, *optional*, default to `2`):
-                Integer downsampling factor.
-            gain (`float`, *optional*, default to `1.0`):
-                Scaling factor for signal magnitude.
-
-        Returns:
-            output (`Tensor`):
-                Tensor of the shape `[N, H // factor, W // factor, C]`, and same
-                datatype as `x`.
-        """
-        raise NotImplementedError("`torch.outer`, `upfirdn2d_native`")
-        assert isinstance(factor, int) and factor >= 1
-        if kernel is None:
-            kernel = [1] * factor
-
-        # setup kernel
-        kernel = torch.tensor(kernel, dtype=torch.float32)
-        if kernel.ndim == 1:
-            kernel = torch.outer(kernel, kernel)
-        kernel /= ops.reduce_sum()(kernel)
-
-        kernel = kernel * gain
-
-        if self.use_conv:
-            _, _, convH, convW = weight.shape
-            pad_value = (kernel.shape[0] - factor) + (convW - 1)
-            stride_value = [factor, factor]
-            upfirdn_input = upfirdn2d_native(
-                hidden_states,
-                torch.tensor(kernel, device=hidden_states.device),
-                pad=((pad_value + 1) // 2, pad_value // 2),
-            )
-            output = ops.conv2d(stride=stride_value, pad=0, bias=False)(
-                upfirdn_input, weight
-            )
-        else:
-            pad_value = kernel.shape[0] - factor
-            output = upfirdn2d_native(
-                hidden_states,
-                torch.tensor(kernel, device=hidden_states.device),
-                down=factor,
-                pad=((pad_value + 1) // 2, pad_value // 2),
-            )
-
-        return output
-
     def forward(self, hidden_states: Tensor) -> Tensor:
         if self.use_conv:
-            downsample_input = self._downsample_2d(
-                hidden_states,
-                weight=self.Conv2d_0.weight.tensor(),
-                kernel=self.fir_kernel,
-            )
-            hidden_states = downsample_input + ops.reshape()(
-                self.Conv2d_0.bias.tensor(), [1, -1, 1, 1]
-            )
+            fir_padded = ops.fir_filter_pad2()(hidden_states)
+            hidden_states = ops.conv2d(stride=2, bias=False)(
+                fir_padded, self.Conv2d_0.weight.tensor()
+            ) + ops.reshape()(self.Conv2d_0.bias.tensor(), [1, 1, 1, -1])
         else:
-            hidden_states = self._downsample_2d(
-                hidden_states, kernel=self.fir_kernel, factor=2
-            )
+            hidden_states = ops.fir_downsample2d()(hidden_states)
 
         return hidden_states
 
@@ -283,39 +211,92 @@ class KDownsample2D(nn.Module):
     def __init__(self, pad_mode: str = "reflect"):
         super().__init__()
         self.pad_mode = pad_mode
-        # TODO: kernel
-        """
-        torch.tensor([[1 / 8, 3 / 8, 3 / 8, 1 / 8]])
-        tensor([[0.1250, 0.3750, 0.3750, 0.1250]])
-        kernel_1d.T @ kernel_1d
-        """
-        kernel_1d = Tensor([1, 4], name="kernel")
-        self.pad = ops.size()(kernel_1d, dim=1)["int_var"].upper_bound() / 2 - 1
-        self.kernel = kernel_1d
+        self.pad = 1
 
     def forward(self, inputs: Tensor) -> Tensor:
-        raise NotImplementedError("weight assignment")
-        inputs = ops.pad((self.pad,) * 4, mode=self.pad_mode)(inputs)
-        inputs_dim1 = ops.size()(inputs, dim=1)
-        kernel_dim0, kernel_dim1 = ops.size()(self.kernel)
-        weight = ops.full()(
-            inputs_dim1,
-            inputs_dim1,
-            kernel_dim0,
-            kernel_dim1,
-            fill_value=0.0,
-            dtype=inputs.dtype(),
+        inputs = ops.pad((self.pad,) * 4, self.pad_mode)(inputs)
+        weight = ops.kdownsample2d_weight()(
+            channels=inputs._attrs["shape"][-1], dtype=inputs.dtype()
         )
-        indices = ops.arange(0, inputs_dim1["int_var"], 1)()
-        kernel = ops.expand()(
-            ops.unsqueeze(0)(ops.cast()(self.kernel, weight.dtype())),
-            inputs_dim1,
-            -1,
-            -1,
+        return ops.conv2d(stride=2, bias=False)(inputs, weight)
+
+
+class CogVideoXDownsample3D(nn.Module):
+    # Todo: Wait for paper release.
+    r"""
+    A 3D Downsampling layer using in [CogVideoX]() by Tsinghua University & ZhipuAI
+
+    Args:
+        in_channels (`int`):
+            Number of channels in the input image.
+        out_channels (`int`):
+            Number of channels produced by the convolution.
+        kernel_size (`int`, defaults to `3`):
+            Size of the convolving kernel.
+        stride (`int`, defaults to `2`):
+            Stride of the convolution.
+        padding (`int`, defaults to `0`):
+            Padding added to all four sides of the input.
+        compress_time (`bool`, defaults to `False`):
+            Whether or not to compress the time dimension.
+    """
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 3,
+        stride: int = 2,
+        padding: int = 0,
+        compress_time: bool = False,
+    ):
+        super().__init__()
+
+        self.conv = nn.Conv2d(
+            in_channels,
+            out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
         )
-        # TODO
-        weight[indices, indices] = kernel
-        return ops.conv2d(stride=2, pad=0, bias=False)(inputs, weight)
+        self.compress_time = compress_time
+
+    def forward(self, x: Tensor) -> Tensor:
+        if self.compress_time:
+            batch_size, frames, height, width, channels = x._attrs["shape"]
+
+            # (batch_size, frames, height, width, channels) -> (batch_size, height, width, channels, frames) -> (batch_size * height * width, channels, frames)
+            x = ops.reshape()(ops.permute()(x, [0, 2, 3, 4, 1]), [-1, channels, frames])
+
+            x = ops.avg_pool1d_compress_time()(x)
+
+            # (batch_size * height * width, channels, frames // 2 or (frames - 1) // 2) -> (batch_size, height, width, channels, frames // 2 or (frames - 1) // 2) -> (batch_size, frames // 2 or (frames - 1) // 2, height, width, channels)
+            x = ops.permute()(
+                ops.reshape()(
+                    x, [batch_size, height, width, channels, x._attrs["shape"][-1]]
+                ),
+                [0, 4, 1, 2, 3],
+            )
+
+        # Pad the tensor
+        pad = (0, 1, 0, 1)
+        x = ops.pad(pad, mode="constant", value=0.0)(x)
+        batch_size, frames, height, width, channels = x._attrs["shape"]
+        # (batch_size, frames, height, width, channels) -> (batch_size * frames, height, width, channels)
+        x = ops.reshape()(x, [batch_size * frames, height, width, channels])
+        x = self.conv(x)
+        # (batch_size * frames, height, width, channels) -> (batch_size, frames, height, width, channels)
+        x = ops.reshape()(
+            x,
+            [
+                batch_size,
+                frames,
+                x._attrs["shape"][1],
+                x._attrs["shape"][2],
+                x._attrs["shape"][3],
+            ],
+        )
+        return x
 
 
 def downsample_2d(
@@ -324,43 +305,4 @@ def downsample_2d(
     factor: int = 2,
     gain: float = 1,
 ) -> Tensor:
-    r"""Downsample2D a batch of 2D images with the given filter.
-    Accepts a batch of 2D images of the shape `[N, H, W, C]` and downsamples each image with the
-    given filter. The filter is normalized so that if the input pixels are constant, they will be scaled by the
-    specified `gain`. Pixels outside the image are assumed to be zero, and the filter is padded with zeros so that its
-    shape is a multiple of the downsampling factor.
-
-    Args:
-        hidden_states (`Tensor`)
-            Input tensor of the shape `[N, H, W, C]`.
-        kernel (`Tensor`, *optional*):
-            FIR filter of the shape `[firH, firW]` or `[firN]` (separable). The default is `[1] * factor`, which
-            corresponds to average pooling.
-        factor (`int`, *optional*, default to `2`):
-            Integer downsampling factor.
-        gain (`float`, *optional*, default to `1.0`):
-            Scaling factor for signal magnitude.
-
-    Returns:
-        output (`Tensor`):
-            Tensor of the shape `[N, H // factor, W // factor, C]`
-    """
-    raise NotImplementedError("`torch.outer`, `upfirdn2d_native`")
-    assert isinstance(factor, int) and factor >= 1
-    if kernel is None:
-        kernel = [1] * factor
-
-    kernel = torch.tensor(kernel, dtype=torch.float32)
-    if kernel.ndim == 1:
-        kernel = torch.outer(kernel, kernel)
-    kernel /= torch.sum(kernel)
-
-    kernel = kernel * gain
-    pad_value = kernel.shape[0] - factor
-    output = upfirdn2d_native(
-        hidden_states,
-        kernel.to(device=hidden_states.device),
-        down=factor,
-        pad=((pad_value + 1) // 2, pad_value // 2),
-    )
-    return output
+    return ops.fir_downsample2d()(hidden_states)

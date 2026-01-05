@@ -32,7 +32,13 @@ class Upsampling3DTestCase(unittest.TestCase):
         target = detect_target()
 
         X = Tensor(
-            shape=[IntVar(values=batch_size, name="batch"), F, H, W, channels],
+            shape=[
+                IntVar(values=batch_size, name="batch"),
+                IntVar([1, 8]),
+                IntVar([4, 16]),
+                IntVar([4, 16]),
+                channels,
+            ],
             dtype=dtype,
             name="input_0",
             is_input=True,

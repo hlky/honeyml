@@ -17,8 +17,9 @@ Pool module init.
 """
 
 from dinoml.compiler.ops.pool.avg_pool1d import avg_pool1d
+from dinoml.compiler.ops.pool.avg_pool1d_compress_time import avg_pool1d_compress_time
 from dinoml.compiler.ops.pool.avg_pool2d import avg_pool2d
 from dinoml.compiler.ops.pool.max_pool2d import max_pool2d
 
 
-__all__ = ["avg_pool1d", "avg_pool2d", "max_pool2d"]
+__all__ = ["avg_pool1d", "avg_pool1d_compress_time", "avg_pool2d", "max_pool2d"]

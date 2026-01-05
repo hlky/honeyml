@@ -404,6 +404,80 @@ template <
     typename IndexType,
     int VectorSize,
     bool Exact>
+__global__ void nearest_upsampling_3d_kernel_strided(
+    const VectorType* input,
+    VectorType* output,
+    const IndexType batch,
+    const IndexType in_frames,
+    const IndexType in_height,
+    const IndexType in_width,
+    const IndexType channels,
+    const IndexType out_frames,
+    const IndexType out_height,
+    const IndexType out_width,
+    const int64_t in_batch_stride,
+    const int64_t out_batch_stride
+) {
+  const float f_scale = (float)in_frames / (float)out_frames;
+  const float h_scale = (float)in_height / (float)out_height;
+  const float w_scale = (float)in_width / (float)out_width;
+
+  const int64_t num_threads =
+      (int64_t)batch * out_frames * out_height * out_width * channels;
+
+  for (int64_t index = (int64_t)blockIdx.x * blockDim.x + threadIdx.x;
+       index < num_threads;
+       index += (int64_t)blockDim.x * gridDim.x) {
+    int64_t t = index;
+
+    const int c = (int)(t % channels);
+    t /= channels;
+    const int out_x = (int)(t % out_width);
+    t /= out_width;
+    const int out_y = (int)(t % out_height);
+    t /= out_height;
+    const int out_f = (int)(t % out_frames);
+    t /= out_frames;
+    const int n = (int)t;
+
+    const VectorType* base_n = input + (int64_t)n * in_batch_stride;
+    VectorType* out_base_n = output + (int64_t)n * out_batch_stride;
+
+    int in_f, in_y, in_x;
+    if (Exact) {
+      in_f = max(
+          min((int)floorf(((float)out_f + 0.5f) * f_scale), (int)in_frames - 1),
+          0);
+      in_y = max(
+          min((int)floorf(((float)out_y + 0.5f) * h_scale), (int)in_height - 1),
+          0);
+      in_x = max(
+          min((int)floorf(((float)out_x + 0.5f) * w_scale), (int)in_width - 1),
+          0);
+    } else {
+      in_f =
+          max(min((int)floorf((float)out_f * f_scale), (int)in_frames - 1), 0);
+      in_y =
+          max(min((int)floorf((float)out_y * h_scale), (int)in_height - 1), 0);
+      in_x =
+          max(min((int)floorf((float)out_x * w_scale), (int)in_width - 1), 0);
+    }
+
+    const int64_t in_idx =
+        ((((int64_t)in_f * in_height + in_y) * in_width + in_x) * channels) + c;
+
+    out_base_n
+        [index - (int64_t)n * out_frames * out_height * out_width * channels] =
+            LDG(base_n + in_idx);
+  }
+}
+
+template <
+    typename ElemType,
+    typename VectorType,
+    typename IndexType,
+    int VectorSize,
+    bool Exact>
 __global__ void nearest_upsampling_3d_add_kernel(
     const VectorType* input,
     const VectorType* input_res,

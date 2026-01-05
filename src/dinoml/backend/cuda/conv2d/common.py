@@ -614,6 +614,9 @@ def conv_dw_instance(op_def):
 
 def conv_transpose_instance(op_def):
     tmp = op_def.replace("DefaultConv2dFprop", "DefaultConv2dDgrad")
+    tmp = tmp.replace(
+        "cutlass::conv::StrideSupport::kUnity", "cutlass::conv::StrideSupport::kStrided"
+    )
     tmp = re.sub(
         r"cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<\d>",
         "cutlass::conv::threadblock::StridedDgradIdentityThreadblockSwizzle<1>",
@@ -836,9 +839,16 @@ def gen_function(
     inst_def_flag = set()
     instances = {}
     instance_decl = ""
+
+    f_instance_convertor = None
+    if is_depthwise:
+        f_instance_convertor = conv_dw_instance
+    if is_transpose:
+        f_instance_convertor = conv_transpose_instance
+
     for key, value in exec_path.items():
         fname = "f" + sha1(key.encode()).hexdigest()
-        emitted_instance = f_emit_instance(op_instance[value])
+        emitted_instance = f_emit_instance(op_instance[value], f_instance_convertor)
         if value not in inst_def_flag:
             inst_def_flag.add(value)
             config = emitted_instance
