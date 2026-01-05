@@ -673,7 +673,7 @@ cudaError_t invokeWelfordGroupNorm(
     max_vec_size /= 2;
   }
 
-  constexpr int64_t block_size = 1024;
+  constexpr int64_t block_size = 256;
   const int64_t elems_per_group_channel = C / num_groups;
   const int64_t elems_per_block = (D * H * W * C) / num_groups;
   const int64_t batch_stride = D * H * W * C;
@@ -1076,7 +1076,7 @@ cudaError_t invokeGroupNorm(
   // C_G must be even, or we can have misaligned address for cp.async
   // reserve some shared_mem for block reduction
   if (H > 0 && H % 8 == 0 && C_G % 2 == 0 && smem <= max_smem_size - 1000) {
-    constexpr int num_threads = 1024;
+    constexpr int num_threads = 256;
     auto kernel_func = group_norm_smem<
         TInput,
         FuseSwish,

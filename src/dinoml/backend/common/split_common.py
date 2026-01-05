@@ -511,8 +511,8 @@ def gen_function(func_attrs, backend_spec):
         real_num_splits=len(func_attrs["outputs"]),
         split_indices=split_indices,
         elem_type=input_type,
-        elems_per_thread=480,
-        threads_per_block=1024,
+        elems_per_thread=128,
+        threads_per_block=256,
         index_type=backend_spec.index_type,
     )
     header_src = backend_spec.header_src_template.render()
