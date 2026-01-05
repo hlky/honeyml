@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import multiprocessing
 import os
+import platform
 import re
 import shlex
 import subprocess
@@ -33,9 +34,10 @@ import jinja2
 from dinoml.backend import build_cache
 from dinoml.backend.build_cache_base import write_binhash_file
 
-from dinoml.backend.target import Target
+from dinoml.backend.target import CUDA, Target
 from dinoml.backend.task_runner import BaseRunner, Task
 
+from dinoml.testing.detect_target import IS_CUDA
 from dinoml.utils import environ
 
 from dinoml.utils.debug_settings import DinoMLDebugSettings
@@ -282,6 +284,29 @@ class Runner(BaseRunner):
         return ret
 
 
+def get_effective_cpu_count() -> int:
+    cpu_count = os.cpu_count() or 1
+    if platform.system() in ("Windows", "Darwin"):
+        return cpu_count
+    try:
+        with open("/sys/fs/cgroup/cpu.max") as f:
+            quota, period = f.read().strip().split()
+        if quota != "max":
+            return max(1, min(cpu_count, int(int(quota) / int(period))))
+    except Exception:
+        pass
+    try:
+        with open("/sys/fs/cgroup/cpu/cpu.cfs_quota_us") as f:
+            quota = int(f.read().strip())
+        with open("/sys/fs/cgroup/cpu/cpu.cfs_period_us") as f:
+            period = int(f.read().strip())
+        if quota > 0 and period > 0:
+            return max(1, min(cpu_count, quota // period))
+    except Exception:
+        pass
+    return cpu_count
+
+
 class Builder:
     """Builder is a module to compile generated source code
     files into binary objects.
@@ -299,7 +324,7 @@ class Builder:
             Timeout value, by default 180 (seconds)
         """
         if n_jobs < 0:
-            n_jobs = multiprocessing.cpu_count()
+            n_jobs = get_effective_cpu_count()
         num_builder = os.environ.get("NUM_BUILDERS", None)
         if num_builder is not None:
             n_jobs = int(num_builder)
@@ -918,7 +943,10 @@ clean:
 
 def get_compile_engine(n_cpus: int = -1):
     if is_cmake_compilation():
-        from dinoml.backend.cuda import builder_cmake
+        if IS_CUDA:
+            from dinoml.backend.cuda import builder_cmake
+        else:
+            from dinoml.backend.rocm import builder_cmake
 
         compile_engine = builder_cmake.BuilderCMake(n_cpus)
     else:

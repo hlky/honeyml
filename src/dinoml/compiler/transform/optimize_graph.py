@@ -107,7 +107,8 @@ def optimize_graph(
         fuse_bmm_permute,
         fuse_expand_bmm,
         transform_odd_alignment,
-        fuse_conv_elementwise,
+        # TODO: investigate - causing NaN
+        # fuse_conv_elementwise,
         # TODO: investigate - Disabled as causes blob to blow up
         # fuse_single_source_parallel_gemms,
         fuse_mm_elementwise,

@@ -292,6 +292,8 @@ class EmitConv3dConfigurationLibrary:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/library/library.h"
 #include "cutlass/library/manifest.h"

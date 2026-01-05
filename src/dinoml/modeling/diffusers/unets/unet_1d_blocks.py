@@ -6,7 +6,9 @@ from dinoml.compiler import ops
 from dinoml.frontend import nn, Tensor
 
 from ..activations import get_activation
-from ..resnet import Downsample1D, rearrange_dims, ResidualTemporalBlock1D, Upsample1D
+from ..resnet import rearrange_dims, ResidualTemporalBlock1D
+from ..downsampling import Downsample1D
+from ..upsampling import Upsample1D
 
 
 class DownResnetBlock1D(nn.Module):

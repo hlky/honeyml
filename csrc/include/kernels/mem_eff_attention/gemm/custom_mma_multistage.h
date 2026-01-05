@@ -35,6 +35,8 @@
 
 #pragma once
 
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/aligned_buffer.h"
 #include "cutlass/arch/cache_operation.h"
 #include "cutlass/arch/memory.h"

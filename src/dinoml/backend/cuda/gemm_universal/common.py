@@ -1084,6 +1084,17 @@ def filter_cutlass_3x_ops(op_instance, func_attrs):
     }, has_ops_with_tma_epilogue
 
 
+def check_profiler_exists(workdir, op_type, profiler_filename):
+    prefix = os.path.join(workdir, "profiler", op_type)
+    obj_path = os.path.join(prefix, profiler_filename)
+    src_path = os.path.join(prefix, profiler_filename + ".cu")
+    if os.path.exists(obj_path):
+        return True
+    if os.path.exists(src_path):
+        return True
+    return False
+
+
 def gen_profiler(
     func_attrs,
     workdir,
@@ -1100,7 +1111,11 @@ def gen_profiler(
 ):
     import dinoml.utils.cutlass_lib as cutlass_lib
 
+    file_pairs = []
     op_type = func_attrs["op"]
+    if check_profiler_exists(workdir, op_type, profiler_filename):
+        return file_pairs
+
     op_instance = func_attrs["op_instance"]
     op_instance, op_has_tma_epilogue = filter_cutlass_3x_ops(op_instance, func_attrs)
 
@@ -1241,7 +1256,7 @@ def gen_profiler(
     )
     # FIXME: remove file_pairs once we have make -j ready for building
     # an entire graph
-    file_pairs = []
+
     add_profiler(file_pairs, workdir, op_type, profiler_filename, code)
     # build
     return build_profiler(file_pairs)

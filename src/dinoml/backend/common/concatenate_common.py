@@ -132,6 +132,19 @@ __host__ __device__ int64_t compute_output_elem_offset(
   }
   return offset + linear_idx * static_cast<INDEX_T>(output_strides[0]);
 }
+
+
+bool can_use_32bit_index_math(const int64_t elements, int64_t max_elem=std::numeric_limits<int32_t>::max()) {
+  if (elements >= max_elem) {
+    return false;
+  }
+  if (elements == 0) {
+    return max_elem > 0;
+  }
+
+  return true;
+}
+
 } // namespace
 
 template <typename READ_T, typename ELEM_T, typename INDEX_T, {{index_type}} Rank,

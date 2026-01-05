@@ -37,6 +37,8 @@ FUNC_TEMPLATE = jinja2.Template(
 #include <cuda_runtime.h>
 
 #include <cub/cub.cuh>
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/arch/memory_sm80.h"
 #include "cutlass/cutlass.h"
 #include "cutlass/fast_math.h"

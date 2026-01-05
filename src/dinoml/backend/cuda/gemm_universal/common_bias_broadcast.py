@@ -244,6 +244,8 @@ SRC_TEMPLATE = jinja2.Template(
 #include <vector>
 #include "short_file.h"
 #include <cuda_bf16.h>
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/epilogue/thread/linear_combination_residual_block.h"
 #include "cutlass/gemm/device/gemm_universal_with_broadcast.h"

@@ -84,7 +84,7 @@ class ROCM(Target):
         str
             path to rocm compiler library
         """
-        rocm_path = os.environ.get("ROCM_PATH", "/opt/rocm")
+        rocm_path = os.environ.get("HIP_PATH", "/opt/rocm")
         return rocm_path
 
     def _get_ck_paths(self) -> List[str]:
@@ -95,6 +95,7 @@ class ROCM(Target):
             os.path.join(self._template_path, "library/include/"),
             os.path.join(self._template_path, "profiler/include/"),
             os.path.join(self.static_files_path, "include"),
+            f"{self._pkg_path()}/include",
         ]
         return ck_paths
 
@@ -119,32 +120,28 @@ class ROCM(Target):
         options = [
             "-DDINOML_HIP",
             environ.get_compiler_opt_level(),
-            "-fPIC",
             "-fvisibility=hidden",
             "-std=c++17",
             "-w",
+            # "-fgpu-rdc",
+            "-x hip",
+            # "--hip-link",
+            # "--rtlib=compiler-rt",
             "-DCK_TIME_KERNEL=0",
-            "-Xclang -mlink-builtin-bitcode -Xclang {}/amdgcn/bitcode/oclc_abi_version_400.bc".format(
-                self._pkg_path()
-            ),
         ]
-        if self._arch in {"GFX908", "gfx908"}:
-            options.append("-DCK_AMD_GPU_GFX908")
-            options.append("--offload-arch=gfx908")
-        elif self._arch in {"GFX90a", "gfx90a"}:
-            options.append("-DCK_AMD_GPU_GFX90A")
-            options.append("--offload-arch=gfx90a")
-        else:
-            raise RuntimeError("Unsupported GPU Arch")
         for path in ck_paths:
-            options.append("-I" + path)
-        options.append("-I" + os.path.join(self.static_files_path, "include"))
-        rocrand_path = os.path.join(self._pkg_path(), "rocrand/lib/")
-        options.append("-L" + rocrand_path)
+            options.append("-I" + path.replace("\\", "/"))
         options.append("-lrocrand")
+
+        options.append(f"-DCK_AMD_GPU_{self._arch.upper()}")
+        options.append(f"--offload-arch={self._arch}")
+
         if self._ndebug == 1:
             options.append("-DNDEBUG")
-        return " ".join(options)
+        return options
+
+    def get_device_compiler_options(self) -> List[str]:
+        return self._build_compile_options()
 
     def _gen_ck_lib_pkg(self):
         """Build composable kernel python library.

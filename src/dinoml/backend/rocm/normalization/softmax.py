@@ -28,7 +28,7 @@ from dinoml.compiler.base import IntImm
 EXTRA_HEADERS = jinja2.Template(
     """
 #include "ck/tensor_operation/gpu/element/element_wise_operation.hpp"
-#include "include/ck/tensor_operation/gpu/device/impl/device_softmax_impl.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_softmax_impl.hpp"
 """
 )
 

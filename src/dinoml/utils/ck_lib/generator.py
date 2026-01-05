@@ -15,12 +15,12 @@
 
 import copy
 
-import conv2d_operation as conv
-import gemm_operation as gemm
-import groupnorm_operation as groupnorm
-import layernorm_operation as layernorm
-import library
-import softmax_operation as softmax
+from . import conv2d_operation as conv
+from . import gemm_operation as gemm
+from . import groupnorm_operation as groupnorm
+from . import layernorm_operation as layernorm
+from . import library
+from . import softmax_operation as softmax
 
 
 ###########################################################################################################
@@ -77,11 +77,7 @@ def CreateConv2dFwdOperator(manifest, operation_kind, out_element_op, out_data_o
             block_transfer = [4, 32, 1]
         if t.block_size == 64:
             block_transfer = [4, 16, 1]
-        assert (
-            block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert block_transfer != -1, f"Cannot determine block_transfer_size with block_size {str(t.block_size)}"
         block_descriptions.append(
             conv.BlockTransferDesc(block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
         )
@@ -241,11 +237,7 @@ def CreateConv2dBwdOperator(manifest, operation_kind, out_element_op, out_data_o
             block_transfer = [4, 32, 1]
         if t.block_size == 64:
             block_transfer = [4, 16, 1]
-        assert (
-            block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert block_transfer != -1, f"Cannot determine block_transfer_size with block_size {str(t.block_size)}"
         block_descriptions.append(
             conv.BlockTransferDesc(block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
         )
@@ -353,12 +345,7 @@ def CreateConv2dBwdBiasOperator(
             if t.n_per_block == 64:
                 c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 8)
 
-        assert (
-            a_block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert a_block_transfer != -1 and c_block_transfer != -1, "Cannot determine block_transfer_size with block_size " + str(t.block_size)
         a_block_descriptions.append(
             gemm.BlockTransferDesc(a_block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
         )
@@ -416,101 +403,105 @@ def CreateGemmRRROperator(manifest):
     )
     element_op = library.TensorOperation.PassThrough
 
+    xdl_op_type=gemm.XdlOpType.DeviceGemmXdl_CShuffle
+
     tile_descriptions = [
-        gemm.TileDesc(256, 256, 128, 32, 8, 2, 32, 32, 4, 2),
-        gemm.TileDesc(256, 256, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 256, 32, 8, 2, 32, 32, 2, 4),
-        gemm.TileDesc(256, 128, 256, 32, 8, 8, 32, 32, 2, 4),
-        gemm.TileDesc(128, 128, 128, 32, 8, 2, 32, 32, 4, 2),
-        gemm.TileDesc(128, 128, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 128, 32, 8, 2, 32, 32, 2, 2),
-        gemm.TileDesc(256, 128, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 128, 64, 32, 8, 2, 32, 32, 2, 2),
-        gemm.TileDesc(128, 128, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 64, 128, 32, 8, 2, 32, 32, 2, 2),
-        gemm.TileDesc(128, 64, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(256, 128, 64, 32, 8, 2, 32, 32, 2, 1),
-        gemm.TileDesc(256, 128, 64, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(256, 64, 128, 32, 8, 2, 32, 32, 1, 2),
-        gemm.TileDesc(256, 64, 128, 32, 8, 8, 32, 32, 1, 2),
+        gemm.TileDesc(256,   256,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   256,    32,   8,   8,   16,   16,    4,    8),
+        gemm.TileDesc(128,   128,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,   128,    64,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,    64,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(256,   128,    64,    32,   8,   8,   16,   16,    4,    2),
+        gemm.TileDesc(256,    64,   128,    32,   8,   8,   16,   16,    2,    4),
+        gemm.TileDesc( 64,    32,    32,    32,   8,   8,   16,   16,    2,    2),
     ]
-
-    b_block_descriptions = [
-        gemm.BlockTransferDesc([8, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 2, 0),
-        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
-        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 4, 2, 0),
+    a_block_descriptions_row_major = [
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [1, 0, 2], [1, 0, 2], 2, 1, 8, 1),
+    ]
+    a_block_descriptions_col_major = [
         gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
-        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 2, 0),
-        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
-        gemm.BlockTransferDesc([8, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 2, 0),
         gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
-        gemm.BlockTransferDesc([8, 16, 1], [0, 2, 1], [0, 2, 1], 1, 4, 2, 0),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
         gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
-        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 2, 0),
-        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
-        gemm.BlockTransferDesc([16, 16, 1], [0, 2, 1], [0, 2, 1], 1, 4, 2, 0),
-        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
-        gemm.BlockTransferDesc([8, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 2, 0),
         gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
     ]
-    a_block_descriptions = []
-    c_block_descriptions = []
-    for t in tile_descriptions:
-        a_block_transfer = -1
-        c_block_transfer = -1
-        if t.block_size == 256:
-            a_block_transfer = [4, 64, 1]
-            c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 8)
-        if t.block_size == 128:
-            a_block_transfer = [4, 32, 1]
-            if t.n_per_block == 128:
-                c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 8)
-            if t.n_per_block == 64:
-                c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 8)
-
-        assert (
-            a_block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
-        a_block_descriptions.append(
-            gemm.BlockTransferDesc(a_block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
-        )
-        c_block_descriptions.append(c_block_transfer)
-
-    gemm_specialization = [
-        gemm.GemmSpecialization.GemmDefault,
-        gemm.GemmSpecialization.MNKPadding,
+    b_block_descriptions_rowmajor = [
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
     ]
+    b_block_descriptions_colmajor = [
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [1, 0, 2], [1, 0, 2], 2, 1, 8, 1),
+    ]
+    c_block_descriptions = [
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 1),
+    ]
+    if a_element_desc.layout == library.LayoutType.RowMajor:
+        a_block_descriptions = a_block_descriptions_row_major
+    else:
+        a_block_descriptions = a_block_descriptions_col_major
+    if b_element_desc.layout == library.LayoutType.RowMajor:
+        b_block_descriptions = b_block_descriptions_rowmajor
+    else:
+        b_block_descriptions = b_block_descriptions_colmajor
     operations = []
-    for gemm_spec in gemm_specialization:
-        for tile_desc, a_block_desc, b_block_desc, c_block_desc in zip(
-            tile_descriptions,
-            a_block_descriptions,
-            b_block_descriptions,
-            c_block_descriptions,
-        ):
-            new_operation = gemm.GemmOperation(
-                operation_kind=operation_kind,
-                extra_kind=element_op,
-                xdl_op_type=gemm.XdlOpType.DeviceGemmXdl_CShuffle,
-                A=a_element_desc,
-                B=b_element_desc,
-                C=c_element_desc,
-                a_elem_op=element_op,
-                b_elem_op=element_op,
-                epilogue_functor=element_op,
-                gemm_specialization=gemm_spec,
-                tile_desc=tile_desc,
-                a_block_transfer=a_block_desc,
-                b_block_transfer=b_block_desc,
-                c_block_transfer=c_block_desc,
-            )
-            manifest.append(new_operation)
-            operations.append(new_operation)
+    for tile_desc, a_block_desc, b_block_desc, c_block_desc in zip(
+        tile_descriptions, a_block_descriptions, b_block_descriptions, c_block_descriptions
+    ):
+        op = gemm.GemmOperation(
+            operation_kind=operation_kind,
+            extra_kind=element_op,
+            xdl_op_type=xdl_op_type,
+            A=a_element_desc,
+            B=b_element_desc,
+            C=c_element_desc,
+            a_elem_op=element_op,
+            b_elem_op=element_op,
+            epilogue_functor=element_op,
+            gemm_specialization=gemm.GemmSpecialization.MNKPadding,
+            tile_desc=copy.deepcopy(tile_desc),
+            a_block_transfer=copy.deepcopy(a_block_desc),
+            b_block_transfer=copy.deepcopy(b_block_desc),
+            c_block_transfer=copy.deepcopy(c_block_desc),
+        )
+        manifest.append(op)
+        operations.append(op)
     return operations
-
 
 def CreateGemmRCROperator(manifest):
     operation_kind = library.GemmKind.Gemm
@@ -525,79 +516,105 @@ def CreateGemmRCROperator(manifest):
     )
     element_op = library.TensorOperation.PassThrough
 
+    xdl_op_type=gemm.XdlOpType.DeviceGemmXdl_CShuffle
+
     tile_descriptions = [
-        gemm.TileDesc(256, 256, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 256, 32, 8, 8, 32, 32, 2, 4),
-        gemm.TileDesc(128, 128, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 128, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 64, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(64, 64, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(256, 128, 64, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(256, 64, 128, 32, 8, 8, 32, 32, 1, 2),
-        gemm.TileDesc(128, 128, 32, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(128, 32, 128, 32, 8, 8, 32, 32, 1, 2),
-        gemm.TileDesc(64, 64, 32, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(64, 32, 64, 32, 8, 8, 32, 32, 1, 2),
+        gemm.TileDesc(256,   256,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   256,    32,   8,   8,   16,   16,    4,    8),
+        gemm.TileDesc(128,   128,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,   128,    64,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,    64,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(256,   128,    64,    32,   8,   8,   16,   16,    4,    2),
+        gemm.TileDesc(256,    64,   128,    32,   8,   8,   16,   16,    2,    4),
+        gemm.TileDesc( 64,    32,    32,    32,   8,   8,   16,   16,    2,    2),
     ]
-
-    block_descriptions = []
-    c_block_descriptions = []
-    for t in tile_descriptions:
-        block_transfer = -1
-        c_block_transfer = -1
-        if t.block_size == 256:
-            block_transfer = [4, 64, 1]
-            c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 8)
-        if t.block_size == 128:
-            block_transfer = [4, 32, 1]
-            if t.n_per_block == 128:
-                c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 8)
-            else:
-                c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 8)
-        if t.block_size == 64:
-            block_transfer = [4, 16, 1]
-            c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 8)
-
-        assert (
-            block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
-        block_descriptions.append(
-            gemm.BlockTransferDesc(block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
-        )
-        c_block_descriptions.append(c_block_transfer)
-    gemm_specialization = [
-        gemm.GemmSpecialization.GemmDefault,
-        gemm.GemmSpecialization.MNKPadding,
+    a_block_descriptions_row_major = [
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [1, 0, 2], [1, 0, 2], 2, 1, 8, 1),
     ]
+    a_block_descriptions_col_major = [
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+    ]
+    b_block_descriptions_rowmajor = [
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+    ]
+    b_block_descriptions_colmajor = [
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [1, 0, 2], [1, 0, 2], 2, 1, 8, 1),
+    ]
+    c_block_descriptions = [
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 1),
+    ]
+    if a_element_desc.layout == library.LayoutType.RowMajor:
+        a_block_descriptions = a_block_descriptions_row_major
+    else:
+        a_block_descriptions = a_block_descriptions_col_major
+    if b_element_desc.layout == library.LayoutType.RowMajor:
+        b_block_descriptions = b_block_descriptions_rowmajor
+    else:
+        b_block_descriptions = b_block_descriptions_colmajor
     operations = []
-    for gemm_spec in gemm_specialization:
-        for tile_desc, block_desc, c_block_desc in zip(
-            tile_descriptions, block_descriptions, c_block_descriptions
-        ):
-            new_operation = gemm.GemmOperation(
-                operation_kind=operation_kind,
-                extra_kind=element_op,
-                xdl_op_type=gemm.XdlOpType.DeviceGemmXdl_CShuffle,
-                A=a_element_desc,
-                B=b_element_desc,
-                C=c_element_desc,
-                a_elem_op=element_op,
-                b_elem_op=element_op,
-                epilogue_functor=element_op,
-                gemm_specialization=gemm_spec,
-                tile_desc=tile_desc,
-                a_block_transfer=block_desc,
-                b_block_transfer=block_desc,
-                c_block_transfer=c_block_desc,
-            )
-            manifest.append(new_operation)
-            operations.append(new_operation)
+    for tile_desc, a_block_desc, b_block_desc, c_block_desc in zip(
+        tile_descriptions, a_block_descriptions, b_block_descriptions, c_block_descriptions
+    ):
+        op = gemm.GemmOperation(
+            operation_kind=operation_kind,
+            extra_kind=element_op,
+            xdl_op_type=xdl_op_type,
+            A=a_element_desc,
+            B=b_element_desc,
+            C=c_element_desc,
+            a_elem_op=element_op,
+            b_elem_op=element_op,
+            epilogue_functor=element_op,
+            gemm_specialization=gemm.GemmSpecialization.MNKPadding,
+            tile_desc=copy.deepcopy(tile_desc),
+            a_block_transfer=copy.deepcopy(a_block_desc),
+            b_block_transfer=copy.deepcopy(b_block_desc),
+            c_block_transfer=copy.deepcopy(c_block_desc),
+        )
+        manifest.append(op)
+        operations.append(op)
     return operations
-
 
 def CreateGemmRCRBilinearOperator(manifest, c_element_op):
     operation_kind = library.GemmKind.Gemm
@@ -636,150 +653,252 @@ def CreateGemmRCRBilinearOperator(manifest, c_element_op):
         ds_layout = [library.LayoutType.RowMajor]
     e_dtype = library.DataType.f16
     element_op = library.TensorOperation.PassThrough
-    # 0 indicates not print
+
+    xdl_op_type=gemm.XdlOpType.DeviceGemmMultipleD_Xdl_CShuffle
+
     tile_descriptions = [
-        gemm.TileDesc(256, 256, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 256, 32, 8, 8, 32, 32, 2, 4),
-        gemm.TileDesc(128, 128, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 128, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 64, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(64, 64, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(256, 128, 64, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(256, 64, 128, 32, 8, 8, 32, 32, 1, 2),
-        gemm.TileDesc(128, 128, 32, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(128, 32, 128, 32, 8, 8, 32, 32, 1, 2),
-        gemm.TileDesc(64, 64, 32, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(64, 32, 64, 32, 8, 8, 32, 32, 1, 2),
+        gemm.TileDesc(256,   256,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   256,    32,   8,   8,   16,   16,    4,    8),
+        gemm.TileDesc(128,   128,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,   128,    64,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,    64,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(256,   128,    64,    32,   8,   8,   16,   16,    4,    2),
+        gemm.TileDesc(256,    64,   128,    32,   8,   8,   16,   16,    2,    4),
+        gemm.TileDesc( 64,    32,    32,    32,   8,   8,   16,   16,    2,    2),
     ]
-
-    block_descriptions = []
-    c_block_descriptions = []
-    for t in tile_descriptions:
-        block_transfer = -1
-        c_block_transfer = -1
-        if t.block_size == 256:
-            block_transfer = [4, 64, 1]
-            c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 8)
-        if t.block_size == 128:
-            block_transfer = [4, 32, 1]
-            if t.n_per_block == 128:
-                c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 8)
-            else:
-                c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 8)
-        if t.block_size == 64:
-            block_transfer = [4, 16, 1]
-            c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 8)
-
-        assert (
-            block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
-        block_descriptions.append(
-            gemm.BlockTransferDesc(block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
-        )
-        c_block_descriptions.append(c_block_transfer)
-    gemm_specialization = [
-        gemm.GemmSpecialization.GemmDefault,
-        gemm.GemmSpecialization.MNKPadding,
+    a_block_descriptions_row_major = [
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [1, 0, 2], [1, 0, 2], 2, 1, 8, 1),
     ]
+    a_block_descriptions_col_major = [
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+    ]
+    b_block_descriptions_rowmajor = [
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+    ]
+    b_block_descriptions_colmajor = [
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [1, 0, 2], [1, 0, 2], 2, 1, 8, 1),
+    ]
+    c_block_descriptions = [
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 1),
+    ]
+    if a_element_desc.layout == library.LayoutType.RowMajor:
+        a_block_descriptions = a_block_descriptions_row_major
+    else:
+        a_block_descriptions = a_block_descriptions_col_major
+    if b_element_desc.layout == library.LayoutType.RowMajor:
+        b_block_descriptions = b_block_descriptions_rowmajor
+    else:
+        b_block_descriptions = b_block_descriptions_colmajor
     operations = []
-    for gemm_spec in gemm_specialization:
-        for tile_desc, block_desc, c_block_desc in zip(
-            tile_descriptions, block_descriptions, c_block_descriptions
-        ):
-            new_operation = gemm.GemmOperation(
-                operation_kind=operation_kind,
-                extra_kind=c_element_op,
-                xdl_op_type=gemm.XdlOpType.DeviceGemmMultipleD_Xdl_CShuffle,
-                A=a_element_desc,
-                B=b_element_desc,
-                C=c_element_desc,
-                a_elem_op=element_op,
-                b_elem_op=element_op,
-                epilogue_functor=c_element_op,
-                gemm_specialization=gemm_spec,
-                tile_desc=tile_desc,
-                a_block_transfer=block_desc,
-                b_block_transfer=block_desc,
-                c_block_transfer=c_block_desc,
-                ds_dtype=ds_dtype,
-                ds_layout=ds_layout,
-                e_dtype=e_dtype,
-            )
-            manifest.append(new_operation)
-            operations.append(new_operation)
+    for tile_desc, a_block_desc, b_block_desc, c_block_desc in zip(
+        tile_descriptions, a_block_descriptions, b_block_descriptions, c_block_descriptions
+    ):
+        op = gemm.GemmOperation(
+            operation_kind=operation_kind,
+            extra_kind=c_element_op,
+            xdl_op_type=xdl_op_type,
+            A=a_element_desc,
+            B=b_element_desc,
+            C=c_element_desc,
+            a_elem_op=element_op,
+            b_elem_op=element_op,
+            epilogue_functor=c_element_op,
+            gemm_specialization=gemm.GemmSpecialization.MNKPadding,
+            tile_desc=copy.deepcopy(tile_desc),
+            a_block_transfer=copy.deepcopy(a_block_desc),
+            b_block_transfer=copy.deepcopy(b_block_desc),
+            c_block_transfer=copy.deepcopy(c_block_desc),
+            ds_dtype=ds_dtype,
+            ds_layout=ds_layout,
+            e_dtype=e_dtype,
+        )
+        manifest.append(op)
+        operations.append(op)
+    return operations
+
+
+def CreateGemmRRRBilinearOperator(manifest, c_element_op):
+    operation_kind = library.GemmKind.Gemm
+    a_element_desc = library.TensorDesc(
+        library.DataType.f16, library.LayoutType.RowMajor
+    )
+    b_element_desc = library.TensorDesc(
+        library.DataType.f16, library.LayoutType.RowMajor
+    )
+    c_element_desc = library.TensorDesc(
+        library.DataType.f16, library.LayoutType.RowMajor
+    )
 
     if c_element_op in [
-        library.TensorOperation.Add,  # gemm_rcr_bias
-        library.TensorOperation.AddRelu,  # gemm_rcr_bias_relu
+        library.TensorOperation.AddMulAdd,
+        library.TensorOperation.AddAddAdd,
+        library.TensorOperation.AddAddAddRelu,
     ]:
-        # N % 8 == 0 && K % 1 == 0
-        gemm_spec = gemm.GemmSpecialization.MNKPadding
-        for tile_desc, block_desc, c_block_desc in zip(
-            tile_descriptions, block_descriptions, c_block_descriptions
-        ):
-            c_block_desc = copy.deepcopy(c_block_desc)
-            c_block_desc.scalar_per_vector = 1
-            c_block_desc.m_n_block_wave_per_xdl[1] //= 8
-            c_block_desc.m_n_block_wave_per_xdl[-1] *= 8
-            new_operation = gemm.GemmOperation(
-                operation_kind=operation_kind,
-                extra_kind=c_element_op,
-                xdl_op_type=gemm.XdlOpType.DeviceGemmMultipleD_Xdl_CShuffle,
-                A=a_element_desc,
-                B=b_element_desc,
-                C=c_element_desc,
-                a_elem_op=element_op,
-                b_elem_op=element_op,
-                epilogue_functor=c_element_op,
-                gemm_specialization=gemm_spec,
-                tile_desc=tile_desc,
-                a_block_transfer=block_desc,
-                b_block_transfer=block_desc,
-                c_block_transfer=c_block_desc,
-                ds_dtype=ds_dtype,
-                ds_layout=ds_layout,
-                e_dtype=e_dtype,
-            )
-            manifest.append(new_operation)
-            operations.append(new_operation)
+        ds_dtype = [library.DataType.f16, library.DataType.f16, library.DataType.f16]
+        ds_layout = [
+            library.LayoutType.RowMajor,
+            library.LayoutType.RowMajor,
+            library.LayoutType.RowMajor,
+        ]
+    elif c_element_op in [
+        library.TensorOperation.AddSigmoidMul,
+        library.TensorOperation.AddSigmoidMulTanh,
+        library.TensorOperation.AddAdd,
+        library.TensorOperation.AddMul,
+        library.TensorOperation.AddMulTanh,
+        library.TensorOperation.AddAddRelu,
+    ]:
+        ds_dtype = [library.DataType.f16, library.DataType.f16]
+        ds_layout = [library.LayoutType.RowMajor, library.LayoutType.RowMajor]
+    else:
+        ds_dtype = [library.DataType.f16]
+        ds_layout = [library.LayoutType.RowMajor]
 
-        # N % 4 == 0 && K % 4 == 0
-        gemm_spec = gemm.GemmSpecialization.MNKPadding
-        for tile_desc, block_desc, c_block_desc in zip(
-            tile_descriptions, block_descriptions, c_block_descriptions
-        ):
-            block_desc.src_scalar_per_vector = 4
-            block_desc.dst_scalar_per_vector = 4
-            c_block_desc = copy.deepcopy(c_block_desc)
-            c_block_desc.scalar_per_vector = 4
-            c_block_desc.m_n_block_wave_per_xdl[1] //= 2
-            c_block_desc.m_n_block_wave_per_xdl[-1] *= 2
-            new_operation = gemm.GemmOperation(
-                operation_kind=operation_kind,
-                extra_kind=c_element_op,
-                xdl_op_type=gemm.XdlOpType.DeviceGemmMultipleD_Xdl_CShuffle,
-                A=a_element_desc,
-                B=b_element_desc,
-                C=c_element_desc,
-                a_elem_op=element_op,
-                b_elem_op=element_op,
-                epilogue_functor=c_element_op,
-                gemm_specialization=gemm_spec,
-                tile_desc=tile_desc,
-                a_block_transfer=block_desc,
-                b_block_transfer=block_desc,
-                c_block_transfer=c_block_desc,
-                ds_dtype=ds_dtype,
-                ds_layout=ds_layout,
-                e_dtype=e_dtype,
-            )
-            manifest.append(new_operation)
-            operations.append(new_operation)
+    e_dtype = library.DataType.f16
+    element_op = library.TensorOperation.PassThrough
 
+    xdl_op_type=gemm.XdlOpType.DeviceGemmMultipleD_Xdl_CShuffle
+
+    tile_descriptions = [
+        gemm.TileDesc(256,   256,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   256,    32,   8,   8,   16,   16,    4,    8),
+        gemm.TileDesc(128,   128,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,   128,    64,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,    64,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(256,   128,    64,    32,   8,   8,   16,   16,    4,    2),
+        gemm.TileDesc(256,    64,   128,    32,   8,   8,   16,   16,    2,    4),
+        gemm.TileDesc( 64,    32,    32,    32,   8,   8,   16,   16,    2,    2),
+    ]
+    a_block_descriptions_row_major = [
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [1, 0, 2], [1, 0, 2], 2, 1, 8, 1),
+    ]
+    a_block_descriptions_col_major = [
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+    ]
+    b_block_descriptions_rowmajor = [
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [0, 2, 1], [0, 2, 1], 1, 4, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [0, 2, 1], [0, 2, 1], 1, 2, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [0, 2, 1], [0, 2, 1], 1, 1, 8, 1),
+    ]
+    b_block_descriptions_colmajor = [
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 32, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 64, 1], [1, 0, 2], [1, 0, 2], 2, 8, 8, 1),
+        gemm.BlockTransferDesc([4, 16, 1], [1, 0, 2], [1, 0, 2], 2, 1, 8, 1),
+    ]
+    c_block_descriptions = [
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 4),
+        gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 1),
+    ]
+    if a_element_desc.layout == library.LayoutType.RowMajor:
+        a_block_descriptions = a_block_descriptions_row_major
+    else:
+        a_block_descriptions = a_block_descriptions_col_major
+    if b_element_desc.layout == library.LayoutType.RowMajor:
+        b_block_descriptions = b_block_descriptions_rowmajor
+    else:
+        b_block_descriptions = b_block_descriptions_colmajor
+    operations = []
+    for tile_desc, a_block_desc, b_block_desc, c_block_desc in zip(
+        tile_descriptions, a_block_descriptions, b_block_descriptions, c_block_descriptions
+    ):
+        op = gemm.GemmOperation(
+            operation_kind=operation_kind,
+            extra_kind=c_element_op,
+            xdl_op_type=xdl_op_type,
+            A=a_element_desc,
+            B=b_element_desc,
+            C=c_element_desc,
+            a_elem_op=element_op,
+            b_elem_op=element_op,
+            epilogue_functor=c_element_op,
+            gemm_specialization=gemm.GemmSpecialization.MNKPadding,
+            tile_desc=copy.deepcopy(tile_desc),
+            a_block_transfer=copy.deepcopy(a_block_desc),
+            b_block_transfer=copy.deepcopy(b_block_desc),
+            c_block_transfer=copy.deepcopy(c_block_desc),
+            ds_dtype=ds_dtype,
+            ds_layout=ds_layout,
+            e_dtype=e_dtype,
+        )
+        manifest.append(op)
+        operations.append(op)
     return operations
 
 
@@ -797,19 +916,15 @@ def CreateBmmRCROperator(manifest):
     element_op = library.TensorOperation.PassThrough
     # 0 indicates not print
     tile_descriptions = [
-        gemm.TileDesc(256, 256, 128, 4, 8, 0, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 256, 4, 8, 0, 32, 32, 2, 4),
-        gemm.TileDesc(128, 128, 128, 4, 8, 0, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 128, 4, 8, 0, 32, 32, 2, 2),
-        gemm.TileDesc(128, 128, 64, 4, 8, 0, 32, 32, 2, 2),
-        gemm.TileDesc(128, 64, 128, 4, 8, 0, 32, 32, 2, 2),
-        gemm.TileDesc(64, 64, 64, 4, 8, 0, 32, 32, 2, 2),
-        gemm.TileDesc(256, 128, 64, 4, 8, 0, 32, 32, 2, 1),
-        gemm.TileDesc(256, 64, 128, 4, 8, 0, 32, 32, 1, 2),
-        gemm.TileDesc(128, 128, 32, 4, 8, 0, 32, 32, 2, 1),
-        gemm.TileDesc(128, 32, 128, 4, 8, 0, 32, 32, 1, 2),
-        gemm.TileDesc(64, 64, 32, 4, 8, 0, 32, 32, 2, 1),
-        gemm.TileDesc(64, 32, 64, 4, 8, 0, 32, 32, 1, 2),
+        gemm.TileDesc(256,   256,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   256,    32,   8,   8,   16,   16,    4,    8),
+        gemm.TileDesc(128,   128,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,   128,    64,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,    64,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(256,   128,    64,    32,   8,   8,   16,   16,    4,    2),
+        gemm.TileDesc(256,    64,   128,    32,   8,   8,   16,   16,    2,    4),
+        gemm.TileDesc(64,    32,    32,    32,   8,   8,   16,   16,    2,    2)
     ]
 
     block_descriptions = []
@@ -822,11 +937,7 @@ def CreateBmmRCROperator(manifest):
         if t.block_size == 64:
             block_transfer = [4, 16, 1]
 
-        assert (
-            block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert block_transfer != -1, "Cannot determine block_transfer_size with block_size "+ str(t.block_size)
         block_descriptions.append(
             gemm.BlockTransferDesc(
                 block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1, True
@@ -875,19 +986,15 @@ def CreateGemmRCRPermOperator(manifest, c_element_op):
     element_op = library.TensorOperation.PassThrough
     # 0 indicates not print
     tile_descriptions = [
-        gemm.TileDesc(256, 256, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 256, 32, 8, 8, 32, 32, 2, 4),
-        gemm.TileDesc(128, 128, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 128, 32, 8, 8, 32, 32, 2, 2),
-        # gemm.TileDesc(128, 128, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 64, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(64, 64, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(256, 128, 64, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(256, 64, 128, 32, 8, 8, 32, 32, 1, 2),
-        gemm.TileDesc(128, 128, 32, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(128, 32, 128, 32, 8, 8, 32, 32, 1, 2),
-        gemm.TileDesc(64, 64, 32, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(64, 32, 64, 32, 8, 8, 32, 32, 1, 2),
+        gemm.TileDesc(256,   256,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   256,    32,   8,   8,   16,   16,    4,    8),
+        gemm.TileDesc(128,   128,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,   128,    64,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,    64,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(256,   128,    64,    32,   8,   8,   16,   16,    4,    2),
+        gemm.TileDesc(256,    64,   128,    32,   8,   8,   16,   16,    2,    4),
+        gemm.TileDesc(64,    32,    32,    32,   8,   8,   16,   16,    2,    2)
     ]
 
     block_descriptions = []
@@ -909,12 +1016,7 @@ def CreateGemmRCRPermOperator(manifest, c_element_op):
             block_transfer = [4, 16, 1]
             c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 1)
 
-        assert (
-            block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert block_transfer != -1 and c_block_transfer != -1, "Cannot determine block_transfer_size with block_size " + str(t.block_size)
         block_descriptions.append(
             gemm.BlockTransferDesc(block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
         )
@@ -967,22 +1069,15 @@ def CreateGemmRRRPermOperator(manifest, c_element_op):
     element_op = library.TensorOperation.PassThrough
     # 0 indicates not print
     tile_descriptions = [
-        gemm.TileDesc(256, 256, 128, 32, 8, 2, 32, 32, 4, 2),
-        gemm.TileDesc(256, 256, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 256, 32, 8, 2, 32, 32, 2, 4),
-        gemm.TileDesc(256, 128, 256, 32, 8, 8, 32, 32, 2, 4),
-        gemm.TileDesc(128, 128, 128, 32, 8, 2, 32, 32, 4, 2),
-        gemm.TileDesc(128, 128, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 128, 32, 8, 2, 32, 32, 2, 2),
-        gemm.TileDesc(256, 128, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 128, 64, 32, 8, 2, 32, 32, 2, 2),
-        gemm.TileDesc(128, 128, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 64, 128, 32, 8, 2, 32, 32, 2, 2),
-        gemm.TileDesc(128, 64, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(256, 128, 64, 32, 8, 2, 32, 32, 2, 1),
-        gemm.TileDesc(256, 128, 64, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(256, 64, 128, 32, 8, 2, 32, 32, 1, 2),
-        gemm.TileDesc(256, 64, 128, 32, 8, 8, 32, 32, 1, 2),
+        gemm.TileDesc(256,   256,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   256,    32,   8,   8,   16,   16,    4,    8),
+        gemm.TileDesc(128,   128,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,   128,    64,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,    64,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(256,   128,    64,    32,   8,   8,   16,   16,    4,    2),
+        gemm.TileDesc(256,    64,   128,    32,   8,   8,   16,   16,    2,    4),
+        gemm.TileDesc(64,    32,    32,    32,   8,   8,   16,   16,    2,    2)
     ]
 
     b_block_descriptions = [
@@ -1022,12 +1117,7 @@ def CreateGemmRRRPermOperator(manifest, c_element_op):
             a_block_transfer = [4, 16, 1]
             c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 1)
 
-        assert (
-            a_block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert a_block_transfer != -1 and c_block_transfer != -1 ,"Cannot determine block_transfer_size with block_size " + str(t.block_size)
         a_block_descriptions.append(
             gemm.BlockTransferDesc(a_block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
         )
@@ -1083,19 +1173,15 @@ def CreateGemmRCRm2n3PermOperator(manifest, c_element_op):
     element_op = library.TensorOperation.PassThrough
     # 0 indicates not print
     tile_descriptions = [
-        gemm.TileDesc(256, 256, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 256, 32, 8, 8, 32, 32, 2, 4),
-        gemm.TileDesc(128, 128, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 128, 32, 8, 8, 32, 32, 2, 2),
-        # gemm.TileDesc(128, 128, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 64, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(64, 64, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(256, 128, 64, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(256, 64, 128, 32, 8, 8, 32, 32, 1, 2),
-        gemm.TileDesc(128, 128, 32, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(128, 32, 128, 32, 8, 8, 32, 32, 1, 2),
-        gemm.TileDesc(64, 64, 32, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(64, 32, 64, 32, 8, 8, 32, 32, 1, 2),
+        gemm.TileDesc(256,   256,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   256,    32,   8,   8,   16,   16,    4,    8),
+        gemm.TileDesc(128,   128,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,   128,    64,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,    64,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(256,   128,    64,    32,   8,   8,   16,   16,    4,    2),
+        gemm.TileDesc(256,    64,   128,    32,   8,   8,   16,   16,    2,    4),
+        gemm.TileDesc(64,    32,    32,    32,   8,   8,   16,   16,    2,    2)
     ]
 
     block_descriptions = []
@@ -1117,12 +1203,7 @@ def CreateGemmRCRm2n3PermOperator(manifest, c_element_op):
             block_transfer = [4, 16, 1]
             c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 8)
 
-        assert (
-            block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert block_transfer != -1 and c_block_transfer != -1, f"Cannot determine block_transfer_size with block_size {str(t.block_size)}"
         block_descriptions.append(
             gemm.BlockTransferDesc(block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
         )
@@ -1175,19 +1256,15 @@ def CreateGemmRCRm3n2PermOperator(manifest, c_element_op):
     element_op = library.TensorOperation.PassThrough
     # 0 indicates not print
     tile_descriptions = [
-        gemm.TileDesc(256, 256, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 256, 32, 8, 8, 32, 32, 2, 4),
-        gemm.TileDesc(128, 128, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 128, 32, 8, 8, 32, 32, 2, 2),
-        # gemm.TileDesc(128, 128, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 64, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(64, 64, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(256, 128, 64, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(256, 64, 128, 32, 8, 8, 32, 32, 1, 2),
-        gemm.TileDesc(128, 128, 32, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(128, 32, 128, 32, 8, 8, 32, 32, 1, 2),
-        gemm.TileDesc(64, 64, 32, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(64, 32, 64, 32, 8, 8, 32, 32, 1, 2),
+        gemm.TileDesc(256,   256,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   256,    32,   8,   8,   16,   16,    4,    8),
+        gemm.TileDesc(128,   128,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,   128,    64,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,    64,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(256,   128,    64,    32,   8,   8,   16,   16,    4,    2),
+        gemm.TileDesc(256,    64,   128,    32,   8,   8,   16,   16,    2,    4),
+        gemm.TileDesc(64,    32,    32,    32,   8,   8,   16,   16,    2,    2)
     ]
 
     block_descriptions = []
@@ -1209,12 +1286,7 @@ def CreateGemmRCRm3n2PermOperator(manifest, c_element_op):
             block_transfer = [4, 16, 1]
             c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 1)
 
-        assert (
-            block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert block_transfer != -1 and c_block_transfer != -1, f"Cannot determine block_transfer_size with block_size {str(t.block_size)}"
         block_descriptions.append(
             gemm.BlockTransferDesc(block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
         )
@@ -1265,19 +1337,15 @@ def CreateBmmRCRPermOperator(manifest):
     element_op = library.TensorOperation.PassThrough
     # 0 indicates not print
     tile_descriptions = [
-        gemm.TileDesc(256, 256, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(256, 128, 256, 32, 8, 8, 32, 32, 2, 4),
-        gemm.TileDesc(256, 128, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(256, 128, 64, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(256, 64, 128, 32, 8, 8, 32, 32, 1, 2),
-        gemm.TileDesc(128, 128, 128, 32, 8, 8, 32, 32, 4, 2),
-        gemm.TileDesc(128, 128, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 64, 128, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(64, 64, 64, 32, 8, 8, 32, 32, 2, 2),
-        gemm.TileDesc(128, 128, 32, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(128, 32, 128, 32, 8, 8, 32, 32, 1, 2),
-        gemm.TileDesc(64, 64, 32, 32, 8, 8, 32, 32, 2, 1),
-        gemm.TileDesc(64, 32, 64, 32, 8, 8, 32, 32, 1, 2),
+        gemm.TileDesc(256,   256,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   256,    32,   8,   8,   16,   16,    4,    8),
+        gemm.TileDesc(128,   128,   128,    32,   8,   8,   16,   16,    8,    4),
+        gemm.TileDesc(256,   128,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,   128,    64,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(128,    64,   128,    32,   8,   8,   16,   16,    4,    4),
+        gemm.TileDesc(256,   128,    64,    32,   8,   8,   16,   16,    4,    2),
+        gemm.TileDesc(256,    64,   128,    32,   8,   8,   16,   16,    2,    4),
+        gemm.TileDesc(64,    32,    32,    32,   8,   8,   16,   16,    2,    2)
     ]
 
     block_descriptions = []
@@ -1298,12 +1366,7 @@ def CreateBmmRCRPermOperator(manifest):
             block_transfer = [4, 16, 1]
             c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 8)
 
-        assert (
-            block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert block_transfer != -1 and c_block_transfer != -1, f"Cannot determine block_transfer_size with block_size {str(t.block_size)}"
         block_descriptions.append(
             gemm.BlockTransferDesc(block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
         )
@@ -1606,11 +1669,7 @@ def CreateBmmRRROperator(manifest):
         if t.block_size == 64 or t.m_per_block == 16:
             a_block_transfer = [4, 16, 1]
 
-        assert (
-            a_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert a_block_transfer != -1, f"Cannot determine block_transfer_size with block_size {str(t.block_size)}"
         a_block_descriptions.append(
             gemm.BlockTransferDesc(
                 a_block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1, True
@@ -1711,12 +1770,7 @@ def CreateBmmRRRBillinearOperator(manifest, c_element_op):
             a_block_transfer = [4, 32, 1]
             c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 8)
 
-        assert (
-            a_block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert a_block_transfer != -1 and c_block_transfer != -1 ,"Cannot determine block_transfer_size with block_size " + str(t.block_size)
         a_block_descriptions.append(
             gemm.BlockTransferDesc(
                 a_block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1, True
@@ -1827,12 +1881,7 @@ def CreateBmmCCRBillinearOperator(manifest, c_element_op):
             b_block_transfer = [4, 32, 1]
             c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 8)
 
-        assert (
-            b_block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert b_block_transfer != -1 and c_block_transfer != -1, f"Cannot determine block_transfer_size with block_size {str(t.block_size)}"
         b_block_descriptions.append(
             gemm.BlockTransferDesc(
                 b_block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1, True
@@ -1943,12 +1992,7 @@ def CreateBmmCRRBillinearOperator(manifest, c_element_op):
             b_block_transfer = [4, 32, 1]
             c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 8)
 
-        assert (
-            b_block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert b_block_transfer != -1 and c_block_transfer != -1, f"Cannot determine block_transfer_size with block_size {str(t.block_size)}"
         b_block_descriptions.append(
             gemm.BlockTransferDesc(
                 b_block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1, True
@@ -2077,12 +2121,7 @@ def CreateBmmRRRPermOperator(manifest):
             if t.n_per_block == 64:
                 c_block_transfer = gemm.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 8)
 
-        assert (
-            a_block_transfer != -1
-            and c_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert a_block_transfer != -1 and c_block_transfer != -1 ,"Cannot determine block_transfer_size with block_size " + str(t.block_size)
         a_block_descriptions.append(
             gemm.BlockTransferDesc(a_block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
         )
@@ -2153,11 +2192,7 @@ def CreateBmmCCROperator(manifest):
         if t.block_size == 128 and t.m_per_block != 16:
             b_block_transfer = [4, 32, 1]
 
-        assert (
-            b_block_transfer != -1
-            and "Cannot determine block_transfer_size with block_size "
-            + str(t.block_size)
-        )
+        assert b_block_transfer != -1, f"Cannot determine block_transfer_size with block_size {str(t.block_size)}"
         b_block_descriptions.append(
             gemm.BlockTransferDesc(
                 b_block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1, True
@@ -2478,6 +2513,38 @@ def GenerateTensorOp(manifest):
     CreateGemmRCRBilinearOperator(manifest, library.TensorOperation.AddSigmoidMulTanh)
     # GemmRCRBiasMulAdd
     CreateGemmRCRBilinearOperator(manifest, library.TensorOperation.AddMulAdd)
+    # GemmRRRBias
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.Add)
+    # GemmRRRBiasRelu
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddRelu)
+    # GemmRRRBiasTanh
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddTanh)
+    # GemmRRRBiasTanh
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddFastGelu)
+    # GemmRRRBiasHardswish
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddHardswish)
+    # GemmRRRBiasSwish
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddSwish)
+    # GemmRRRBiasSigmoid
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddSigmoid)
+    # GemmRRRBiasAdd
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddAdd)
+    # GemmRRRBiasMul
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddMul)
+    # GemmRRRBiasMul
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddMulTanh)
+    # GemmRRRBiasAddRelu
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddAddRelu)
+    # GemmRRRBiasAddAddRelu
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddAddAdd)
+    # GemmRRRBiasAddAddRelu
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddAddAddRelu)
+    # GemmRRRBiasSigmoidMul
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddSigmoidMul)
+    # GemmRRRBiasSigmoidMulTanh
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddSigmoidMulTanh)
+    # GemmRRRBiasMulAdd
+    CreateGemmRRRBilinearOperator(manifest, library.TensorOperation.AddMulAdd)
     # BmmRCR
     CreateBmmRCROperator(manifest)
     # BmmRRR
@@ -2524,4 +2591,8 @@ def GenerateGFX908(manifest, rocm_version):
 
 
 def GenerateGFX90A(manifest, rocm_version):
+    GenerateTensorOp(manifest)
+
+
+def GenerateGFX1201(manifest, rocm_version):
     GenerateTensorOp(manifest)

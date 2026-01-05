@@ -26,6 +26,8 @@ from dinoml.backend.common.vision_ops import efficient_nms_common
 
 func_header_files = """
 #include <cuda_fp16.h>
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/fast_math.h"
 #include "cuda_runtime_api.h"
@@ -34,6 +36,8 @@ func_header_files = """
 
 profiler_header_files = """
 #include <cuda_fp16.h>
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/fast_math.h"
 #include <cub/cub.cuh>

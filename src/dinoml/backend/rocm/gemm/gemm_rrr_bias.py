@@ -13,47 +13,21 @@
 #  limitations under the License.
 #
 """
-GEMM Specialization for
-C = Add(GeMM(A, B) + bias, D0)),
-where A[RowMajor][M, K], B[ColMajor][N, K], C[RowMajor][M, N]
-bias[RowMajor][N], D0[RowMajor][M, N]
+GEMM ROCM backend for A[RowMajor], B[RowMajor], C[RowMajor], i.e.
+c[m, n] = a[m, k] * b[k, n]
+This is used for `torch.mm`
+When used for `mm`, need to set A->Data, B->Weight
 """
-
-import jinja2
 
 from dinoml.backend import registry
 from dinoml.backend.rocm.gemm import common
-from dinoml.backend.rocm.gemm.layout import RCR
+from dinoml.backend.rocm.gemm.layout import RRR
+
+# pylint: disable=C0415,W0613
 
 
-EXTRA_CODE = jinja2.Template(
-    """
-#include "ck/utility/data_type.hpp"
-
-namespace ck {
-namespace tensor_operation {
-namespace element_wise {
-namespace {
-struct AddAdd
-{
-    AddAdd(){};
-
-    __host__ __device__ void operator()(ck::half_t& e, const ck::half_t& c, const ck::half_t& bias, const ck::half_t& d0) const
-    {
-        const ck::half_t x = c + bias;
-        e = x + d0;
-    };
-};
-} // namespace
-} // namespace element_wise
-} // namespace tensor_operation
-} // namespace ck
-"""
-)
-
-
-@registry.reg("rocm.gemm_rcr_bias_add.config")
-def gemm_rcr_config(func_attrs, dtype="float16"):
+@registry.reg("rocm.gemm_rrr_bias.config")
+def gemm_config(func_attrs, dtype="float16"):
     """Extract (operation name, operation instance) pair from
     all operation candidates.
 
@@ -68,15 +42,15 @@ def gemm_rcr_config(func_attrs, dtype="float16"):
         Extracted (operation name, operation instance) pair
         from all operation candidates.
     """
-    import dinoml.utils.ck_lib as ck_lib  # noqa: F401
+    import dinoml.utils.ck_lib as ck_lib
 
     op_kind = ck_lib.library.GemmKind.Gemm
-    extra_kind = ck_lib.library.TensorOperation.AddAdd
-    common.make_fproc_f16(func_attrs, RCR, op_kind, extra_kind)
+    extra_kind = ck_lib.library.TensorOperation.Add
+    common.make_fproc_f16(func_attrs, RRR, op_kind, extra_kind)
 
 
-@registry.reg("rocm.gemm_rcr_bias_add.gen_profiler")
-def gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
+@registry.reg("rocm.gemm_rrr_bias.gen_profiler")
+def gemm_gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
     """Generates standalone executables for profiler.
 
     Parameters
@@ -93,19 +67,14 @@ def gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
         func_attrs=func_attrs,
         workdir=workdir,
         dim_info_dict=dim_info_dict,
-        args_parse=RCR.args_parse,
-        gemm_flag="bias_add",
-        extra_code=EXTRA_CODE.render(),
+        args_parse=RRR.args_parse,
+        gemm_flag="bias",
         profiler_name=profiler_name,
     )
 
 
-@registry.reg("rocm.gemm_rcr_bias_add.gen_function")
-def gen_function(
-    func_attrs,
-    exec_cond_template,
-    dim_info_dict,
-):
+@registry.reg("rocm.gemm_rrr_bias.gen_function")
+def gemm_gen_function(func_attrs, exec_cond_template, dim_info_dict):
     """Generates function body.
 
     Parameters
@@ -127,8 +96,7 @@ def gen_function(
         func_attrs,
         exec_cond_template,
         dim_info_dict,
-        "bias_add",
-        extra_code=EXTRA_CODE.render(),
+        "bias",
         input_addr_calculator=common.INPUT_ADDR_CALCULATOR.render(
             accessor_a=func_attrs["input_accessors"][0],
             accessor_b=func_attrs["input_accessors"][1],
@@ -139,8 +107,8 @@ def gen_function(
     )
 
 
-@registry.reg("rocm.gemm_rcr_bias_add.func_decl")
-def gen_function_decl(func_attrs):
+@registry.reg("rocm.gemm_rrr_bias.func_decl")
+def gemm_gen_function_decl(func_attrs):
     """Generates function declarations.
 
     Parameters
@@ -154,16 +122,11 @@ def gen_function_decl(func_attrs):
         The rentered template of function declaration.
     """
     func_name = func_attrs["name"]
-    return common.gen_function_decl(
-        func_name=func_name,
-        gemm_flag="bias_add",
-        has_d0=common.has_d0(func_attrs),
-        has_d1=common.has_d1(func_attrs),
-    )
+    return common.gen_function_decl(func_name=func_name, gemm_flag="bias")
 
 
-@registry.reg("rocm.gemm_rcr_bias_add.func_call")
-def gen_function_call(func_attrs, indent="  "):
+@registry.reg("rocm.gemm_rrr_bias.func_call")
+def gemm_gen_function_call(func_attrs, indent="  "):
     """Generates function call.
 
     Parameters
@@ -178,10 +141,10 @@ def gen_function_call(func_attrs, indent="  "):
     str
         The rendered template of generated function call.
     """
-    return common.gen_function_call(func_attrs, indent, gemm_flag="bias_add")
+    return common.gen_function_call(func_attrs, indent, gemm_flag="bias")
 
 
-@registry.reg("rocm.gemm_rcr_bias_add.filter")
+@registry.reg("rocm.gemm_rrr_bias.filter")
 def gemm_function_filter(cfg, func_attrs, x_shape):
     """Generates function filter.
 

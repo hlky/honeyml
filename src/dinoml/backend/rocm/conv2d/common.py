@@ -120,12 +120,12 @@ SRC_TEMPLATE = jinja2.Template(
 #include <random>
 #include <rocrand/rocrand.h>
 #include "logging.h"
-#include "include/ck/utility/print.hpp"
-#include "library/include/ck/library/utility/device_memory.hpp"
-#include "library/include/ck/library/utility/host_tensor.hpp"
-#include "library/include/ck/library/utility/host_tensor_generator.hpp"
-#include "include/ck/tensor_operation/gpu/device/tensor_layout.hpp"
-#include "include/ck/tensor_operation/gpu/element/element_wise_operation.hpp"
+//include "ck/utility/print.hpp"
+#include "ck/library/utility/device_memory.hpp"
+#include "ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor_generator.hpp"
+#include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
+#include "ck/tensor_operation/gpu/element/element_wise_operation.hpp"
 
 
 {{extra_code}}
@@ -387,50 +387,6 @@ struct ProfilerMemoryPool {
   rocrand_generator generator;
 };
 
-// hack for DeviceMem linking error
-// TODO fix this by making CK a header-only lib
-// <<< hack begin
-DeviceMem::DeviceMem(std::size_t mem_size) : mMemSize(mem_size)
-{
-  hipGetErrorString(hipMalloc(static_cast<void**>(&mpDeviceBuf), mMemSize));
-}
-void* DeviceMem::GetDeviceBuffer() const { return mpDeviceBuf; }
-void DeviceMem::ToDevice(const void* p) const
-{
-  hipGetErrorString(
-        hipMemcpy(mpDeviceBuf, const_cast<void*>(p), mMemSize, hipMemcpyHostToDevice));
-}
-void DeviceMem::FromDevice(void* p) const
-{
-  hipGetErrorString(hipMemcpy(p, mpDeviceBuf, mMemSize, hipMemcpyDeviceToHost));
-}
-DeviceMem::~DeviceMem() { hipGetErrorString(hipFree(mpDeviceBuf)); }
-struct KernelTimerImpl
-{
-  KernelTimerImpl() {
-    hipGetErrorString(hipEventCreate(&mStart));
-    hipGetErrorString(hipEventCreate(&mEnd));
-  }
-  ~KernelTimerImpl() {
-    hipGetErrorString(hipEventDestroy(mStart));
-    hipGetErrorString(hipEventDestroy(mEnd));
-  }
-  void Start() {
-    hipGetErrorString(hipDeviceSynchronize());
-    hipGetErrorString(hipEventRecord(mStart, nullptr));
-  }
-  void End() {
-    hipGetErrorString(hipEventRecord(mEnd, nullptr));
-    hipGetErrorString(hipEventSynchronize(mEnd));
-  }
-  float GetElapsedTime() const {
-    float time;
-    hipGetErrorString(hipEventElapsedTime(&time, mStart, mEnd));
-    return time;
-  }
-  hipEvent_t mStart, mEnd;
-};
-// >>> hack end
 
 """
 )
@@ -506,7 +462,7 @@ void {{func_name}}(
 
 def emit_instance(op):
     """Emits instance."""
-    import ck_lib  # noqa: F401
+    import dinoml.utils.ck_lib as ck_lib  # noqa: F401
 
     op_def = op.emit()
     return op_def
@@ -528,7 +484,7 @@ def extract_config(op_kind, extra_kind):
         Extracted (operation name, operation instance) pair
         from all operation candidates.
     """
-    import ck_lib  # noqa: F401
+    import dinoml.utils.ck_lib as ck_lib  # noqa: F401
 
     conv2d_ops = OrderedDict()
     extract_ops = list(Target.current()._operators[op_kind][extra_kind].items())
@@ -877,7 +833,7 @@ def function_filter(cfg, func_attrs, offset):
     bool
         If input cfg should be filtered.
     """
-    from ck_lib.conv2d_operation import Conv2DSpecialization
+    from dinoml.utils.ck_lib.conv2d_operation import Conv2DSpecialization
 
     kh = func_attrs["KH"]
     kw = func_attrs["KW"]

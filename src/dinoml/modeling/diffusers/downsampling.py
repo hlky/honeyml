@@ -5,7 +5,6 @@ from dinoml.compiler import ops
 from dinoml.frontend import nn, Tensor
 
 from .normalization import RMSNorm
-from .upsampling import upfirdn2d_native
 
 
 class Downsample1D(nn.Module):

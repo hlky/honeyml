@@ -64,6 +64,8 @@ SRC_TEMPLATE = jinja2.Template(
 #include <cassert>
 #include <iostream>
 #include "short_file.h"
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/reduction/thread/reduction_operators.h"
 #include "cutlass/reduction/device/tensor_reduce.h"

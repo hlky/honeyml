@@ -30,6 +30,8 @@ from dinoml.compiler.ops.b2b_bmm.b2b_bmm_base import CausalType
 
 FUNC_TEMPLATE = jinja2.Template(
     """
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/epilogue/thread/activation.h"
 

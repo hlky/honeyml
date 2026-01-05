@@ -25,6 +25,8 @@ CUDA_HEADER_FILES = """
 #include <stdint.h>
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/util/host_tensor.h"
 """

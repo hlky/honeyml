@@ -17,7 +17,7 @@ from dataclasses import dataclass
 
 import jinja2
 
-import library
+from . import library
 
 
 @dataclass

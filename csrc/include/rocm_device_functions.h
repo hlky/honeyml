@@ -20,11 +20,10 @@
 #include <stdlib.h>
 #include <cstdlib>
 #include <initializer_list>
-#include "include/ck/tensor_operation/gpu/device/tensor_layout.hpp"
-#include "include/ck/utility/print.hpp"
-#include "library/include/ck/library/utility/device_memory.hpp"
-#include "library/include/ck/library/utility/host_tensor.hpp"
-#include "library/include/ck/library/utility/host_tensor_generator.hpp"
+#include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
+#include "ck/library/utility/device_memory.hpp"
+#include "ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor_generator.hpp"
 
 namespace dinoml {
 
@@ -57,7 +56,7 @@ inline std::string PrintArchFeatureFlags(const hipDeviceArch_t& arch) {
       << "\n     Has 32-bit integer atomics for shared memory: "
       << (arch.hasSharedInt32Atomics ? "yes" : "no")
       << "\n     Has 32-bit float atomic exch for shared memory: "
-      << (arch.hasSharedFloatAtomicExch ? "yes" : "no"
+      << (arch.hasSharedFloatAtomicExch ? "yes" : "no")
       << "\n     Has 32-bit float atomic add in global and shared memory: "
       << (arch.hasFloatAtomicAdd ? "yes" : "no")
       << "\n     Has 64-bit integer atomics for global memory: "
@@ -67,9 +66,9 @@ inline std::string PrintArchFeatureFlags(const hipDeviceArch_t& arch) {
       << "\n     Has double-precision floating point: "
       << (arch.hasDoubles ? "yes" : "no")
       << "\n     Has warp vote instructions (__any, __all): "
-      << (arch.hasWarpVote: ? "yes" : "no")
+      << (arch.hasWarpVote ? "yes" : "no")
       << "\n     Has warp ballot instructions (__ballot): "
-      << (arch.hasWarpBallot: ? "yes" : "no")
+      << (arch.hasWarpBallot ? "yes" : "no")
       << "\n     Has warp shuffle operations. (__shfl_*): "
       << (arch.hasWarpShuffle ? "yes" : "no")
       << "\n     Has funnel two words into one with shift&mask caps: "
@@ -93,7 +92,7 @@ inline std::string PrintInfoDeviceProperties(const DevicePropertyType& prop) {
       << "\n     ASCII string identifying device: " << prop.name
       << "\n     Major compute capability: " << prop.major
       << "\n     Minor compute capability: " << prop.minor
-      << "\n     AMD GCN Arch Value: " << prop.gcnArch
+      << "\n     AMD GCN Arch Value: " << prop.gcnArchName
       << "\n     PCI bus ID of the device: " << prop.pciBusID
       << "\n     PCI device ID of the device: " << prop.pciDeviceID
       << "\n  Memory limits: "
@@ -116,7 +115,7 @@ inline std::string PrintDebugDeviceProperties(const DevicePropertyType& prop) {
       << "\n     ASCII string identifying device: " << prop.name
       << "\n     Major compute capability: " << prop.major
       << "\n     Minor compute capability: " << prop.minor
-      << "\n     AMD GCN Arch Value: " << prop.gcnArch
+      << "\n     AMD GCN Arch Value: " << prop.gcnArchName
       << "\n     PCI bus ID of the device: " << prop.pciBusID
       << "\n     PCI device ID of the device: " << prop.pciDeviceID
 
@@ -288,7 +287,7 @@ inline DeviceError StreamSynchronize(StreamType stream) {
 }
 
 inline DeviceError CreateEvent(EventType* event, bool measure_time = true) {
-  return hipEventCreate(event);
+  return hipEventCreateWithFlags(event,  hipEventDisableSystemFence);
 }
 
 inline DeviceError DestroyEvent(EventType event) {

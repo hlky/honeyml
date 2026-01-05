@@ -23,7 +23,11 @@ inline void DeviceCheckLastError(const char* file, int line) {
   auto device_error = GetLastError();
   if (device_error != GetDeviceSuccess()) {
     std::string msg = std::string("Got error: ") +
+#ifdef DINOML_CUDA
         cudaGetErrorString(device_error) +
+#else
+        hipGetErrorString(device_error) + 
+#endif
         " enum: " + std::to_string(device_error) + " at " + file + ": " +
         std::to_string(line);
     LOG(ERROR) << msg;
@@ -131,7 +135,7 @@ class ModelBase {
       model->RunImpl(stream);
     }
     model->DeviceToDeviceCopies(stream);
-    DEVICE_CHECK(EventRecord(run_finished_, stream));
+    // DEVICE_CHECK(EventRecord(run_finished_, stream));
     if (workspace_type_ == DinoMLWorkspaceAllocationMode::kFau) {
       blob_.reset();
       workspace_.reset();

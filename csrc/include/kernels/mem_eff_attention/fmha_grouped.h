@@ -36,6 +36,8 @@
 
 #pragma once
 
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/complex.h"
 #include "cutlass/cutlass.h"
 #include "cutlass/fast_math.h"

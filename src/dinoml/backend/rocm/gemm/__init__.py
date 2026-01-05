@@ -50,4 +50,5 @@ from dinoml.backend.rocm.gemm import (  # noqa: F401
     gemm_rcr_permute_m2n3,
     gemm_rrr,
     gemm_rrr_bias_permute,
+    gemm_rrr_bias,
 )

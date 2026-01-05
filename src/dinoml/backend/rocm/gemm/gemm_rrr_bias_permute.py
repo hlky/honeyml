@@ -40,7 +40,7 @@ def gemm_config(func_attrs, dtype="float16"):
         Extracted (operation name, operation instance) pair
         from all operation candidates.
     """
-    import ck_lib  # noqa: F401
+    import dinoml.utils.ck_lib as ck_lib  # noqa: F401
 
     op_kind = ck_lib.library.GemmKind.GemmPermute
     extra_kind = ck_lib.library.TensorOperation.Add
@@ -48,7 +48,7 @@ def gemm_config(func_attrs, dtype="float16"):
 
 
 @registry.reg("rocm.gemm_rrr_bias_permute.gen_profiler")
-def gemm_gen_profiler(func_attrs, workdir, dim_info_dict):
+def gemm_gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
     """Generates standalone executables for profiler.
 
     Parameters
@@ -73,6 +73,7 @@ def gemm_gen_profiler(func_attrs, workdir, dim_info_dict):
             func_attrs["shape"][2],
         ),
         extra_shape_template=permute_common.EXTRA_SHAPE_TEMPLATE,
+        profiler_name=profiler_name,
     )
 
 

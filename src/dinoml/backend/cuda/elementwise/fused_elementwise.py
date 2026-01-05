@@ -27,6 +27,8 @@ from dinoml.backend.target import Target
 HEAD_TEMPLATE = """
 #include <cuda_fp16.h>
 #include <cuda_bf16.h>
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/fast_math.h"
 #include "cutlass/constants.h"

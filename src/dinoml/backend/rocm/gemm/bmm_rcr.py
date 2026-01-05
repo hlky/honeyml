@@ -61,7 +61,7 @@ def bmm_config(func_attrs, dtype="float16"):
         Extracted (operation name, operation instance) pair
         from all operation candidates.
     """
-    import ck_lib
+    import dinoml.utils.ck_lib as ck_lib
 
     op_kind = ck_lib.library.GemmKind.BatchGemm
     extra_kind = ck_lib.library.TensorOperation.PassThrough
@@ -69,7 +69,7 @@ def bmm_config(func_attrs, dtype="float16"):
 
 
 @registry.reg("rocm.bmm_rcr.gen_profiler")
-def bmm_gen_profiler(func_attrs, workdir, dim_info_dict):
+def bmm_gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
     """Generates standalone executables for profiler.
 
     Parameters

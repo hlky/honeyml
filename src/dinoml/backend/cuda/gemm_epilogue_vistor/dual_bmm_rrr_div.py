@@ -93,6 +93,8 @@ ARGS_PARSER_TEMPLATE = jinja2.Template(
 
 EXTRA_CODE = jinja2.Template(
     """
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/numeric_types.h"
 #include "cutlass/array.h"

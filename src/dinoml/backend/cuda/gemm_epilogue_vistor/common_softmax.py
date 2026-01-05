@@ -38,6 +38,8 @@ SRC_TEMPLATE = jinja2.Template(
 #include <vector>
 #include <cstdint>
 
+#include "dinoml/cutlass_global_override.h"
+
 #include "short_file.h"
 #include "cutlass/cutlass.h"
 #include "cutlass/gemm/device/gemm_universal.h"

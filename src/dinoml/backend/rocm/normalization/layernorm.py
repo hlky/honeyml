@@ -166,7 +166,7 @@ def extract_config(func_attrs):
     Dict
         Extracted (operation name, operation instance) pair.
     """
-    import ck_lib
+    import dinoml.utils.ck_lib as ck_lib
 
     op_kind = ck_lib.library.OperationKind.LayerNorm
     extra_kind = 2

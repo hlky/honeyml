@@ -869,6 +869,11 @@ float ModelContainer::BenchmarkImpl(
   auto end_event = RAII_CreateEvent();
   try {
     PrepareForRun(model, inputs, num_inputs, outputs, num_outputs);
+
+    for (size_t i = 0; i < 10; ++i) {
+      model->Run(stream, graph_mode);
+    }
+
     DEVICE_CHECK(EventRecord(start_event.get(), stream));
 
     for (size_t i = 0; i < count; ++i) {

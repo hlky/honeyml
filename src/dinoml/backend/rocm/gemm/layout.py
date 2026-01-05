@@ -56,14 +56,14 @@ class RCR(Layout):
 
     @staticmethod
     def fproc_op(op):
-        import ck_lib
+        import dinoml.utils.ck_lib as ck_lib
 
         row_major = ck_lib.library.LayoutType.RowMajor
         op.C.layout = row_major
 
     @staticmethod
     def fcond_op(op):
-        import ck_lib
+        import dinoml.utils.ck_lib as ck_lib
 
         row_major = ck_lib.library.LayoutType.RowMajor
         col_major = ck_lib.library.LayoutType.ColumnMajor
@@ -74,7 +74,7 @@ class RCR(Layout):
         """
         return [layout_a, layout_b, layout_c] in the form of ck_lib definitions
         """
-        import ck_lib
+        import dinoml.utils.ck_lib as ck_lib
 
         return [
             ck_lib.library.LayoutType.RowMajor,
@@ -111,14 +111,14 @@ class RRR(Layout):
 
     @staticmethod
     def fproc_op(op):
-        import ck_lib
+        import dinoml.utils.ck_lib as ck_lib
 
         row_major = ck_lib.library.LayoutType.RowMajor
         op.C.layout = row_major
 
     @staticmethod
     def fcond_op(op):
-        import ck_lib
+        import dinoml.utils.ck_lib as ck_lib
 
         row_major = ck_lib.library.LayoutType.RowMajor
         return op.A.layout == row_major and op.B.layout == row_major
@@ -128,7 +128,7 @@ class RRR(Layout):
         """
         return [layout_a, layout_b, layout_c] in the form of ck_lib definitions
         """
-        import ck_lib
+        import dinoml.utils.ck_lib as ck_lib
 
         return [
             ck_lib.library.LayoutType.RowMajor,
@@ -165,14 +165,14 @@ class CCR(Layout):
 
     @staticmethod
     def fproc_op(op):
-        import ck_lib
+        import dinoml.utils.ck_lib as ck_lib
 
         row_major = ck_lib.library.LayoutType.RowMajor
         op.C.layout = row_major
 
     @staticmethod
     def fcond_op(op):
-        import ck_lib
+        import dinoml.utils.ck_lib as ck_lib
 
         col_major = ck_lib.library.LayoutType.ColumnMajor
         return op.A.layout == col_major and op.B.layout == col_major
@@ -182,7 +182,7 @@ class CCR(Layout):
         """
         return [layout_a, layout_b, layout_c] in the form of ck_lib definitions
         """
-        import ck_lib
+        import dinoml.utils.ck_lib as ck_lib
 
         return [
             ck_lib.library.LayoutType.ColumnMajor,
@@ -219,14 +219,14 @@ class CRR(Layout):
 
     @staticmethod
     def fproc_op(op):
-        import ck_lib
+        import dinoml.utils.ck_lib as ck_lib
 
         row_major = ck_lib.library.LayoutType.RowMajor
         op.C.layout = row_major
 
     @staticmethod
     def fcond_op(op):
-        import ck_lib
+        import dinoml.utils.ck_lib as ck_lib
 
         row_major = ck_lib.library.LayoutType.RowMajor
         col_major = ck_lib.library.LayoutType.ColumnMajor
@@ -237,7 +237,7 @@ class CRR(Layout):
         """
         return [layout_a, layout_b, layout_c] in the form of ck_lib definitions
         """
-        import ck_lib
+        import dinoml.utils.ck_lib as ck_lib
 
         return [
             ck_lib.library.LayoutType.ColumnMajor,

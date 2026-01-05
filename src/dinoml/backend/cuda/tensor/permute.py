@@ -64,6 +64,8 @@ SRC_TEMPLATE = jinja2.Template(
 #include <stdexcept>
 #include <cuda_fp16.h>
 #include <cuda_bf16.h>
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/arch/memory_sm80.h"
 #include "cutlass/cutlass.h"
 #include "logging.h"

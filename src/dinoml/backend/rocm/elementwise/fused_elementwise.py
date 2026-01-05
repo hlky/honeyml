@@ -28,6 +28,7 @@ from dinoml.backend.target import Target
 HEAD_TEMPLATE = """
 #include <hip/math_functions.h>
 #include <hip/device_functions.h>
+#include "dinoml/custom_math.h"
 """
 
 
@@ -35,12 +36,8 @@ HEAD_TEMPLATE = """
 def fused_elementwise_gen_function(func_attrs: Dict[str, Any]) -> str:
     """Generates fused_elementwise function definition."""
 
-    custom_libs = Target.current().get_custom_libs(
-        os.path.dirname(__file__), "custom_math.h"
-    )
     return elementwise_common.fused_elementwise_gen_function(
         func_attrs=func_attrs,
-        custom_libs=custom_libs,
         head_template=HEAD_TEMPLATE,
         backend_spec=ROCMSpec(),
     )

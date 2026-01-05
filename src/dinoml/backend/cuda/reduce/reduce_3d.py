@@ -184,6 +184,8 @@ KERNEL_SRC_TEMPLATE = jinja2.Template(
 #include <numeric>
 #include <cstdint>
 #include "short_file.h"
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 
 #include "cutlass/arch/memory.h"

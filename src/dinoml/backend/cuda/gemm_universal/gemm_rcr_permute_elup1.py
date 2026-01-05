@@ -28,6 +28,8 @@ from dinoml.backend.cuda.gemm_universal import gemm_rcr_permute
 
 EXTRA_CODE = jinja2.Template(
     """
+#include "dinoml/cutlass_global_override.h"
+
 #include "cutlass/cutlass.h"
 #include "cutlass/numeric_types.h"
 #include "cutlass/constants.h"

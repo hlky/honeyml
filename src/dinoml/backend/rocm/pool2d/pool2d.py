@@ -60,13 +60,13 @@ SRC_TEMPLATE = jinja2.Template(
 #include <cstdlib>
 #include <stdlib.h>
 #include "logging.h"
-#include "include/ck/utility/print.hpp"
-#include "library/include/ck/library/utility/device_memory.hpp"
-#include "library/include/ck/library/utility/host_tensor.hpp"
-#include "library/include/ck/library/utility/host_tensor_generator.hpp"
-#include "include/ck/tensor_operation/gpu/device/tensor_layout.hpp"
-#include "include/ck/utility/reduction_operator.hpp"
-#include "include/ck/tensor_operation/gpu/device/impl/device_pool2d_fwd_nhwc_nhwc.hpp"
+//include "ck/utility/print.hpp"
+#include "ck/library/utility/device_memory.hpp"
+#include "ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor_generator.hpp"
+#include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
+#include "ck/utility/reduction_operator.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_pool2d_fwd_nhwc_nhwc.hpp"
 
 {{instances}}
 
