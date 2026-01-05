@@ -2412,6 +2412,34 @@ def GenerateSM80_TensorOp_16816(manifest, cuda_version):
       TileDescription([128,  64, 64],  3, [2, 2, 1], math_inst, min_cc, max_cc),
       TileDescription([ 64, 128, 64],  3, [2, 2, 1], math_inst, min_cc, max_cc),
       TileDescription([ 64,  64, 64],  5, [2, 2, 1], math_inst, min_cc, max_cc),
+      TileDescription([256, 64, 32], 2, [4,1,1], math_inst, min_cc, max_cc),
+      TileDescription([64, 256, 32], 2, [1,4,1], math_inst, min_cc, max_cc),
+      TileDescription([192,128,32], 3, [4, 2, 1], math_inst, min_cc, max_cc),
+      TileDescription([128,192,32], 3, [4, 2, 1], math_inst, min_cc, max_cc),
+      TileDescription([192,128,32], 4, [4, 2, 1], math_inst, min_cc, max_cc),
+      TileDescription([128,192,32], 4, [4, 2, 1], math_inst, min_cc, max_cc),
+      TileDescription([160,128,32], 3, [4, 2, 1], math_inst, min_cc, max_cc),
+      TileDescription([128,160,32], 3, [4, 2, 1], math_inst, min_cc, max_cc),
+      TileDescription([160,128,32], 4, [4, 2, 1], math_inst, min_cc, max_cc),
+      TileDescription([128,160,32], 4, [4, 2, 1], math_inst, min_cc, max_cc),
+      TileDescription([224,128,32], 3, [4,2,1], math_inst, min_cc, max_cc),
+TileDescription([128,224,32], 3, [2,4,1], math_inst, min_cc, max_cc),
+
+TileDescription([224,128,32], 4, [4,2,1], math_inst, min_cc, max_cc),
+TileDescription([128,224,32], 4, [2,4,1], math_inst, min_cc, max_cc),
+TileDescription([192,160,32], 3, [4,2,1], math_inst, min_cc, max_cc),
+TileDescription([160,192,32], 3, [2,4,1], math_inst, min_cc, max_cc),
+
+TileDescription([192,160,32], 4, [4,2,1], math_inst, min_cc, max_cc),
+TileDescription([160,192,32], 4, [2,4,1], math_inst, min_cc, max_cc),
+TileDescription([256, 96, 32], 3, [4,2,1], math_inst, min_cc, max_cc),
+TileDescription([ 96,256,32], 3, [2,4,1], math_inst, min_cc, max_cc),
+
+TileDescription([256, 96, 32], 2, [4,2,1], math_inst, min_cc, max_cc),
+TileDescription([ 96,256,32], 2, [2,4,1], math_inst, min_cc, max_cc),
+TileDescription([192, 96, 32], 3, [4,2,1], math_inst, min_cc, max_cc),
+TileDescription([ 96,192,32], 3, [2,4,1], math_inst, min_cc, max_cc),
+
     ]
 
     data_type = [

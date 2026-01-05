@@ -22,6 +22,17 @@ def conv2d_pad(key: str, tensor: torch.Tensor, pad_to_multiple_of: int = 4):
     else:
         return tensor
 
+def geglu_split(key: str, tensor: torch.Tensor, state_dict: Dict[str, torch.Tensor]):
+    if key.endswith("ff_net_0_proj_weight"):
+        proj, gate = tensor.chunk(2, dim=0)
+        state_dict[key.replace("proj", "gate")] = gate
+        return proj
+    elif key.endswith("ff_net_0_proj_bias"):
+        proj, gate = tensor.chunk(2, dim=0)
+        state_dict[key.replace("proj", "gate")] = gate
+        return proj
+    else:
+        return tensor
 
 def map_unet2d_condition(
     self,
@@ -29,7 +40,7 @@ def map_unet2d_condition(
     dtype: Union[str, torch.dtype],
     device: Union[str, torch.device],
     skip_keys: Iterable[str],
-    mapping_fn: Iterable[Callable] = (conv2d_permute, conv2d_pad),
+    mapping_fn: Iterable[Callable] = (conv2d_permute, conv2d_pad, geglu_split),
 ):
     return _map(
         pt_module=pt_module,

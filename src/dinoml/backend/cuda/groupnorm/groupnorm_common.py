@@ -31,7 +31,6 @@ cudaError_t {{func_name}}(void* output,
                           void* gamma,
                           void* beta,
                           int N,
-                          {{depth}}
                           int64_t* H,
                           int64_t* W,
                           const float eps,
@@ -52,7 +51,7 @@ FUNC_CALL_TEMPLATE = jinja2.Template(
 {{indent}}{
 {{indent}}  {{func_name}}(
 {{indent}}     {{output}}, {{input}}, {{gamma}}, {{beta}}, {{N}},
-{{indent}}     {{D}} {{H}}, {{W}},
+{{indent}}     {{H}}, {{W}},
 {{indent}}     {{eps}}, max_smem_size_, global_workspace_,
 {{indent}}  stream /* default stream */
 {{indent}}  );
@@ -88,16 +87,17 @@ using bfloat16_2 = __nv_bfloat162;
 
 {{func_signature}}
 {
-    return invokeWelfordGroupNorm<{{FuseSwish}}, {{C}}, {{G}}, {{elem_input_type}}>(
+    return invokeGroupNorm<{{elem_input_type}}, {{FuseSwish}}, {{C}}, {{G}}>(
             static_cast<{{elem_input_type}}*>(output),
             static_cast<{{elem_input_type}}*>(input),
             static_cast<{{elem_input_type}}*>(gamma),
             static_cast<{{elem_input_type}}*>(beta),
             N,
-            {{depth}}
             H,
             W,
             eps,
+            max_smem_size,
+            workspace,
             stream);
 }
     """

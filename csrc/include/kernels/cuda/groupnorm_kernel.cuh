@@ -673,7 +673,7 @@ cudaError_t invokeWelfordGroupNorm(
     max_vec_size /= 2;
   }
 
-  constexpr int64_t block_size = 1024;
+  constexpr int64_t block_size = 256;
   const int64_t elems_per_group_channel = C / num_groups;
   const int64_t elems_per_block = (D * H * W * C) / num_groups;
   const int64_t batch_stride = D * H * W * C;

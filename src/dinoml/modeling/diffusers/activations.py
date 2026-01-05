@@ -108,15 +108,14 @@ class GEGLU(nn.Module):
         self, dim_in: int, dim_out: int, bias: bool = True, dtype: str = "float16"
     ):
         super().__init__()
-        self.proj = nn.Linear(dim_in, dim_out * 2, bias=bias, dtype=dtype)
+        self.proj = nn.Linear(dim_in, dim_out, bias=bias, dtype=dtype, specialization="mul")
+        self.gate = nn.Linear(dim_in, dim_out, bias=bias, dtype=dtype, specialization="fast_gelu")
 
     def gelu(self, gate: Tensor) -> Tensor:
         return ops.gelu(gate)
 
     def forward(self, hidden_states, *args, **kwargs):
-        hidden_states = self.proj(hidden_states)
-        hidden_states, gate = ops.chunk()(hidden_states, chunks=2, dim=-1)
-        return hidden_states * self.gelu(gate)
+        return self.proj(hidden_states, self.gate(hidden_states))
 
 
 class ApproximateGELU(nn.Module):
