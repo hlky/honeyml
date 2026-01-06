@@ -19,6 +19,9 @@ from dinoml.compiler.ops.gemm_epilogue_vistor.dual_bmm_rrr_div import (
 from dinoml.compiler.ops.gemm_epilogue_vistor.dual_gemm_rcr_fast_gelu import (
     dual_gemm_rcr_fast_gelu,
 )
+from dinoml.compiler.ops.gemm_epilogue_vistor.dual_gemm_rcr_bias_fast_gelu import (
+    dual_gemm_rcr_bias_fast_gelu,
+)
 from dinoml.compiler.ops.gemm_epilogue_vistor.dual_gemm_rcr_silu import (
     dual_gemm_rcr_silu,
 )
@@ -34,6 +37,7 @@ __all__ = [
     "bmm_rcr_softmax",
     "dual_bmm_rrr_div",
     "dual_gemm_rcr_fast_gelu",
+    "dual_gemm_rcr_bias_fast_gelu",
     "dual_gemm_rcr_silu",
     "gemm_rcr_bias_softmax",
     "gemm_rcr_softmax",

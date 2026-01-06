@@ -55,7 +55,7 @@ _LOGGER = logging.getLogger(__name__)
 #
 class GemmOperation:
   #
-  def __init__(self, gemm_kind, arch, tile_description, A, B, C, element_epilogue, \
+  def __init__(self, gemm_kind, arch, tile_description: TileDescription, A, B, C, element_epilogue, \
       epilogue_functor = EpilogueFunctor.LinearCombination, swizzling_functor = SwizzlingFunctor.Identity8, D = None,
       kernel_schedule = KernelScheduleType.ScheduleAuto, epilogue_schedule = EpilogueScheduleType.ScheduleAuto,
       tile_scheduler = TileSchedulerType.Default, mixed_input_mode = None, mixed_input_shuffle = False,
@@ -1836,7 +1836,7 @@ class EmitDualGemmInstance:
             ${epilogue_vector_length},
             ${element_accumulator},
             ${element_epilogue},
-            cutlass::epilogue::thread::ScaleType::Nothing
+            ${scale_type}
           >,
       """
       self.builtin_epilogue_functor2_template = """
@@ -1883,7 +1883,7 @@ class EmitDualGemmInstance:
       """
 
 
-  def emit(self, operation, broadcast_b1=False):
+  def emit(self, operation, broadcast_b1=False, has_bias=False):
 
     threadblock_shape = operation.tile_description.threadblock_shape
     warp_count = operation.tile_description.warp_count
@@ -1916,6 +1916,10 @@ class EmitDualGemmInstance:
       epilogue_functor = self.epilogue_functor.emit_declaration()
       epilogue_functor2 = self.epilogue_functor.emit_declaration()
 
+    if has_bias:
+      scale_type = "cutlass::epilogue::thread::ScaleType::NoBetaScaling"
+    else:
+      scale_type = "cutlass::epilogue::thread::ScaleType::Nothing"
 
     values = {
       'operation_name': operation.procedural_name(),
@@ -1948,7 +1952,8 @@ class EmitDualGemmInstance:
       'align_c': str(operation.C.alignment),
       'transform_a': ComplexTransformTag[operation.A.complex_transform],
       'transform_b': ComplexTransformTag[operation.B.complex_transform],
-      'math_operation': MathOperationTag[operation.tile_description.math_instruction.math_operation]
+      'math_operation': MathOperationTag[operation.tile_description.math_instruction.math_operation],
+      'scale_type': scale_type
     }
 
     return SubstituteTemplate(self.gemm_template, values)

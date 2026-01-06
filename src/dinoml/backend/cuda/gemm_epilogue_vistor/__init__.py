@@ -20,6 +20,7 @@ from dinoml.backend.cuda.gemm_epilogue_vistor import (
     dual_gemm_rcr_silu,
     gemm_rcr_bias_softmax,
     gemm_rcr_softmax,
+    dual_gemm_rcr_bias_fast_gelu,
 )
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "dual_gemm_rcr_silu",
     "gemm_rcr_bias_softmax",
     "gemm_rcr_softmax",
+    "dual_gemm_rcr_bias_fast_gelu",
 ]
