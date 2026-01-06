@@ -23,7 +23,9 @@ class dual_gemm_rcr_bias_fast_gelu(gemm_rcr_bias):
         self._attrs["op"] = "dual_gemm_rcr_bias_fast_gelu"
         self._attrs["epilogue2"] = "LeftFastGeluAndMul"
 
-    def _infer_shapes(self, a: Tensor, w1: Tensor, w2: Tensor, bias1: Tensor, bias2: Tensor):
+    def _infer_shapes(
+        self, a: Tensor, w1: Tensor, w2: Tensor, bias1: Tensor, bias2: Tensor
+    ):
         return super()._infer_shapes(a, w1, bias1)
 
     def __call__(

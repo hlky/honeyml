@@ -163,8 +163,8 @@ class Upsample2D(nn.Module):
                 )
             else:
                 out = ops.size()(hidden_states)
-                out[1] = output_size
-                out[2] = output_size
+                out[1] = output_size[1]
+                out[2] = output_size[2]
                 out = [x._attrs["int_var"] for x in out]
                 out = Tensor(out)
                 hidden_states = ops.upsampling2d(scale_factor=2.0, mode="nearest")(

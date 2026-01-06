@@ -4,6 +4,7 @@ from typing import Annotated, Any, Dict, List, Optional, Tuple, Union
 from dinoml.compiler import ops
 
 from dinoml.frontend import nn, Tensor
+from dinoml.utils.shape_utils import get_shape
 
 from ..activations import get_activation
 from ..attention_processor import AttentionProcessor
@@ -1054,14 +1055,8 @@ class UNet2DConditionModel(nn.Module):
         default_overall_up_factor = 2**self.num_upsamplers
 
         # upsample size should be forwarded when sample is not a multiple of `default_overall_up_factor`
-        forward_upsample_size = False
+        forward_upsample_size = True
         upsample_size = None
-
-        for dim in [height, width]:
-            if dim._attrs["int_var"] % default_overall_up_factor != 0:
-                # Forward upsample size to force interpolation output size.
-                forward_upsample_size = True
-                break
 
         # ensure attention_mask is a bias, and give it a singleton query_tokens dimension
         # expects mask of shape:
@@ -1249,7 +1244,7 @@ class UNet2DConditionModel(nn.Module):
             # if we have not reached the final block and need to forward the
             # upsample size, we do it here
             if not is_final_block and forward_upsample_size:
-                upsample_size = ops.size()(down_block_res_samples[-1])[1:3]
+                upsample_size = ops.size()(down_block_res_samples[-1])
 
             if (
                 hasattr(upsample_block, "has_cross_attention")
