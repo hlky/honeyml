@@ -1243,7 +1243,7 @@ class UNet2DConditionModel(nn.Module):
 
             # if we have not reached the final block and need to forward the
             # upsample size, we do it here
-            if not is_final_block:
+            if not is_final_block and forward_upsample_size:
                 upsample_size = ops.size()(down_block_res_samples[-1])
 
             if (
