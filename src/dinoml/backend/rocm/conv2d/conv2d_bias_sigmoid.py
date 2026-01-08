@@ -25,7 +25,7 @@ from dinoml.backend.rocm.conv2d import common
 
 EXTRA_CODE = jinja2.Template(
     """
-#include "ck/tensor_operation/gpu/device/impl/device_grouped_conv_fwd_multiple_d_xdl_cshuffle.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_grouped_conv_fwd_multiple_abd_xdl_cshuffle.hpp"
 
 #include "ck/utility/data_type.hpp"
 
@@ -68,7 +68,7 @@ struct AddSigmoid
 
 
 @registry.reg("rocm.conv2d_bias_sigmoid.config")
-def conv2d_config(func_attrs):
+def conv2d_config(func_attrs, **kwargs):
     """Extracts (operation name, operation instance) pair from
     all operation candidates.
 
@@ -92,7 +92,7 @@ def conv2d_config(func_attrs):
 
 
 @registry.reg("rocm.conv2d_bias_sigmoid.gen_profiler")
-def conv2d_gen_profiler(func_attrs, workdir, shape_template):
+def conv2d_gen_profiler(func_attrs, workdir, profile_filename, shape_template):
     """Generates standalone executables for profiler.
 
     Parameters
@@ -111,6 +111,7 @@ def conv2d_gen_profiler(func_attrs, workdir, shape_template):
         shape_template=shape_template,
         conv2d_flag="bias_sigmoid",
         extra_code=EXTRA_CODE.render(),
+        profile_filename=profile_filename,
     )
 
 

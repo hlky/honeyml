@@ -1,6 +1,8 @@
+from dinoml.backend.target import Target
 from dinoml.compiler import ops
 
 from dinoml.frontend import nn, Tensor
+from dinoml.testing import detect_target
 
 
 def mish(x: Tensor) -> Tensor:
@@ -108,17 +110,25 @@ class GEGLU(nn.Module):
         self, dim_in: int, dim_out: int, bias: bool = True, dtype: str = "float16"
     ):
         super().__init__()
-        self.proj = nn.Linear(dim_in, dim_out, bias=bias, dtype=dtype)
-        self.gate = nn.Linear(dim_in, dim_out, bias=bias, dtype=dtype)
+        self.proj = nn.Linear(
+            dim_in, dim_out, bias=bias, dtype=dtype, specialization="mul"
+        )
+        self.gate = nn.Linear(
+            dim_in, dim_out, bias=bias, dtype=dtype, specialization="fast_gelu"
+        )
 
     def forward(self, hidden_states, *args, **kwargs):
-        return ops.dual_gemm_rcr_bias_fast_gelu()(
-            hidden_states,
-            self.gate.weight.tensor(),
-            self.proj.weight.tensor(),
-            self.gate.bias.tensor(),
-            self.proj.bias.tensor(),
-        )
+        use_dual_gemm = detect_target().name() == "cuda"
+        if use_dual_gemm:
+            return ops.dual_gemm_rcr_bias_fast_gelu()(
+                hidden_states,
+                self.gate.weight.tensor(),
+                self.proj.weight.tensor(),
+                self.gate.bias.tensor(),
+                self.proj.bias.tensor(),
+            )
+        else:
+            return self.proj(hidden_states, self.gate(hidden_states))
 
 
 class ApproximateGELU(nn.Module):

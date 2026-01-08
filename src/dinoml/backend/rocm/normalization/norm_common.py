@@ -47,6 +47,32 @@ ARGS_PARSE_TEMPLATE = jinja2.Template(
 STRUCTS_DEF_TEMPLATE = jinja2.Template(
     """
 
+struct KernelTimerImpl
+{
+  KernelTimerImpl() {
+    hipGetErrorString(hipEventCreateWithFlags(&mStart, hipEventDisableSystemFence));
+    hipGetErrorString(hipEventCreateWithFlags(&mEnd, hipEventDisableSystemFence));
+  }
+  ~KernelTimerImpl() {
+    hipGetErrorString(hipEventDestroy(mStart));
+    hipGetErrorString(hipEventDestroy(mEnd));
+  }
+  void Start() {
+    hipGetErrorString(hipDeviceSynchronize());
+    hipGetErrorString(hipEventRecord(mStart, nullptr));
+  }
+  void End() {
+    hipGetErrorString(hipEventRecord(mEnd, nullptr));
+    hipGetErrorString(hipEventSynchronize(mEnd));
+  }
+  float GetElapsedTime() const {
+    float time;
+    hipGetErrorString(hipEventElapsedTime(&time, mStart, mEnd));
+    return time;
+  }
+  hipEvent_t mStart, mEnd;
+};
+
 struct ProfilerMemoryPool {
   ProfilerMemoryPool() {
     std::random_device rd;
@@ -79,7 +105,7 @@ struct ProfilerMemoryPool {
 
   ck::half_t* AllocateHalfGaussianTensor(int64_t size) {
     return reinterpret_cast<ck::half_t*>(
-        AllocateGaussianTensor<ck::half_t>(size));
+        AllocateGaussianTensor<float>(size));
   }
 
   int AllocateHalfTensor(int64_t size, int64_t copy) {

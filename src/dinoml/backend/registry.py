@@ -98,12 +98,16 @@ def get(func_name: str) -> Callable:
     """
     func_override = {"func_decl", "func_call"}
     func_split = func_name.split(".")
+
+    from dinoml.backend.target import Target
+
     if len(func_split) == 3:
         backend, op, func = func_split
-        if op.startswith("conv2d") and func in func_override:
-            op = "conv2d"
-        if op.startswith("transposed_conv2d") and func in func_override:
-            op = "transposed_conv2d"
+        if Target.current().name() == "cuda":
+            if op.startswith("conv2d") and func in func_override:
+                op = "conv2d"
+            if op.startswith("transposed_conv2d") and func in func_override:
+                op = "transposed_conv2d"
         func_name = f"{backend}.{op}.{func}"
     if func_name not in BACKEND_FUNCTIONS:
         raise RuntimeError(f"{func_name} function has not been registered.")

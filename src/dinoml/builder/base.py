@@ -21,7 +21,7 @@ from dinoml.builder.config import load_config, mark_output
 
 
 class Build:
-    model_name: str = "model.{label}.{device_name}.sm{sm}"
+    model_name: str = "model.{label}.{device_name}.{sm}"
     model_type: Optional[str] = None
 
     model_forward: str = "forward"

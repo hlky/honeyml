@@ -20,7 +20,7 @@ def build(
     label: str,
     dtype: Union[str, torch.dtype],
     device: Union[str, torch.device],
-    model_name: str = "pixart_transformer_2d.{label}.{resolution}.{device_name}.sm{sm}",
+    model_name: str = "pixart_transformer_2d.{label}.{resolution}.{device_name}.{sm}",
     vae_scale_factor: int = 8,
     benchmark_after_compile: bool = True,
     store_constants_in_module: bool = True,

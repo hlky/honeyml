@@ -27,10 +27,11 @@ from dinoml.backend.rocm.normalization import norm_common
 from dinoml.backend.target import Target
 
 from dinoml.compiler.base import IntImm
+from dinoml.utils.shape_utils import get_shape
 
 EXTRA_HEADERS = jinja2.Template(
     """
-#include "ck/tensor_operation/gpu/device/impl/device_normalization_impl.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_normalization_fwd_impl.hpp"
 """
 )
 
@@ -39,20 +40,25 @@ EXTRA_CODE_TEMPLATE = jinja2.Template(
 {%if use_swish %}
 struct YElementOp
 {
-    template <typename T>
-    __host__ __device__ void operator()(T& y, const T& x) const
+    template <typename Y, typename X>
+    __host__ __device__ void operator()(Y& y, const X& x) const
     {
-        static_assert(ck::is_same<T, float>::value || ck::is_same<T, double>::value ||
-                          ck::is_same<T, ck::half_t>::value,
+        static_assert(ck::is_same<X, float>::value || ck::is_same<X, double>::value ||
+                          ck::is_same<X, ck::half_t>::value,
                       "Data type is not supported by this operation!");
 
-        T a;
+        static_assert(ck::is_same<Y, float>::value || ck::is_same<Y, double>::value ||
+                          ck::is_same<Y, ck::half_t>::value,
+                      "Data type is not supported by this operation!");
+
+        X a;
 
         ck::tensor_operation::element_wise::Sigmoid{}(a, x);
 
-        y = x * a;
+        y = ck::type_convert<Y>(x * a);
     };
 };
+
 
 {% else %}
 
@@ -122,6 +128,8 @@ EXEC_TEMPLATE = jinja2.Template(
         gamma_beta_Strides,
         gamma_beta_Strides,
         i_inStrides, // y stride
+        std::vector<ck::index_t>{0, 0},
+        std::vector<ck::index_t>{0, 0},
         {1, 2, 4}, // reduction dimension: [H, W, C]
         1e-5,
         static_cast<ck::half_t *>(input),
@@ -261,13 +269,12 @@ def groupnorm_gen_profiler(
         Use swish if True
     """
     # N, H, W, C
-    shapes = func_attrs["inputs"][0]._attrs["shape"]
-
-    for dim_idx in (1, 2, 3):
-        assert isinstance(shapes[dim_idx], IntImm), (
-            f"groupnorm requires reduction dim {dim_idx=} to be static"
-        )
-
+    shapes = []
+    for dim in func_attrs["inputs"][0]._attrs["shape"]:
+        if isinstance(dim, IntImm):
+            shapes.append(dim.value())
+        else:
+            shapes.append(dim.upper_bound())
     return norm_common.gen_profiler(
         func_attrs,
         workdir,
@@ -369,11 +376,6 @@ def groupnorm_gen_function(func_attrs: Dict[str, Any], use_swish: bool = False) 
     """
     # N, H, W, C
     shapes = func_attrs["inputs"][0]._attrs["shape"]
-
-    for dim_idx in (1, 2, 3):
-        assert isinstance(shapes[dim_idx], IntImm), (
-            f"groupnorm requires reduction dim {dim_idx=} to be static"
-        )
 
     return gen_function(
         func_attrs,

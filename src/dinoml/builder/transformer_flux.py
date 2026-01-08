@@ -26,7 +26,7 @@ class FluxTransformer2DBuilder(Build):
 
     """
 
-    model_name = "transformer_flux.{label}.{resolution}.{device_name}.sm{sm}"
+    model_name = "transformer_flux.{label}.{resolution}.{device_name}.{sm}"
     map_function = map_transformer_flux
     model_output_names = ["Y"]
 

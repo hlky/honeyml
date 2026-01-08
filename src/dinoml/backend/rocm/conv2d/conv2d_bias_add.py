@@ -23,7 +23,7 @@ from . import common
 
 
 @registry.reg("rocm.conv2d_bias_add_identity.config")
-def conv2d_config(func_attrs):
+def conv2d_config(func_attrs, **kwargs):
     import dinoml.utils.ck_lib as ck_lib
 
     op_kind = ck_lib.library.Conv2dKind.GroupConv2dBiasRelu
@@ -32,13 +32,14 @@ def conv2d_config(func_attrs):
 
 
 @registry.reg("rocm.conv2d_bias_add_identity.gen_profiler")
-def gen_profiler(func_attrs, workdir, shape_template):
+def gen_profiler(func_attrs, workdir, profile_filename, shape_template):
     return common.gen_profiler(
         func_attrs=func_attrs,
         workdir=workdir,
         shape_template=shape_template,
         conv2d_flag="bias_add_identity",
         extra_code=common.HEADER_CODE.render(),
+        profile_filename=profile_filename,
     )
 
 

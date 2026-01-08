@@ -26,7 +26,7 @@ class AutoencoderKLDecodeBuilder(Build):
 
     """
 
-    model_name = "autoencoder_kl.{model_type}.{label}.{resolution}.{device_name}.sm{sm}"
+    model_name = "autoencoder_kl.{model_type}.{label}.{resolution}.{device_name}.{sm}"
     model_type = "decode"
     map_function = map_autoencoder_kl
     map_function_skip_keys = (
@@ -63,7 +63,7 @@ class AutoencoderKLEncodeBuilder(Build):
 
     """
 
-    model_name = "autoencoder_kl.{model_type}.{label}.{resolution}.{device_name}.sm{sm}"
+    model_name = "autoencoder_kl.{model_type}.{label}.{resolution}.{device_name}.{sm}"
     model_type = "encode"
     map_function = map_autoencoder_kl
     map_function_skip_keys = (

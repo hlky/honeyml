@@ -39,48 +39,29 @@ def CreateConv2dFwdOperator(manifest, operation_kind, out_element_op, out_data_o
     in_element_op = library.TensorOperation.PassThrough
 
     tile_descriptions = [
-        conv.GroupTileDesc(1, 256, 256, 128, 32, 8, 8, 32, 32, 4, 2),
-        conv.GroupTileDesc(1, 256, 128, 256, 32, 8, 8, 32, 32, 2, 4),
-        conv.GroupTileDesc(1, 128, 128, 128, 32, 8, 8, 32, 32, 4, 2),
-        conv.GroupTileDesc(1, 256, 128, 128, 32, 8, 8, 32, 32, 2, 2),
-        conv.GroupTileDesc(1, 128, 128, 64, 32, 8, 8, 32, 32, 2, 2),
-        conv.GroupTileDesc(1, 128, 64, 128, 32, 8, 8, 32, 32, 2, 2),
-        conv.GroupTileDesc(1, 64, 64, 64, 32, 8, 8, 32, 32, 2, 2),
-        conv.GroupTileDesc(1, 256, 128, 64, 32, 8, 8, 32, 32, 2, 1),
-        conv.GroupTileDesc(1, 256, 64, 128, 32, 8, 8, 32, 32, 1, 2),
-        conv.GroupTileDesc(1, 128, 32, 128, 32, 8, 8, 32, 32, 1, 2),
-        conv.GroupTileDesc(1, 64, 64, 32, 32, 8, 8, 32, 32, 2, 1),
-        conv.GroupTileDesc(1, 64, 32, 64, 32, 8, 8, 32, 32, 1, 2),
+        conv.GroupTileDesc(1, 64,     64,   32,     32,   8,   8,   16,   16,    4,    2),
+        conv.GroupTileDesc(1, 256,   128,   256,    32,   8,   8,   16,   16,    8,    4),
+        conv.GroupTileDesc(1, 256,   128,   128,    32,   8,   8,   16,   16,    4,    4),
+        conv.GroupTileDesc(1, 64,     64,   64,     32,   8,   8,   16,   16,    4,    4),
+        conv.GroupTileDesc(1, 256,   256,   128,    32,   8,   8,   16,   16,    8,    4),
+        conv.GroupTileDesc(1, 128,   128,   128,    32,   8,   8,   16,   16,    8,    4),
     ]
-
+    block_descriptions = [
+        conv.BlockTransferDesc([4, 16, 1],     [1, 0, 2],     [1, 0, 2],              2,              8,              8,         1),
+        conv.BlockTransferDesc([4, 64, 1],     [1, 0, 2],     [1, 0, 2],              2,              8,              8,         1),
+        conv.BlockTransferDesc([4, 64, 1],     [1, 0, 2],     [1, 0, 2],              2,              1,              8,         1),
+        conv.BlockTransferDesc([4, 16, 1],     [1, 0, 2],     [1, 0, 2],              2,              1,              8,         1),
+        conv.BlockTransferDesc([4, 64, 1],     [1, 0, 2],     [1, 0, 2],              2,              8,              8,         1),
+        conv.BlockTransferDesc([4, 32, 1],     [1, 0, 2],     [1, 0, 2],              2,              8,              8,         1),
+    ]
     c_block_descriptions = [
-        conv.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 16, 1, 8], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 8),
+        conv.CBlockTransferDesc(1, 1, [1, 16, 1, 4],               1),
+        conv.CBlockTransferDesc(1, 1, [1, 16, 1, 16],              4),
+        conv.CBlockTransferDesc(1, 1, [1, 32, 1, 8],               4),
+        conv.CBlockTransferDesc(1, 1, [1, 16, 1, 4],               1),
+        conv.CBlockTransferDesc(1, 1, [1, 32, 1, 8],               4),
+        conv.CBlockTransferDesc(1, 1, [1, 16, 1, 8],               4),
     ]
-
-    block_descriptions = []
-    for t in tile_descriptions:
-        block_transfer = -1
-        if t.block_size == 256:
-            block_transfer = [4, 64, 1]
-        if t.block_size == 128:
-            block_transfer = [4, 32, 1]
-        if t.block_size == 64:
-            block_transfer = [4, 16, 1]
-        assert block_transfer != -1, f"Cannot determine block_transfer_size with block_size {str(t.block_size)}"
-        block_descriptions.append(
-            conv.BlockTransferDesc(block_transfer, [1, 0, 2], [1, 0, 2], 2, 8, 8, 1)
-        )
 
     conv2d_specialization = [
         conv.Conv2DSpecialization.ConvFwdDefault,
@@ -122,44 +103,6 @@ def CreateConv2dFwdOperator(manifest, operation_kind, out_element_op, out_data_o
 
     conv2d_specialization = [conv.Conv2DSpecialization.ConvFwdOddC]
 
-    tile_descriptions += [
-        conv.GroupTileDesc(1, 256, 128, 64, 32, 8, 8, 32, 32, 2, 1),
-        conv.GroupTileDesc(1, 256, 128, 64, 32, 8, 8, 32, 32, 2, 1),
-        conv.GroupTileDesc(1, 256, 256, 64, 32, 8, 8, 32, 32, 4, 1),
-        conv.GroupTileDesc(1, 128, 128, 64, 32, 8, 8, 32, 32, 2, 2),
-        conv.GroupTileDesc(1, 128, 64, 64, 32, 8, 8, 32, 32, 1, 2),
-        conv.GroupTileDesc(1, 256, 256, 16, 32, 8, 8, 16, 16, 4, 1),  # c_out=1
-    ]
-
-    block_descriptions = [
-        conv.BlockTransferDesc([4, 8, 8], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([4, 8, 8], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([4, 4, 8], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([4, 8, 8], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([4, 4, 8], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([4, 4, 8], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([4, 2, 8], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([4, 8, 8], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([4, 8, 8], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([4, 4, 8], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([4, 2, 8], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([4, 2, 8], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([2, 32, 4], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([2, 32, 4], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([2, 32, 4], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([2, 16, 4], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([2, 16, 4], [1, 0, 2], [1, 0, 2], 2, 1, 1, 1),
-        conv.BlockTransferDesc([4, 16, 4], [1, 0, 2], [1, 0, 2], 2, 2, 2, 1),  # c_out=1
-    ]
-
-    c_block_descriptions += [
-        conv.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 32, 1, 8], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 32, 1, 4], 8),
-        conv.CBlockTransferDesc(1, 1, [1, 16, 1, 4], 8),
-        conv.CBlockTransferDesc(4, 1, [1, 256, 1, 1], 1),  # c_out=1
-    ]
     for conv2d_spec in conv2d_specialization:
         for gemm_spec in gemm_specialization:
             for tile_desc, block_desc, c_block_desc in zip(
@@ -2349,19 +2292,19 @@ def CreateLayerNormOperator(manifest, rank=2):
     out_dtype = library.DataType.f16
     # 0 indicates not print
     tile_descriptions = [
-        layernorm.TileDesc(256, 8, 32, 1, 8, 1, 1, 1, 1, 1, 1, 1),
-        layernorm.TileDesc(256, 8, 32, 1, 8, 1, 2, 1, 2, 1, 2, 2),
-        layernorm.TileDesc(256, 8, 32, 1, 8, 1, 4, 1, 4, 1, 4, 4),
-        layernorm.TileDesc(256, 8, 32, 1, 8, 1, 8, 1, 8, 1, 8, 8),
-        layernorm.TileDesc(256, 4, 64, 1, 8, 1, 8, 1, 8, 1, 8, 8),
-        layernorm.TileDesc(256, 2, 128, 1, 8, 1, 8, 1, 8, 1, 8, 8),
-        layernorm.TileDesc(256, 2, 128, 1, 16, 1, 8, 1, 8, 1, 8, 8),
-        layernorm.TileDesc(256, 2, 128, 1, 32, 1, 8, 1, 8, 1, 8, 8),
-        layernorm.TileDesc(256, 1, 256, 1, 8, 1, 8, 1, 8, 1, 8, 8),
-        layernorm.TileDesc(256, 1, 256, 1, 16, 1, 8, 1, 8, 1, 8, 8),
-        layernorm.TileDesc(256, 1, 256, 1, 32, 1, 8, 1, 8, 1, 8, 8),
-        layernorm.TileDesc(1024, 1, 1024, 1, 32, 1, 8, 1, 8, 1, 8, 8),
-        layernorm.TileDesc(1024, 1, 1024, 1, 8, 1, 2, 1, 2, 1, 2, 2),
+        layernorm.TileDesc(256, 8, 32, 1, 8, 1, 1, 1, 1, 1, 1, 1, 1),
+        layernorm.TileDesc(256, 8, 32, 1, 8, 1, 2, 1, 2, 1, 2, 2, 1),
+        layernorm.TileDesc(256, 8, 32, 1, 8, 1, 4, 1, 4, 1, 4, 4, 1),
+        layernorm.TileDesc(256, 8, 32, 1, 8, 1, 8, 1, 8, 1, 8, 8, 1),
+        layernorm.TileDesc(256, 4, 64, 1, 8, 1, 8, 1, 8, 1, 8, 8, 1),
+        layernorm.TileDesc(256, 2, 128, 1, 8, 1, 8, 1, 8, 1, 8, 8, 1),
+        layernorm.TileDesc(256, 2, 128, 1, 16, 1, 8, 1, 8, 1, 8, 8, 1),
+        layernorm.TileDesc(256, 2, 128, 1, 32, 1, 8, 1, 8, 1, 8, 8, 1),
+        layernorm.TileDesc(256, 1, 256, 1, 8, 1, 8, 1, 8, 1, 8, 8, 1),
+        layernorm.TileDesc(256, 1, 256, 1, 16, 1, 8, 1, 8, 1, 8, 8, 1),
+        layernorm.TileDesc(256, 1, 256, 1, 32, 1, 8, 1, 8, 1, 8, 8, 1),
+        layernorm.TileDesc(1024, 1, 1024, 1, 32, 1, 8, 1, 8, 1, 8, 8, 1),
+        layernorm.TileDesc(1024, 1, 1024, 1, 8, 1, 2, 1, 2, 1, 2, 2, 1),
     ]
 
     operations = []
@@ -2386,19 +2329,19 @@ def CreateGroupNormOperator(manifest, rank=5):
     out_dtype = library.DataType.f16
     # 0 indicates not print
     tile_descriptions = [
-        groupnorm.TileDesc(256, 8, 32, 1, 8, 1, 1, 1, 1, 1, 1, 1),
-        groupnorm.TileDesc(256, 8, 32, 1, 8, 1, 2, 1, 2, 1, 2, 2),
-        groupnorm.TileDesc(256, 8, 32, 1, 8, 1, 4, 1, 4, 1, 4, 4),
-        groupnorm.TileDesc(256, 8, 32, 1, 8, 1, 8, 1, 8, 1, 8, 8),
-        groupnorm.TileDesc(256, 4, 64, 1, 8, 1, 8, 1, 8, 1, 8, 8),
-        groupnorm.TileDesc(256, 2, 128, 1, 8, 1, 8, 1, 8, 1, 8, 8),
-        groupnorm.TileDesc(256, 2, 128, 1, 16, 1, 8, 1, 8, 1, 8, 8),
-        groupnorm.TileDesc(256, 2, 128, 1, 32, 1, 8, 1, 8, 1, 8, 8),
-        groupnorm.TileDesc(256, 1, 256, 1, 8, 1, 8, 1, 8, 1, 8, 8),
-        groupnorm.TileDesc(256, 1, 256, 1, 16, 1, 8, 1, 8, 1, 8, 8),
-        groupnorm.TileDesc(256, 1, 256, 1, 32, 1, 8, 1, 8, 1, 8, 8),
-        groupnorm.TileDesc(1024, 1, 1024, 1, 32, 1, 8, 1, 8, 1, 8, 8),
-        groupnorm.TileDesc(1024, 1, 1024, 1, 8, 1, 2, 1, 2, 1, 2, 2),
+        groupnorm.TileDesc(256, 8, 32, 1, 8, 1, 1, 1, 1, 1, 1, 1, 1),
+        groupnorm.TileDesc(256, 8, 32, 1, 8, 1, 2, 1, 2, 1, 2, 2, 1),
+        groupnorm.TileDesc(256, 8, 32, 1, 8, 1, 4, 1, 4, 1, 4, 4, 1),
+        groupnorm.TileDesc(256, 8, 32, 1, 8, 1, 8, 1, 8, 1, 8, 8, 1),
+        groupnorm.TileDesc(256, 4, 64, 1, 8, 1, 8, 1, 8, 1, 8, 8, 1),
+        groupnorm.TileDesc(256, 2, 128, 1, 8, 1, 8, 1, 8, 1, 8, 8, 1),
+        groupnorm.TileDesc(256, 2, 128, 1, 16, 1, 8, 1, 8, 1, 8, 8, 1),
+        groupnorm.TileDesc(256, 2, 128, 1, 32, 1, 8, 1, 8, 1, 8, 8, 1),
+        groupnorm.TileDesc(256, 1, 256, 1, 8, 1, 8, 1, 8, 1, 8, 8, 1),
+        groupnorm.TileDesc(256, 1, 256, 1, 16, 1, 8, 1, 8, 1, 8, 8, 1),
+        groupnorm.TileDesc(256, 1, 256, 1, 32, 1, 8, 1, 8, 1, 8, 8, 1),
+        groupnorm.TileDesc(1024, 1, 1024, 1, 32, 1, 8, 1, 8, 1, 8, 8, 1),
+        groupnorm.TileDesc(1024, 1, 1024, 1, 8, 1, 2, 1, 2, 1, 2, 2, 1),
     ]
 
     operations = []

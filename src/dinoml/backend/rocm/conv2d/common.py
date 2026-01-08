@@ -92,7 +92,9 @@ EXEC_TEMPLATE = jinja2.Template(
 {{problem_args}}
 {{indent}});
 {{indent}}if(!op.IsSupportedArgument(argument)) {
-{{indent}}  LOG(FATAL) << "wrong! " << op.GetTypeString() << " with the specified compilation parameters does not support this Conv problem.";
+{{indent}}  throw std::runtime_error(
+{{indent}}  "wrong! Conv with the specified compilation parameters does "
+{{indent}}  "not support this Conv problem");
 {{indent}}}
 {% if is_profiler %}
 {{indent}}auto workspace_size = op.GetWorkSpaceSize(&argument);
@@ -105,7 +107,7 @@ EXEC_TEMPLATE = jinja2.Template(
 
 HEADER_CODE = jinja2.Template(
     """
-#include "ck/tensor_operation/gpu/device/impl/device_grouped_conv_fwd_multiple_d_xdl_cshuffle.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_grouped_conv_fwd_multiple_abd_xdl_cshuffle.hpp"
 """
 )
 
@@ -116,11 +118,9 @@ SRC_TEMPLATE = jinja2.Template(
 #include <initializer_list>
 #include <cstdlib>
 #include <stdlib.h>
-// #include <half.hpp>
 #include <random>
 #include <rocrand/rocrand.h>
 #include "logging.h"
-//include "ck/utility/print.hpp"
 #include "ck/library/utility/device_memory.hpp"
 #include "ck/library/utility/host_tensor.hpp"
 #include "ck/library/utility/host_tensor_generator.hpp"
@@ -242,6 +242,58 @@ void {{function_name}}(
 """
 )
 
+
+PROFILER_SRC_TEMPLATE = jinja2.Template(
+    """
+#include <iostream>
+#include <numeric>
+#include <initializer_list>
+#include <cstdlib>
+#include <stdlib.h>
+#include <random>
+#include <rocrand/rocrand.h>
+#include "logging.h"
+#include "ck/library/utility/device_memory.hpp"
+#include "ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor_generator.hpp"
+#include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
+#include "ck/tensor_operation/gpu/element/element_wise_operation.hpp"
+
+
+struct KernelTimerImpl
+{
+  KernelTimerImpl() {
+    hipGetErrorString(hipEventCreateWithFlags(&mStart, hipEventDisableSystemFence));
+    hipGetErrorString(hipEventCreateWithFlags(&mEnd, hipEventDisableSystemFence));
+  }
+  ~KernelTimerImpl() {
+    hipGetErrorString(hipEventDestroy(mStart));
+    hipGetErrorString(hipEventDestroy(mEnd));
+  }
+  void Start() {
+    hipGetErrorString(hipDeviceSynchronize());
+    hipGetErrorString(hipEventRecord(mStart, nullptr));
+  }
+  void End() {
+    hipGetErrorString(hipEventRecord(mEnd, nullptr));
+    hipGetErrorString(hipEventSynchronize(mEnd));
+  }
+  float GetElapsedTime() const {
+    float time;
+    hipGetErrorString(hipEventElapsedTime(&time, mStart, mEnd));
+    return time;
+  }
+  hipEvent_t mStart, mEnd;
+};
+
+{{extra_code}}
+
+{{instances}}
+
+"""
+)
+
+
 FUNC_CALL_TEMPLATE = jinja2.Template(
     """
 {{indent}}{{func_name}}(
@@ -353,7 +405,7 @@ struct ProfilerMemoryPool {
 
   ck::half_t* AllocateHalfGaussianTensor(int64_t size) {
     return reinterpret_cast<ck::half_t*>(
-        AllocateGaussianTensor<ck::half_t>(size));
+        AllocateGaussianTensor<float>(size));
   }
 
   int AllocateHalfTensor(int64_t size, int64_t copy) {
@@ -391,43 +443,6 @@ struct ProfilerMemoryPool {
 """
 )
 
-PROFILER_TEMPLATE = jinja2.Template(
-    """
-size_t GLOBAL_WORKSPACE_SIZE = 0;
-{{op_func}}
-
-{{structs_def}}
-
-int main(int argc, char** argv) {
-  if (argc < 10) {
-    throw std::runtime_error("wrong params");
-  }
-  {{args_parse}}
-  {{shape_func}}
-  auto memory_pool = std::make_unique<ProfilerMemoryPool>();
-  hipStream_t stream = nullptr;
-  {{tensor_decl}}
-  // TODO: random init
-  // warmup
-  for(int i = 0; i < 3; ++i) {
-    {{func_call}}
-  }
-  // run
-  auto timer = new KernelTimerImpl();
-  timer->Start();
-  for(int i = 0; i < 5; ++i) {
-    {{func_call}}
-  }
-  timer->End();
-  std::cout << "OP:" << "{{op_name}}" << ",";
-  std::cout << "TIME:" << timer->GetElapsedTime() << ",";
-  std::cout << "WS:" << GLOBAL_WORKSPACE_SIZE << std::endl;
-  delete(timer);
-}
-"""
-)
-
-
 FUNC_DECL_TEMPLATE = jinja2.Template(
     """
 void {{func_name}}(
@@ -456,6 +471,169 @@ void {{func_name}}(
   int64_t,
   hipStream_t stream
 );
+"""
+)
+
+PROFILER_TEMPLATE = jinja2.Template(
+    r"""
+template <typename Op>
+int ProfileOne(const char* op_name,
+                void* in_ptr,
+                void* weight_ptr,
+                void* out_ptr,
+{% if "bias" in conv2d_flag %}
+                void* bias_ptr,
+{% endif %}
+{% if conv2d_flag in ["bias_add_relu", "bias_add_identity"] %}
+                void* res_ptr,
+{% endif %}
+                int64_t* batch,
+                int64_t* out_ch,
+                int64_t* in_ch,
+                int64_t* kernel_h,
+                int64_t* kernel_w,
+                int64_t* in_h,
+                int64_t* in_w,
+                int64_t* out_batch,
+                int64_t* out_h,
+                int64_t* out_w,
+                int64_t stride,
+                int64_t dilation,
+                int64_t pad,
+                int64_t group,
+                hipStream_t stream)
+{
+  int C_ = (*in_ch) / group;
+  int K_ = (*out_ch) / group;
+  int N_ = (*batch);
+  const int NDimSpatial = 2;
+
+  std::array<ck::index_t, NDimSpatial + 3> a_g_n_c_wis_lengths{
+    static_cast<ck::index_t>(group),
+    static_cast<ck::index_t>(N_),
+    static_cast<ck::index_t>(C_),
+    static_cast<ck::index_t>(*in_h),
+    static_cast<ck::index_t>(*in_w)
+  };
+
+  std::array<ck::index_t, NDimSpatial + 3> a_g_n_c_wis_strides{
+    static_cast<ck::index_t>(C_),
+    static_cast<ck::index_t>((*in_h) * (*in_w) * group * C_),
+    static_cast<ck::index_t>(1),
+    static_cast<ck::index_t>((*in_w) * group * C_),
+    static_cast<ck::index_t>(group * C_)
+  };
+
+  std::array<ck::index_t, NDimSpatial + 3> b_g_k_c_xs_lengths{
+    static_cast<ck::index_t>(group),
+    static_cast<ck::index_t>(K_),
+    static_cast<ck::index_t>(C_),
+    static_cast<ck::index_t>(*kernel_h),
+    static_cast<ck::index_t>(*kernel_w)
+  };
+
+  std::array<ck::index_t, NDimSpatial + 3> b_g_k_c_xs_strides{
+    static_cast<ck::index_t>((*kernel_h) * (*kernel_w) * C_ * K_),
+    static_cast<ck::index_t>((*kernel_h) * (*kernel_w) * C_),
+    static_cast<ck::index_t>(1),
+    static_cast<ck::index_t>((*kernel_w) * C_),
+    static_cast<ck::index_t>(C_)
+  };
+
+  std::array<ck::index_t, NDimSpatial + 3> d_g_n_k_wos_lengths{
+    static_cast<ck::index_t>(group),
+    static_cast<ck::index_t>(N_),
+    static_cast<ck::index_t>(K_),
+    static_cast<ck::index_t>(*out_h),
+    static_cast<ck::index_t>(*out_w)
+  };
+  std::array<ck::index_t, NDimSpatial + 3> d_g_n_k_wos_strides{
+    static_cast<ck::index_t>(K_), 0, 1, 0, 0
+  };
+
+  std::array<ck::index_t, NDimSpatial + 3> e_g_n_k_wos_lengths{
+    static_cast<ck::index_t>(group),
+    static_cast<ck::index_t>(N_),
+    static_cast<ck::index_t>(K_),
+    static_cast<ck::index_t>(*out_h),
+    static_cast<ck::index_t>(*out_w)
+  };
+
+  std::array<ck::index_t, NDimSpatial + 3> e_g_n_k_wos_strides{
+    static_cast<ck::index_t>(K_),
+    static_cast<ck::index_t>((*out_h) * (*out_w) * group * K_),
+    static_cast<ck::index_t>(1),
+    static_cast<ck::index_t>((*out_w) * group * K_),
+    static_cast<ck::index_t>(group * K_)
+  };
+
+  std::array<ck::index_t, NDimSpatial> conv_filter_strides{
+    static_cast<ck::index_t>(stride), static_cast<ck::index_t>(stride)
+  };
+  std::array<ck::index_t, NDimSpatial> conv_filter_dilations{
+    static_cast<ck::index_t>(dilation), static_cast<ck::index_t>(dilation)
+  };
+  std::array<ck::index_t, NDimSpatial> input_left_pads{
+    static_cast<ck::index_t>(pad), static_cast<ck::index_t>(pad)
+  };
+  std::array<ck::index_t, NDimSpatial> input_right_pads{
+    static_cast<ck::index_t>(pad), static_cast<ck::index_t>(pad)
+  };
+
+  Op op{};
+  auto invoker = op.MakeInvoker();
+
+  auto argument = op.MakeArgument(
+{{problem_args}}
+  );
+
+  if(!op.IsSupportedArgument(argument)) {
+    return 0;
+  }
+
+  auto workspace_size = op.GetWorkSpaceSize(&argument);
+
+  // warmup
+  for(int i = 0; i < 3; ++i) {
+    invoker.Run(argument, StreamConfig{stream, false});
+  }
+
+  KernelTimerImpl timer;
+  timer.Start();
+  for(int i = 0; i < 5; ++i) {
+    invoker.Run(argument, StreamConfig{stream, false});
+  }
+  timer.End();
+
+  std::cout << "OP:" << op_name << ",";
+  std::cout << "TIME:" << timer.GetElapsedTime() << ",";
+  std::cout << "WS:" << workspace_size << std::endl;
+
+  return 0;
+}
+"""
+)
+
+PROFILE_CALL_TEMPLATE = jinja2.Template(
+    r"""
+{
+int ret = 0;
+try {
+  ret = ProfileOne<{{instance_type}}>("{{op_name}}",
+                               (void*)memory_pool->RequestHalfTensorByIdx(0),
+                               (void*)memory_pool->RequestHalfTensorByIdx(1),
+                               (void*)memory_pool->RequestHalfTensorByIdx(2),
+{% if "bias" in conv2d_flag %}
+                               (void*)memory_pool->RequestHalfTensorByIdx(3),
+{% endif %}
+{% if conv2d_flag in ["bias_add_relu", "bias_add_identity"] %}
+                               (void*)memory_pool->RequestHalfTensorByIdx(4),
+{% endif %}
+                               &NI, &CO, &CI, &KH, &KW, &HI, &WI, &NO, &HO, &WO,
+                               SH, DH, PH, group, stream);
+} catch (...) {}
+if (ret != 0) return ret;
+}
 """
 )
 
@@ -524,28 +702,19 @@ def gen_profiler(
     shape_template,
     conv2d_flag,
     extra_code="",
-    src_template=SRC_TEMPLATE,
+    src_template=PROFILER_SRC_TEMPLATE,
     prob_args_template=PROBLEM_ARGS_TEMPLATE,
+    profile_filename=None,
 ):
-    """Generates standalone executables for profiler.
-
-    Parameters
-    ----------
-    func_attrs : Dict
-        Operation attributes.
-    workdir : str
-        Directory to store the generated outputs.
-    shape_template : jinja2.Template
-        Generates shape calculation.
-        The template is passed from compiler/ops/pool.
-    conv2d_flag : str
-        Flag telling which backend should be generated. options are '','bias','bias_relu','bias_add_relu','bias_add_identity'.
-    extra_code : str
-        Extra code for self-defined operators.
-    """
     op_type = func_attrs["op"]
+    prefix = os.path.join(workdir, "profiler", op_type)
+    src_path = os.path.join(prefix, f"{profile_filename}.cpp")
+    obj_path = os.path.join(prefix, profile_filename)
+    if os.path.exists(src_path) and not os.path.exists(obj_path):
+        return [(src_path, obj_path)]
+    if os.path.exists(obj_path):
+        return []
     op_instance = func_attrs["op_instance"]
-    # shape function
     shape_func = shape_template.render(
         indent="  ",
         dtype="int64_t ",
@@ -564,78 +733,94 @@ def gen_profiler(
         dilatew="dilation",
         padw="pad",
     )
-    file_pairs = []
-    for op_name, op in op_instance.items():
+
+    instances_code = []
+    profile_calls = []
+
+    for i, (op_name, op) in enumerate(op_instance.items()):
         config = emit_instance(op)
         config_name = extract_config_name(config)
-        instance = INSTANCE_TEMPLATE.render(
-            name="DeviceConvFwdInstance", config_name=config_name, config=config
-        )
-        problem_args = prob_args_template.render(
-            indent="  ",
-            conv2d_flag=conv2d_flag,
-        )
-        exec_program = EXEC_TEMPLATE.render(
-            indent="  ",
-            instance="DeviceConvFwdInstance",
-            problem_args=problem_args,
-            is_profiler=True,
-        )
-        op_func = src_template.render(
-            instances=instance,
-            function_name="conv",
-            shape_func="",
-            exec_paths=exec_program,
-            extra_code=extra_code,
-            conv2d_flag=conv2d_flag,
-        )
-        structs_def = STRUCTS_DEF_TEMPLATE.render()
-        args_parse = ARGS_PARSE_TEMPLATE.render()
-        tensor_decl = TENSOR_DECL_TEMPLATE.render(conv2d_flag=conv2d_flag)
-        func_call = FUNC_CALL_TEMPLATE.render(
-            func_name="conv",
-            in_ptr="(void *) memory_pool->RequestHalfTensorByIdx(0)",
-            weight_ptr="(void *) memory_pool->RequestHalfTensorByIdx(1)",
-            out_ptr="(void *) memory_pool->RequestHalfTensorByIdx(2)",
-            bias_ptr="(void *) memory_pool->RequestHalfTensorByIdx(3)",
-            res_ptr="(void *) memory_pool->RequestHalfTensorByIdx(4)",
-            p_batch="&NI",
-            p_out_ch="&CO",
-            p_in_ch="&CI",
-            p_kernel_h="&KH",
-            p_kernel_w="&KW",
-            p_in_h="&HI",
-            p_in_w="&WI",
-            p_out_batch="&NO",
-            p_out_h="&HO",
-            p_out_w="&WO",
-            stride="SH",
-            dilation="DH",
-            pad="PH",
-            group="group",
-            conv2d_flag=conv2d_flag,
+
+        instance_typedef_name = f"DeviceConvFwdInstance_{i}"
+
+        instances_code.append(
+            INSTANCE_TEMPLATE.render(
+                name=instance_typedef_name,
+                config_name=config_name,
+                config=config,
+            )
         )
 
-        code = PROFILER_TEMPLATE.render(
-            structs_def=structs_def,
-            op_func=op_func,
-            shape_func=shape_func,
-            args_parse=args_parse,
-            tensor_decl=tensor_decl,
-            func_call=func_call,
-            op_name=op_name,
+        profile_calls.append(
+            PROFILE_CALL_TEMPLATE.render(
+                instance_type=instance_typedef_name,
+                op_name=op_name,
+                conv2d_flag=conv2d_flag,
+            )
         )
-        prefix = os.path.join(workdir, "profiler", op_type)
-        if not os.path.exists(prefix):
-            os.makedirs(prefix)
-        src_path = os.path.join(prefix, op_name + ".cpp")
-        obj_path = os.path.join(prefix, op_name)
-        if os.path.exists(obj_path):
-            continue
-        with open(src_path, "w") as fo:
-            fo.write(code)
-        file_pairs.append((src_path, obj_path))
-    return file_pairs
+
+    instances = "\n".join(instances_code)
+    calls = "\n".join(profile_calls)
+
+    problem_args = prob_args_template.render(indent="  ", conv2d_flag=conv2d_flag)
+
+    profile_one = PROFILER_TEMPLATE.render(
+        conv2d_flag=conv2d_flag,
+        problem_args=problem_args,
+    )
+
+    op_func = src_template.render(
+        instances=instances + "\n" + profile_one,
+        shape_func="",
+        exec_paths="",
+        extra_code=extra_code,
+        conv2d_flag=conv2d_flag,
+    )
+
+    structs_def = STRUCTS_DEF_TEMPLATE.render()
+    args_parse = ARGS_PARSE_TEMPLATE.render()
+    tensor_decl = TENSOR_DECL_TEMPLATE.render(conv2d_flag=conv2d_flag)
+
+    code = jinja2.Template(
+        r"""
+size_t GLOBAL_WORKSPACE_SIZE = 0;
+{{op_func}}
+
+{{structs_def}}
+
+int main(int argc, char** argv) {
+  if (argc < 12) {
+    throw std::runtime_error("wrong params");
+  }
+
+  {{args_parse}}
+  {{shape_func}}
+
+  auto memory_pool = std::make_unique<ProfilerMemoryPool>();
+  hipStream_t stream = nullptr;
+
+  {{tensor_decl}}
+
+{{calls}}
+
+  return 0;
+}
+"""
+    ).render(
+        op_func=op_func,
+        structs_def=structs_def,
+        args_parse=args_parse,
+        shape_func=shape_func,
+        tensor_decl=tensor_decl,
+        calls=calls,
+    )
+
+    os.makedirs(prefix, exist_ok=True)
+
+    with open(src_path, "w") as fo:
+        fo.write(code)
+
+    return [(src_path, obj_path)]
 
 
 def gen_function(

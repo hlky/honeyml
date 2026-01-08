@@ -86,12 +86,15 @@ class Linear(Module):
         self.op = op_func(**kwargs)
         self.use_bias = bias
         self.in_channels = in_channels
+        self.out_channels = out_channels
 
     def forward(self, *args):
         assert len(args) >= 1
         x = args[0]
         dtype = x.dtype()
+        batch_size = None
         if not self.USE_CUDA and len(x._attrs["shape"]) != 2:
+            batch_size = x._attrs["shape"][0]
             x = ops.reshape()(x, [-1, self.in_channels])
         inputs = [
             x,
@@ -110,4 +113,6 @@ class Linear(Module):
         if len(args) == 2:
             inputs.append(args[1])
         output = self.op(*inputs)
+        if not self.USE_CUDA and batch_size is not None:
+            output = ops.reshape()(output, [batch_size, -1, self.out_channels])
         return output

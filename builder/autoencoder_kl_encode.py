@@ -72,7 +72,7 @@ height, width = resolution, resolution
 
 hf_hub = args.hf_hub
 label = args.label
-model_name = f"autoencoder_kl.encoder.{label}.{resolution[1]}.{device_name}.sm{sm}"
+model_name = f"autoencoder_kl.encoder.{label}.{resolution[1]}.{device_name}.{sm}"
 
 config, dinoml_cls, pt_cls = load_config(hf_hub, subfolder=args.subfolder)
 

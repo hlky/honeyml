@@ -50,7 +50,7 @@ PROBLEM_ARGS_TEMPLATE = jinja2.Template(
 
 
 @registry.reg("rocm.transposed_conv2d.config")
-def conv2d_config(func_attrs):
+def conv2d_config(func_attrs, **kwargs):
     """Extract (operation name, operation instance) pair from
     all operation candidates.
 
@@ -73,7 +73,7 @@ def conv2d_config(func_attrs):
 
 
 @registry.reg("rocm.transposed_conv2d.gen_profiler")
-def conv2d_gen_profiler(func_attrs, workdir, shape_template):
+def conv2d_gen_profiler(func_attrs, workdir, profile_filename, shape_template):
     """Generates standalone executables for profiler.
 
     Parameters
@@ -93,6 +93,7 @@ def conv2d_gen_profiler(func_attrs, workdir, shape_template):
         conv2d_flag="",
         prob_args_template=PROBLEM_ARGS_TEMPLATE,
         extra_code=EXTRA_CODE.render(),
+        profile_filename=profile_filename,
     )
 
 

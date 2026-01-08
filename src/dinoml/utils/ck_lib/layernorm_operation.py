@@ -34,6 +34,7 @@ class TileDesc:
     beta_src_dim: int
     beta_src_size: int
     out_dst_size: int
+    save_size: int
 
     def __str__(self) -> str:
         values = list(self.__dict__.values())
@@ -76,12 +77,13 @@ class LayerNormOperation:
     def emit(self) -> str:
         template = jinja2.Template(
             """
-using {{name}} = ck::tensor_operation::device::DeviceNormalizationImpl<
+using {{name}} = ck::tensor_operation::device::DeviceNormalizationFwdImpl<
     {{InDType}},
     {{InDType}},
     {{InDType}},
     {{AccDType}},
     {{OutDType}},
+    {{InDType}},
     ck::tensor_operation::element_wise::PassThrough,
     {{Rank}},
     {{NumReduceDim}},

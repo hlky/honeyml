@@ -114,11 +114,9 @@ SRC_TEMPLATE = jinja2.Template(
 #include <initializer_list>
 #include <cstdlib>
 #include <stdlib.h>
-// #include <half.hpp>
 #include <random>
 #include <rocrand/rocrand.h>
 #include "logging.h"
-//#include "include/ck/utility/print.hpp"
 
 #include "ck/ck.hpp"
 #include "ck/tensor_operation/gpu/device/gemm_specialization.hpp"
@@ -416,7 +414,7 @@ struct ProfilerMemoryPool {
 
   ck::half_t* AllocateHalfGaussianTensor(int64_t size) {
     return reinterpret_cast<ck::half_t*>(
-        AllocateGaussianTensor<ck::half_t>(size));
+        AllocateGaussianTensor<float>(size));
   }
 
   int AllocateHalfTensor(int64_t size, int64_t copy) {
@@ -529,7 +527,7 @@ int benchmark_{{function_name}}(
   );
 
    if (!op.IsSupportedArgument(argument)) {
-     return 0; // not supported => skip (CUDA-style "try next")
+     return 0;
    }
 
   GLOBAL_WORKSPACE_SIZE = op.GetWorkSpaceSize(&argument);
@@ -864,6 +862,8 @@ def gen_profiler(
         extra_shape=extra_shape_func,
         problem_args=problem_args,
         gemm_flag=gemm_flag,
+        has_d0=has_d0_flag,
+        has_d1=has_d1_flag,
     )
     src_path = os.path.join(prefix, f"{profiler_name}.cpp")
     obj_path = os.path.join(prefix, f"{profiler_name}")

@@ -47,10 +47,11 @@ def filter_op_instances(func_attrs, x_shapes):
     """
     target = backend.target.Target.current()
     op = func_attrs["op"]
-    if op.startswith("conv2d"):
-        op = "conv2d"
-    if op.startswith("transposed_conv2d"):
-        op = "transposed_conv2d"
+    if target.name() == "cuda":
+        if op.startswith("conv2d"):
+            op = "conv2d"
+        if op.startswith("transposed_conv2d"):
+            op = "transposed_conv2d"
     func_key = "{target}.{op}.filter".format(
         target=target.name(),
         op=op,
@@ -76,10 +77,11 @@ def generate_profiler_sources(func_attrs, op_class, workdir, shape_template):
     """
     target = backend.target.Target.current()
     op = func_attrs["op"]
-    if op.startswith("conv2d"):
-        op = "conv2d"
-    if op.startswith("transposed_conv2d"):
-        op = "transposed_conv2d"
+    if target.name() == "cuda":
+        if op.startswith("conv2d"):
+            op = "conv2d"
+        if op.startswith("transposed_conv2d"):
+            op = "transposed_conv2d"
     func_key = "{target}.{op}.gen_profiler".format(
         target=target.name(),
         op=op,

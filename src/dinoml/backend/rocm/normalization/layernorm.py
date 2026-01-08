@@ -30,7 +30,7 @@ from dinoml.compiler.base import IntImm
 
 EXTRA_HEADERS = jinja2.Template(
     """
-#include "ck/tensor_operation/gpu/device/impl/device_normalization_impl.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_normalization_fwd_impl.hpp"
 """
 )
 
@@ -90,6 +90,8 @@ EXEC_TEMPLATE = jinja2.Template(
         std::vector<ck::index_t>{0, 1},
         std::vector<ck::index_t>{0, 1},
         i_outStrides,
+        std::vector<ck::index_t>{0},
+        std::vector<ck::index_t>{0},
         {1},
         {{eps}},
         static_cast<ck::half_t *>(input) + {{ input_offset if input_offset is defined else 0 }},

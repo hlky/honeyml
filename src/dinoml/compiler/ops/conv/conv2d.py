@@ -23,6 +23,7 @@ import re
 from collections import OrderedDict
 from hashlib import sha1
 from operator import itemgetter
+import time
 from typing import Any, Dict, List, Tuple, Union, Optional
 
 import jinja2
@@ -557,10 +558,11 @@ class conv2d(Operator):
         target = backend.target.Target.current()
 
         op = self._attrs["op"]
-        if op.startswith("conv2d"):
-            op = "conv2d"
-        if op.startswith("transposed_conv2d"):
-            op = "transposed_conv2d"
+        if target.name() == "cuda":
+            if op.startswith("conv2d"):
+                op = "conv2d"
+            if op.startswith("transposed_conv2d"):
+                op = "transposed_conv2d"
         func_key = "{target}.{op}.config".format(
             target=target.name(),
             op=op,
@@ -730,10 +732,11 @@ class conv2d(Operator):
         if "op_instance" not in self._attrs:
             # init candidate ops
             op = self._attrs["op"]
-            if op.startswith("conv2d"):
-                op = "conv2d"
-            if op.startswith("transposed_conv2d"):
-                op = "transposed_conv2d"
+            if target.name() == "cuda":
+                if op.startswith("conv2d"):
+                    op = "conv2d"
+                if op.startswith("transposed_conv2d"):
+                    op = "transposed_conv2d"
             func_key = "{target}.{op}.config".format(
                 target=target.name(),
                 op=op,
@@ -905,10 +908,11 @@ class conv2d(Operator):
     def gen_function(self) -> str:
         target = backend.target.Target.current()
         op = self._attrs["op"]
-        if op.startswith("conv2d"):
-            op = "conv2d"
-        if op.startswith("transposed_conv2d"):
-            op = "transposed_conv2d"
+        if target.name() == "cuda":
+            if op.startswith("conv2d"):
+                op = "conv2d"
+            if op.startswith("transposed_conv2d"):
+                op = "transposed_conv2d"
         func_key = "{target}.{op}.gen_function".format(
             target=target.name(),
             op=op,

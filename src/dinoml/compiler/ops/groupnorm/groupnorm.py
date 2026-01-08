@@ -399,7 +399,7 @@ class group_norm(Operator):
             target=target.name(), op=self._attrs["op"]
         )
         func = registry.get(func_key)
-        func(self._attrs, workdir)
+        return func(self._attrs, workdir)
 
     def _extract_exec_path(self, dynamic_profiling_strategy=DynamicProfileStrategy.MAX):
         """Extract execution key, i.e. input arguments for the profiler.
@@ -415,19 +415,22 @@ class group_norm(Operator):
         n_min = min(n_dim._attrs["values"])
 
         h_dim = self._attrs["inputs"][0]._attrs["shape"][-3]
-        assert isinstance(h_dim, IntImm), "groupnorm requires h_dim to be static"
         w_dim = self._attrs["inputs"][0]._attrs["shape"][-2]
-        assert isinstance(w_dim, IntImm), "groupnorm requires w_dim to be static"
         c_dim = self._attrs["inputs"][0]._attrs["shape"][-1]
-        assert isinstance(c_dim, IntImm), "groupnorm requires c_dim to be static"
 
         # N, H, W, G, C
         shape_values_dict = {
             "N": [n_min, n_max],
-            "H": [h_dim.value()],
-            "W": [w_dim.value()],
+            "H": [h_dim.lower_bound(), h_dim.upper_bound()]
+            if isinstance(h_dim, IntVar)
+            else [c_dim.value()],
+            "W": [w_dim.lower_bound(), w_dim.upper_bound()]
+            if isinstance(w_dim, IntVar)
+            else [c_dim.value()],
             "G": [self._attrs["num_groups"]],
-            "C": [c_dim.value()],
+            "C": [c_dim.lower_bound(), c_dim.upper_bound()]
+            if isinstance(c_dim, IntVar)
+            else [c_dim.value()],
         }
 
         self._attrs["exec_path"] = OrderedDict()
