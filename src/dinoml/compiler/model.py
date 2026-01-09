@@ -15,7 +15,7 @@
 """
 Python bindings to the DinoML runtime.
 """
-
+import torch
 import ctypes
 import enum
 import logging
@@ -598,7 +598,9 @@ class Model:
         of torch.Tensors ordered according to GetInputNameToIndexMap. Outputs
         can also be a dictionary, or a list ordered according to GetOutputNameToIndexMap.
         """
-
+        torch.cuda.synchronize()
+        if stream_ptr is None:
+            stream_ptr = torch.cuda.current_stream().cuda_stream
         _check_tensors_contiguous_and_on_gpu(
             inputs,
             name="inputs",
@@ -738,6 +740,9 @@ class Model:
             outputs,
             name="outputs",
         )
+        torch.cuda.synchronize()
+        if stream_ptr is None:
+            stream_ptr = torch.cuda.current_stream().cuda_stream
 
         mean, std, dinoml_outputs = self.benchmark(
             _convert_tensor_args(inputs),
