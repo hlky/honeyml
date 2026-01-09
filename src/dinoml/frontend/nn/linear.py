@@ -93,9 +93,10 @@ class Linear(Module):
         x = args[0]
         dtype = x.dtype()
         batch_size = None
-        if not self.USE_CUDA and len(x._attrs["shape"]) != 2:
-            batch_size = x._attrs["shape"][0]
-            x = ops.reshape()(x, [-1, self.in_channels])
+        # if not self.USE_CUDA and len(x._attrs["shape"]) != 2:
+        #     batch_size, s, h = ops.size()(x)
+        #     out_c, in_c = ops.size()(self.weight.tensor())
+        #     x = ops.reshape()(x, [batch_size * s, in_c])
         inputs = [
             x,
             (
@@ -113,6 +114,6 @@ class Linear(Module):
         if len(args) == 2:
             inputs.append(args[1])
         output = self.op(*inputs)
-        if not self.USE_CUDA and batch_size is not None:
-            output = ops.reshape()(output, [batch_size, -1, self.out_channels])
+        # if not self.USE_CUDA and batch_size is not None:
+        #     output = ops.reshape()(output, [batch_size, s, out_c])
         return output

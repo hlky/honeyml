@@ -74,7 +74,10 @@ set(WorkaroundCmakeCompileOptions {{CMAKE_COMPILE_OPTIONS}})
 # compile a supplemental library
 add_library(objlib OBJECT ${SOURCE_FILES} ${THIRD_PARTY_SOURCE_FILES})
 target_include_directories(objlib PRIVATE ${HEADER_FILES} ${THIRD_PARTY_HEADER_FILES})
-target_link_libraries(objlib  PRIVATE hip-lang::device)
+target_link_libraries(objlib  PRIVATE
+hip-lang::host
+hip-lang::device
+)
 target_compile_options(objlib PRIVATE ${WorkaroundCmakeCompileOptions})
 set_target_properties(objlib PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 17)
 
@@ -82,7 +85,10 @@ set_target_properties(objlib PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 17)
 # compile model library
 add_library(model SHARED $<TARGET_OBJECTS:objlib>)
 target_include_directories(model PRIVATE ${HEADER_FILES} ${THIRD_PARTY_HEADER_FILES})
-target_link_libraries(model  PRIVATE hip-lang::device)
+target_link_libraries(model  PRIVATE
+hip-lang::host
+hip-lang::device
+)
 target_compile_options(model PRIVATE ${WorkaroundCmakeCompileOptions})
 set_target_properties(model PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 17)
 

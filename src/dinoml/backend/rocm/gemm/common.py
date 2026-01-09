@@ -52,9 +52,32 @@ OUTPUT_ADDR_CALCULATOR = jinja2.Template(
 
 EXTRA_SHAPE_TEMPLATE = jinja2.Template(
     """
-{{indent}}ck::index_t stride_a = *a_dim1;
-{{indent}}ck::index_t stride_b = *b_dim1;
-{{indent}}ck::index_t stride_c = *c_dim1;
+auto f_get_default_stride =
+    [](std::size_t row, std::size_t col, ck::index_t stride, auto layout) {
+        if(stride == -1 || stride == 0)
+        {
+            // give a chance if stride is -1, return a default packed stride
+            if constexpr(std::is_same_v<decltype(layout), ck::tensor_layout::gemm::RowMajor>)
+            {
+                return static_cast<std::size_t>(col);
+            }
+            else
+            {
+                return static_cast<std::size_t>(row);
+            }
+        }
+        else
+            return static_cast<std::size_t>(stride);
+    };
+
+{{indent}}ck::index_t stride_a = -1;
+{{indent}}ck::index_t stride_b = -1;
+{{indent}}ck::index_t stride_c = -1;
+
+stride_a = f_get_default_stride(M, K, stride_a, ck::tensor_layout::gemm::RowMajor{});
+stride_b = f_get_default_stride(K, N, stride_b, ck::tensor_layout::gemm::ColumnMajor{});
+stride_c = f_get_default_stride(M, N, stride_c, ck::tensor_layout::gemm::RowMajor{});
+
 """
 )
 
@@ -150,13 +173,13 @@ void {{function_name}}(
 {% if has_d1 %}
     void * d1_ptr,
 {% endif %}
-{% for idx in range(ndims) %}
+{% for idx in range(adims) %}
     int64_t* a_dim{{idx}},
 {% endfor %}
-{% for idx in range(ndims) %}
+{% for idx in range(bdims) %}
     int64_t* b_dim{{idx}},
 {% endfor %}
-{% for idx in range(ndims) %}
+{% for idx in range(cdims) %}
     int64_t* c_dim{{idx}},
 {% endfor %}
 {% for idx in range(pdims) %}
@@ -582,13 +605,13 @@ void {{func_name}}(
 {% if has_d1 %}
   void *,
 {% endif %}
-{% for idx in range(ndims) %}
+{% for idx in range(adims) %}
   int64_t*,
 {% endfor %}
-{% for idx in range(ndims) %}
+{% for idx in range(bdims) %}
   int64_t*,
 {% endfor %}
-{% for idx in range(ndims) %}
+{% for idx in range(cdims) %}
   int64_t*,
 {% endfor %}
 {% for idx in range(pdims) %}
@@ -856,7 +879,7 @@ def gen_profiler(
         ),
         benchmark_instances="\n".join(benchmark_instances),
         function_name="gemm",
-        ndims=ndims,
+        ndims=2,
         pdims=len(pdims),
         shape_func=op_func_shape,
         extra_shape=extra_shape_func,
@@ -879,7 +902,7 @@ def gen_function(
     dim_info_dict,
     gemm_flag,
     extra_code="",
-    ndims=2,
+    ndims=3,
     extra_shape_template=EXTRA_SHAPE_TEMPLATE,
     problem_args_template=PROBLEM_ARGS_TEMPLATE,
     extra_header_template=EXTRA_HEADER_TEMPLATE,
@@ -973,6 +996,12 @@ def gen_function(
         gemm_flag=gemm_flag, has_d0=has_d0(func_attrs)
     )
     pdims = len(func_attrs["shape"]) if func_attrs.get("shape") is not None else 0
+    a = func_attrs["inputs"][0]
+    b = func_attrs["inputs"][1]
+    c = func_attrs["outputs"][0]
+    adims = len([dim_expr(dim) for dim in a._attrs["shape"]])
+    bdims = len([dim_expr(dim) for dim in b._attrs["shape"]])
+    cdims = len([dim_expr(dim) for dim in c._attrs["shape"]])
     return SRC_TEMPLATE.render(
         instances=instance_decl,
         function_name=func_name,
@@ -984,14 +1013,16 @@ def gen_function(
         extra_code=extra_code,
         extra_header=extra_header,
         gemm_flag=gemm_flag,
-        ndims=ndims,
+        adims=adims,
+        bdims=bdims,
+        cdims=cdims,
         pdims=pdims,
         has_d0=has_d0_flag,
         has_d1=has_d1_flag,
     )
 
 
-def gen_function_decl(func_name, gemm_flag, ndims=2, pdims=0, has_d0="", has_d1=""):
+def gen_function_decl(func_attrs, gemm_flag, ndims=3, pdims=0, has_d0="", has_d1=""):
     """Generates function declarations.
 
     Parameters
@@ -1008,14 +1039,27 @@ def gen_function_decl(func_name, gemm_flag, ndims=2, pdims=0, has_d0="", has_d1=
     str
         The rentered template of function declaration.
     """
+    a = func_attrs["inputs"][0]
+    b = func_attrs["inputs"][1]
+    c = func_attrs["outputs"][0]
+    adims = [dim_expr(dim) for dim in a._attrs["shape"]]
+    bdims = [dim_expr(dim) for dim in b._attrs["shape"]]
+    cdims = [dim_expr(dim) for dim in c._attrs["shape"]]
     return FUNC_DECL_TEMPLATE.render(
-        func_name=func_name,
+        func_name=func_attrs["name"],
         gemm_flag=gemm_flag,
-        ndims=ndims,
+        adims=len(adims),
+        bdims=len(bdims),
+        cdims=len(cdims),
         pdims=pdims,
         has_d0=has_d0,
         has_d1=has_d1,
     )
+
+
+def dim_expr(d):
+    n = d._attrs.get("name", None)
+    return "&"+n if n is not None else str(d.symbolic_value())
 
 
 def gen_function_call(func_attrs, indent="  ", gemm_flag=""):
@@ -1050,23 +1094,14 @@ def gen_function_call(func_attrs, indent="  ", gemm_flag=""):
     if has_d1(func_attrs):
         d1 = func_attrs["inputs"][4]
         d1_ptr = d1._attrs["name"]
-    adims = [
-        "&" + dim._attrs["name"]
-        for dim in func_attrs["input_accessors"][0].original_shapes
-    ]
-    bdims = [
-        "&" + dim._attrs["name"]
-        for dim in func_attrs["input_accessors"][1].original_shapes
-    ]
-    cdims = [
-        "&" + dim._attrs["name"]
-        for dim in func_attrs["output_accessors"][0].original_shapes
-    ]
+    adims = [dim_expr(dim) for dim in a._attrs["shape"]]
+    bdims = [dim_expr(dim) for dim in b._attrs["shape"]]
+    cdims = [dim_expr(dim) for dim in c._attrs["shape"]]
     pdims = []
     if func_attrs.get("shape") is not None:
         pdims = list(func_attrs["shape"])
 
-    return FUNC_CALL_TEMPLATE.render(
+    func_call = FUNC_CALL_TEMPLATE.render(
         func_name=func_attrs["name"],
         in_ptr=a._attrs["name"],
         weight_ptr=b._attrs["name"],
@@ -1081,6 +1116,7 @@ def gen_function_call(func_attrs, indent="  ", gemm_flag=""):
         indent=indent,
         gemm_flag=gemm_flag,
     )
+    return func_call
 
 
 def default_fproc_f16(*, op, a_layout, b_layout, c_layout):

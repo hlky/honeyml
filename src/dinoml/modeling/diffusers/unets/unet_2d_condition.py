@@ -817,10 +817,6 @@ class UNet2DConditionModel(nn.Module):
         timesteps = ops.expand()(timesteps, shape=[ops.size()(sample, dim=0)])
 
         t_emb = self.time_proj(timesteps)
-        # `Timesteps` does not contain any weights and will always return f32 tensors
-        # but time_embedding might actually be running in fp16. so we need to cast here.
-        # there might be better ways to encapsulate this.
-        t_emb = ops.cast()(t_emb, dtype=sample.dtype())
         return t_emb
 
     def get_class_embed(

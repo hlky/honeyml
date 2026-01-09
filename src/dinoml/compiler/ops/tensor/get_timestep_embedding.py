@@ -22,22 +22,18 @@ class get_timestep_embedding(Operator):
         scale: float = 1.0,
         max_period: int = 10000,
     ) -> Tensor:
-        # Store inputs
         self._attrs["inputs"] = [timesteps]
 
-        # Store op attributes (use the same argument names as requested)
         self._attrs["embedding_dim"] = int(embedding_dim)
         self._attrs["flip_sin_to_cos"] = bool(flip_sin_to_cos)
         self._attrs["downscale_freq_shift"] = float(downscale_freq_shift)
         self._attrs["scale"] = float(scale)
         self._attrs["max_period"] = int(max_period)
 
-        # Output is float32 (matches the reference implementation behavior)
-        self._attrs["dtype"] = normalize_dtype("float32")
+        self._attrs["dtype"] = timesteps._attrs["dtype"]
 
         self._set_depth()
 
-        # timesteps is 1-D: [N] -> output [N, embedding_dim]
         out_shape = [timesteps._attrs["shape"][0], IntImm(int(embedding_dim))]
 
         y = Tensor(

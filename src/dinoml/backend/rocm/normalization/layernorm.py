@@ -252,16 +252,6 @@ def gen_function(
     """
     rank = func_attrs["inputs"][0]._rank()
     eps = func_attrs.get("eps", "1e-5")
-    input_accessor = func_attrs["input_accessors"][0]
-    output_accessor = func_attrs["output_accessors"][0]
-    input_strides = []
-    output_strides = []
-    for i, _ in enumerate(input_accessor.original_shapes):
-        input_strides.append(input_accessor.stride(i))
-        output_strides.append(output_accessor.stride(i))
-
-    input_offset = input_accessor.offset
-    output_offset = output_accessor.offset
 
     exec_path = func_attrs["exec_path"]
     op_instance = func_attrs["op_instance"]
@@ -295,10 +285,6 @@ def gen_function(
             dtype="void",
             reduce_dims=rank - 1,
             eps=eps,
-            input_strides=input_strides,
-            output_strides=output_strides,
-            input_offset=input_offset,
-            output_offset=output_offset,
         )
         exec_inst = exec_cond_template.render(indent="  ", cond=key, program=program)
         exec_paths += exec_inst

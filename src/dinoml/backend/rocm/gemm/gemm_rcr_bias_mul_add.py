@@ -125,8 +125,7 @@ def gen_function_decl(func_attrs):
         The rentered template of function declaration.
     """
     func_name = func_attrs["name"]
-    return common.gen_function_decl(
-        func_name=func_name,
+    return common.gen_function_decl(func_attrs,
         gemm_flag="bias_mul_add",
         has_d0=common.has_d0(func_attrs),
         has_d1=common.has_d1(func_attrs),
