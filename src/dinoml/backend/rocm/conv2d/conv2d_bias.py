@@ -23,7 +23,7 @@ from dinoml.backend.rocm.conv2d import common
 
 
 @registry.reg("rocm.conv2d_bias.config")
-def conv2d_config(func_attrs):
+def conv2d_config(func_attrs, **kwargs):
     """Extract (operation name, operation instance) pair from
     all operation candidates.
 
@@ -40,13 +40,16 @@ def conv2d_config(func_attrs):
     """
     import dinoml.utils.ck_lib as ck_lib
 
+    x = func_attrs["inputs"][0]
+    dtype = x._attrs["dtype"]
+
     op_kind = ck_lib.library.Conv2dKind.GroupConv2dBiasRelu
     extra_kind = ck_lib.library.TensorOperation.Add
-    func_attrs["op_instance"] = common.extract_config(op_kind, extra_kind)
+    func_attrs["op_instance"] = common.extract_config(op_kind, extra_kind, dtype=dtype)
 
 
 @registry.reg("rocm.conv2d_bias.gen_profiler")
-def conv2d_gen_profiler(func_attrs, workdir, shape_template):
+def conv2d_gen_profiler(func_attrs, workdir, profile_filename, shape_template):
     """Generates standalone executables for profiler.
 
     Parameters
@@ -65,6 +68,7 @@ def conv2d_gen_profiler(func_attrs, workdir, shape_template):
         shape_template=shape_template,
         conv2d_flag="bias",
         extra_code=common.HEADER_CODE.render(),
+        profile_filename=profile_filename,
     )
 
 

@@ -56,11 +56,16 @@ struct ProfilerMemoryPool {
     strides.reserve(512);
     copies.reserve(512);
     ptrs.reserve(512);
+    rocrand_status st = rocrand_create_generator(&generator, ROCRAND_RNG_PSEUDO_DEFAULT);
+    if(st != ROCRAND_STATUS_SUCCESS) {
+      throw std::runtime_error("rocrand_create_generator failed");
+    }
   }
   ~ProfilerMemoryPool() {
     for(int i = 0; i < ptrs.size(); i++){
       hipFree(ptrs[i]);
     }
+    if(generator) rocrand_destroy_generator(generator);
   }
 
   template <typename DType>
@@ -77,9 +82,9 @@ struct ProfilerMemoryPool {
     return d_x;
   }
 
-  ck::half_t* AllocateHalfGaussianTensor(int64_t size) {
-    return reinterpret_cast<ck::half_t*>(
-        AllocateGaussianTensor<ck::half_t>(size));
+  {{dtype}}* AllocateHalfGaussianTensor(int64_t size) {
+    return reinterpret_cast<{{dtype}}*>(
+        AllocateGaussianTensor<float>(size));
   }
 
   int AllocateHalfTensor(int64_t size, int64_t copy) {
@@ -91,11 +96,11 @@ struct ProfilerMemoryPool {
     return ptrs.size() - 1;
   }
 
-  ck::half_t* RequestHalfTensorByIdx(int idx) {
+  {{dtype}}* RequestHalfTensorByIdx(int idx) {
     auto copy = copies.at(idx);
     auto offset = offsets.at(idx);
     auto stride = strides.at(idx);
-    ck::half_t* ptr = reinterpret_cast<ck::half_t*>(ptrs.at(idx));
+    {{dtype}}* ptr = reinterpret_cast<{{dtype}}*>(ptrs.at(idx));
     ptr += offset;
     offset += stride;
     if (offset == copy * stride) {
@@ -113,36 +118,32 @@ struct ProfilerMemoryPool {
   rocrand_generator generator;
 };
 
-"""
-)
-
-PROFILER_TEMPLATE = jinja2.Template(
-    """
-size_t GLOBAL_WORKSPACE_SIZE = 0;
-{{op_func}}
-
-{{structs_def}}
-
-int main(int argc, char** argv) {
-  {{args_parse}}
-  auto memory_pool = std::make_unique<ProfilerMemoryPool>();
-  hipStream_t stream = nullptr;
-  {{tensor_decl}}
-  // warmup
-  for(int i = 0; i < 3; ++i) {
-    {{func_call}}
+struct KernelTimerImpl
+{
+  KernelTimerImpl() {
+    hipGetErrorString(hipEventCreateWithFlags(&mStart, hipEventDisableSystemFence));
+    hipGetErrorString(hipEventCreateWithFlags(&mEnd, hipEventDisableSystemFence));
   }
-  // run
-  KernelTimerImpl timer;
-  timer.Start();
-  for(int i = 0; i < 5; ++i) {
-    {{func_call}}
+  ~KernelTimerImpl() {
+    hipGetErrorString(hipEventDestroy(mStart));
+    hipGetErrorString(hipEventDestroy(mEnd));
   }
-  timer.End();
-  std::cout << "OP:" << "{{op_name}}" << ",";
-  std::cout << "TIME:" << timer.GetElapsedTime() << ",";
-  std::cout << "WS:" << GLOBAL_WORKSPACE_SIZE << std::endl;
-}
+  void Start() {
+    hipGetErrorString(hipDeviceSynchronize());
+    hipGetErrorString(hipEventRecord(mStart, nullptr));
+  }
+  void End() {
+    hipGetErrorString(hipEventRecord(mEnd, nullptr));
+    hipGetErrorString(hipEventSynchronize(mEnd));
+  }
+  float GetElapsedTime() const {
+    float time;
+    hipGetErrorString(hipEventElapsedTime(&time, mStart, mEnd));
+    return time;
+  }
+  hipEvent_t mStart, mEnd;
+};
+
 """
 )
 
@@ -253,104 +254,6 @@ def extract_config_name(config):
     if match is None:
         raise RuntimeError("Invalid config: \n" + config)
     return match.groups()[0]
-
-
-def gen_profiler(
-    func_attrs: Dict[str, Any],
-    workdir: str,
-    rank: int,
-    shape_eval_template: jinja2.Template,
-    exec_template: jinja2.Template,
-    tensor_decl_template: jinja2.Template,
-    extra_header_template: jinja2.Template,
-    get_func_signature: Any,
-    extra_code: str = "",
-    func_call_template: jinja2.Template = FUNC_CALL_TEMPLATE,
-    indent: str = "  ",
-) -> str:
-    """Generates standalone executables for profiler.
-
-    Parameters
-    ----------
-    func_attrs : Dict
-        Operation attributes.
-    workdir : str
-        Directory to store the generated outputs.
-    rank: int
-        Rank of the input tensor. If using [M, N] in exec_key, the rank here
-        must be 2 because if implies that the inputs are reshaped for profiling.
-        For code gen, the real shapes are used.
-    exec_template : jinja2.Template
-        Execution block template.
-    tensor_decl_template: jinja2.Template
-        Tensor declaration template.
-    extra_header_template : jinja2.Template
-        Extra header template.
-    indent : str, optional
-        Indent for codegen, target dependent e.g. C++, python, etc., by default "  ".
-    """
-    op_type = func_attrs["op"]
-    shape_eval = shape_eval_template.render(rank=rank) if shape_eval_template else ""
-    eps = func_attrs.get("eps", "1e-5")
-
-    op_instance = func_attrs["op_instance"]
-    file_pairs = []
-    for op_name, op in op_instance.items():
-        config = emit_instance(op)
-        config_name = extract_config_name(config)
-        instances = INSTANCE_TEMPLATE.render(
-            name="DeviceInstance", config_name=config_name, config=config
-        )
-        exe_path = exec_template.render(
-            instance="DeviceInstance",
-            dtype="void",
-            reduce_dims=rank - 1,
-            rank=rank,
-            eps=eps,
-        )
-
-        op_func = FUNC_TEMPLATE.render(
-            instances_decl=instances,
-            func_signature=get_func_signature(func_attrs),
-            shape_eval=shape_eval,
-            exec_paths=exe_path,
-            extra_headers=extra_header_template.render(),
-            extra_code=extra_code,
-        )
-        structs_def = STRUCTS_DEF_TEMPLATE.render()
-        args_parse = ARGS_PARSE_TEMPLATE.render(rank=rank)
-        tensor_decl = tensor_decl_template.render(rank=rank)
-
-        input_dim_names = [f"in_{i}" for i in range(rank)]
-        func_call = func_call_template.render(
-            func_name=func_attrs["name"],
-            input="(void *) memory_pool->RequestHalfTensorByIdx(0)",
-            gamma="(void *) memory_pool->RequestHalfTensorByIdx(2)",
-            beta="(void *) memory_pool->RequestHalfTensorByIdx(3)",
-            output="(void *) memory_pool->RequestHalfTensorByIdx(1)",
-            input_dim_names=input_dim_names,
-            indent=indent,
-        )
-        code = PROFILER_TEMPLATE.render(
-            op_func=op_func,
-            structs_def=structs_def,
-            args_parse=args_parse,
-            tensor_decl=tensor_decl,
-            func_call=func_call,
-            op_name=op_name,
-        )
-
-        prefix = os.path.join(workdir, "profiler", op_type)
-        if not os.path.exists(prefix):
-            os.makedirs(prefix)
-        src_path = os.path.join(prefix, op_name + ".cpp")
-        obj_path = os.path.join(prefix, op_name)
-        if os.path.exists(obj_path):
-            continue
-        with open(src_path, "w") as fo:
-            fo.write(code)
-        file_pairs.append((src_path, obj_path))
-    return file_pairs
 
 
 # no longer used by layernorm

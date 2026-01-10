@@ -16,7 +16,7 @@ device_name = get_device_name()
 
 sm = get_sm()
 
-model_name = f"randn_test.{device_name}.sm{sm}"
+model_name = f"randn_test.{device_name}.{sm}"
 
 dinoml_module = ops.randn([1, 4, 64, 64], dtype="float16", seed=69)
 pt_output = torch.randn(
@@ -51,7 +51,7 @@ torch.testing.assert_close(pt_output, output)
 benchmark_module(module=module, count=50, repeat=3)
 
 
-model_name = f"randn_test_seed_repeat.{device_name}.sm{sm}"
+model_name = f"randn_test_seed_repeat.{device_name}.{sm}"
 
 dinoml_module = ops.randn([1, 4, 64, 64], dtype="float16", seed=69)
 pt_output = torch.randn(
@@ -84,7 +84,7 @@ for _ in range(5):
 
     torch.testing.assert_close(pt_output, output)
 
-model_name = f"randn_test_multi.{device_name}.sm{sm}"
+model_name = f"randn_test_multi.{device_name}.{sm}"
 dinoml_module = ops.randn([1, 4, 64, 64], dtype="float16")
 
 Y = dinoml_module()
@@ -106,7 +106,7 @@ for _ in range(5):
     print(f"{output=}")
 
 
-model_name = f"randn_test_dynamic.{device_name}.sm{sm}"
+model_name = f"randn_test_dynamic.{device_name}.{sm}"
 
 height, width = IntVar([8, 64]), IntVar([8, 64])
 

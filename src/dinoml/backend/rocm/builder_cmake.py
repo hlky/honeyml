@@ -74,7 +74,10 @@ set(WorkaroundCmakeCompileOptions {{CMAKE_COMPILE_OPTIONS}})
 # compile a supplemental library
 add_library(objlib OBJECT ${SOURCE_FILES} ${THIRD_PARTY_SOURCE_FILES})
 target_include_directories(objlib PRIVATE ${HEADER_FILES} ${THIRD_PARTY_HEADER_FILES})
-target_link_libraries(objlib  PRIVATE hip-lang::device)
+target_link_libraries(objlib  PRIVATE
+hip-lang::host
+hip-lang::device
+)
 target_compile_options(objlib PRIVATE ${WorkaroundCmakeCompileOptions})
 set_target_properties(objlib PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 17)
 
@@ -82,7 +85,12 @@ set_target_properties(objlib PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 17)
 # compile model library
 add_library(model SHARED $<TARGET_OBJECTS:objlib>)
 target_include_directories(model PRIVATE ${HEADER_FILES} ${THIRD_PARTY_HEADER_FILES})
+{% if has_flash_attention %}
+find_library(flash_attention NAMES flash_attention HINTS {{flash_attention_dir}})
+target_link_libraries(model  PRIVATE hip-lang::device ${flash_attention})
+{% else %}
 target_link_libraries(model  PRIVATE hip-lang::device)
+{% endif %}
 target_compile_options(model PRIVATE ${WorkaroundCmakeCompileOptions})
 set_target_properties(model PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 17)
 
@@ -94,6 +102,9 @@ CMAKELISTS_TXT_PROFILER_TEMPLATE = """
 cmake_minimum_required(VERSION 3.21)
 cmake_policy(VERSION 3.21.3...3.27)
 project({{CMAKE_PROJECT}} LANGUAGES  CXX HIP)
+
+set (HIP_PLATFORM amd CACHE STRING "HIP Platform")
+
 find_package(hip-lang REQUIRED)
 find_package(rocrand REQUIRED)
 
@@ -120,7 +131,8 @@ set(WorkaroundCmakeCompileOptions {{CMAKE_COMPILE_OPTIONS}})
 add_executable(profiler ${SOURCE_FILES} ${THIRD_PARTY_SOURCE_FILES})
 target_include_directories(profiler PRIVATE ${HEADER_FILES} ${THIRD_PARTY_HEADER_FILES})
 target_compile_options(profiler PRIVATE ${WorkaroundCmakeCompileOptions})
-target_link_libraries(profiler PRIVATE hip-lang::device roc::rocrand)
+link_directories(${_IMPORT_PREFIX}/lib)
+target_link_libraries(profiler PRIVATE amdhip64 rocrand)
 set_target_properties(profiler PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 17)
 """
 
@@ -248,9 +260,7 @@ class BuilderCMake:
             # execute cmake
             cmake_build_dir = build_dir / "build"
             cmake_cmd = Target.current().cmake()
-            prefix_path = os.environ["HIP_PATH"]
-            prefix_path = os.environ["HIP_PATH"].replace("\\", "/")
-            cmake_command_line = f'{_render_path(cmake_cmd)} -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH={prefix_path}  -B {_render_path(cmake_build_dir)} -S {_render_path(build_dir)} -G "Ninja"'
+            cmake_command_line = f'{_render_path(cmake_cmd)} -D CMAKE_PREFIX_PATH="C:/TheRock/" -D CMAKE_CXX_COMPILER="C:/TheRock/bin/hipcc.exe" -DCMAKE_RC_COMPILER="C:/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64/rc.exe" -D CMAKE_BUILD_TYPE=Release -D GPU_TARGETS="gfx1201"  -B {_render_path(cmake_build_dir)} -S {_render_path(build_dir)} -G "Ninja"'
             _run_cmd(cmake_command_line, self._timeout)
 
             # execute build system
@@ -295,6 +305,19 @@ class BuilderCMake:
             _LOGGER.warning("Caching is not yet supported")
 
         build_dir = Path(workdir) / test_name
+
+        flash_attn_lib = Path(workdir) / "flash_attention.lib"
+        has_flash_attention_lib = False
+        if flash_attn_lib.exists():
+            has_flash_attention_lib = True
+        has_flash_attention = False
+        for pair in file_pairs:
+            if "flash_attn" in pair[1]:
+                has_flash_attention = True
+                break
+
+        if has_flash_attention and not has_flash_attention_lib:
+            raise ValueError("flash_attention.lib is missing.")
 
         cmake_template = jinja2.Template(CMAKELISTS_TXT_TEMPLATE)
 
@@ -345,6 +368,8 @@ class BuilderCMake:
             cuda_static=is_windows(),
             is_linux=is_linux(),
             build_standalone=debug_settings.gen_standalone,
+            has_flash_attention=has_flash_attention,
+            flash_attention_dir=Path(workdir).resolve().as_posix(),
         )
 
         cmake_filename = build_dir / "CMakeLists.txt"
@@ -356,8 +381,7 @@ class BuilderCMake:
         # execute cmake
         cmake_build_dir = build_dir / "build"
         cmake_cmd = Target.current().cmake()
-        prefix_path = os.environ["HIP_PATH"].replace("\\", "/")
-        cmake_command_line = f'{_render_path(cmake_cmd)} -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH={prefix_path}  -B {_render_path(cmake_build_dir)} -S {_render_path(build_dir)} -G "Ninja"'
+        cmake_command_line = f'{_render_path(cmake_cmd)} -D CMAKE_PREFIX_PATH="C:/TheRock/" -D CMAKE_CXX_COMPILER="C:/TheRock/bin/hipcc.exe" -DCMAKE_RC_COMPILER="C:/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64/rc.exe" -D CMAKE_BUILD_TYPE=Release -D GPU_TARGETS="gfx1201"  -B {_render_path(cmake_build_dir)} -S {_render_path(build_dir)} -G "Ninja"'
         _run_cmd(cmake_command_line, self._timeout)
 
         # execute build system

@@ -23,6 +23,7 @@ from hashlib import sha1
 
 import jinja2
 
+from dinoml.backend.backend_spec import ROCMSpec
 from dinoml.backend.target import Target
 
 # pylint: disable=C0103,C0415,W0611,C0301
@@ -36,17 +37,17 @@ using {{name}} = {{ config_name }};
 )
 PROBLEM_ARGS_TEMPLATE = jinja2.Template(
     """
-{{indent}}                                static_cast<ck::half_t *>(in_ptr),
-{{indent}}                                static_cast<ck::half_t *>(weight_ptr),
+{{indent}}                                static_cast<{{dtype}} *>(in_ptr),
+{{indent}}                                static_cast<{{dtype}} *>(weight_ptr),
 
 {% if conv2d_flag == "" %}
 {{indent}}                                {},
 {% elif conv2d_flag in ["bias", "bias_relu", "bias_sigmoid"] %}
-{{indent}}                                std::array<const void*, 1>{static_cast<ck::half_t *>(bias_ptr)},
+{{indent}}                                std::array<const void*, 1>{static_cast<{{dtype}} *>(bias_ptr)},
 {% elif conv2d_flag in ["bias_add_relu", "bias_add_identity"] %}
-{{indent}}                                std::array<const void*, 2>{static_cast<ck::half_t *>(bias_ptr), static_cast<ck::half_t *>(res_ptr)},
+{{indent}}                                std::array<const void*, 2>{static_cast<{{dtype}} *>(bias_ptr), static_cast<{{dtype}} *>(res_ptr)},
 {% endif %}
-{{indent}}                                static_cast<ck::half_t *>(out_ptr),
+{{indent}}                                static_cast<{{dtype}} *>(out_ptr),
 {{indent}}                                a_g_n_c_wis_lengths,
 {{indent}}                                a_g_n_c_wis_strides,
 {{indent}}                                b_g_k_c_xs_lengths,
@@ -77,7 +78,7 @@ PROBLEM_ARGS_TEMPLATE = jinja2.Template(
 {% elif conv2d_flag == "bias_sigmoid" %}
 {{indent}}                                ck::tensor_operation::element_wise::AddSigmoid{}
 {% elif conv2d_flag == "bias_add_identity" %}
-{{indent}}                                ck::tensor_operation::element_wise::AddAdd{}
+{{indent}}                                ck::tensor_operation::element_wise::AddAdd_{}
 {% elif conv2d_flag == "bias_add_relu" %}
 {{indent}}                                ck::tensor_operation::element_wise::AddAddRelu{}
 {% endif %}
@@ -92,7 +93,9 @@ EXEC_TEMPLATE = jinja2.Template(
 {{problem_args}}
 {{indent}});
 {{indent}}if(!op.IsSupportedArgument(argument)) {
-{{indent}}  LOG(FATAL) << "wrong! " << op.GetTypeString() << " with the specified compilation parameters does not support this Conv problem.";
+{{indent}}  throw std::runtime_error(
+{{indent}}  "wrong! Conv with the specified compilation parameters does "
+{{indent}}  "not support this Conv problem");
 {{indent}}}
 {% if is_profiler %}
 {{indent}}auto workspace_size = op.GetWorkSpaceSize(&argument);
@@ -105,7 +108,50 @@ EXEC_TEMPLATE = jinja2.Template(
 
 HEADER_CODE = jinja2.Template(
     """
-#include "ck/tensor_operation/gpu/device/impl/device_grouped_conv_fwd_multiple_d_xdl_cshuffle.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_grouped_conv_fwd_multiple_abd_xdl_cshuffle.hpp"
+
+#include "ck/utility/data_type.hpp"
+
+namespace ck {
+namespace tensor_operation {
+namespace element_wise {
+namespace {
+
+// C = A * B
+// E = C + D0 + D1
+struct AddAdd_
+{
+    static constexpr const char* name = "AddAdd";
+
+    template <typename E, typename C, typename D0, typename D1>
+    __host__ __device__ void operator()(E& e, const C& c, const D0& d0, const D1& d1) const
+    {
+        // Only support floating so far
+        static_assert(is_same<E, half_t>::value || is_same<E, bhalf_t>::value || is_same<E, float>::value ||
+                          is_same<E, double>::value,
+                      "Data type is not supported by this operation!");
+
+        static_assert(is_same<C, half_t>::value || is_same<C, bhalf_t>::value || is_same<C, float>::value ||
+                          is_same<C, double>::value,
+                      "Data type is not supported by this operation!");
+
+        static_assert(is_same<D0, half_t>::value || is_same<D0, bhalf_t>::value || is_same<D0, float>::value ||
+                          is_same<D0, double>::value,
+                      "Data type is not supported by this operation!");
+
+        static_assert(is_same<D1, half_t>::value || is_same<D1, bhalf_t>::value || is_same<D1, float>::value ||
+                          is_same<D1, double>::value,
+                      "Data type is not supported by this operation!");
+
+        const C y = c + type_convert<C>(d0) + type_convert<C>(d1);
+        e         = type_convert<E>(y);
+    }
+};
+
+} // namespace
+} // namespace element_wise
+} // namespace tensor_operation
+} // namespace ck
 """
 )
 
@@ -116,11 +162,9 @@ SRC_TEMPLATE = jinja2.Template(
 #include <initializer_list>
 #include <cstdlib>
 #include <stdlib.h>
-// #include <half.hpp>
 #include <random>
 #include <rocrand/rocrand.h>
 #include "logging.h"
-//include "ck/utility/print.hpp"
 #include "ck/library/utility/device_memory.hpp"
 #include "ck/library/utility/host_tensor.hpp"
 #include "ck/library/utility/host_tensor_generator.hpp"
@@ -242,6 +286,58 @@ void {{function_name}}(
 """
 )
 
+
+PROFILER_SRC_TEMPLATE = jinja2.Template(
+    """
+#include <iostream>
+#include <numeric>
+#include <initializer_list>
+#include <cstdlib>
+#include <stdlib.h>
+#include <random>
+#include <rocrand/rocrand.h>
+#include "logging.h"
+#include "ck/library/utility/device_memory.hpp"
+#include "ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor_generator.hpp"
+#include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
+#include "ck/tensor_operation/gpu/element/element_wise_operation.hpp"
+
+
+struct KernelTimerImpl
+{
+  KernelTimerImpl() {
+    hipGetErrorString(hipEventCreateWithFlags(&mStart, hipEventDisableSystemFence));
+    hipGetErrorString(hipEventCreateWithFlags(&mEnd, hipEventDisableSystemFence));
+  }
+  ~KernelTimerImpl() {
+    hipGetErrorString(hipEventDestroy(mStart));
+    hipGetErrorString(hipEventDestroy(mEnd));
+  }
+  void Start() {
+    hipGetErrorString(hipDeviceSynchronize());
+    hipGetErrorString(hipEventRecord(mStart, nullptr));
+  }
+  void End() {
+    hipGetErrorString(hipEventRecord(mEnd, nullptr));
+    hipGetErrorString(hipEventSynchronize(mEnd));
+  }
+  float GetElapsedTime() const {
+    float time;
+    hipGetErrorString(hipEventElapsedTime(&time, mStart, mEnd));
+    return time;
+  }
+  hipEvent_t mStart, mEnd;
+};
+
+{{extra_code}}
+
+{{instances}}
+
+"""
+)
+
+
 FUNC_CALL_TEMPLATE = jinja2.Template(
     """
 {{indent}}{{func_name}}(
@@ -323,25 +419,23 @@ struct ProfilerMemoryPool {
     strides.reserve(512);
     copies.reserve(512);
     ptrs.reserve(512);
+    rocrand_status st = rocrand_create_generator(&generator, ROCRAND_RNG_PSEUDO_DEFAULT);
+    if(st != ROCRAND_STATUS_SUCCESS) {
+      throw std::runtime_error("rocrand_create_generator failed");
+    }
   }
   ~ProfilerMemoryPool() {
     for(int i = 0; i < ptrs.size(); i++){
-      if (hipFree(&ptrs[i]) != hipSuccess) {
-      // ...
-      }
+      hipFree(ptrs[i]);
     }
+    if(generator) rocrand_destroy_generator(generator);
   }
 
   template <typename DType>
   DType* AllocateGaussianTensor(int64_t size) {
     size_t length = size * sizeof(DType);
     DType *d_x;
-    //hipMalloc(&d_x, length);
-    if (hipMalloc(&d_x, length) != hipSuccess) {
-      throw std::runtime_error(
-          " ROCMWorkspace: hipMalloc( " + std::to_string(length) +
-          " ) failed.");
-    }
+    hipMalloc(&d_x, length);
 
     float mean = 0.0f;
     float stddev = 1.0f;
@@ -351,9 +445,9 @@ struct ProfilerMemoryPool {
     return d_x;
   }
 
-  ck::half_t* AllocateHalfGaussianTensor(int64_t size) {
-    return reinterpret_cast<ck::half_t*>(
-        AllocateGaussianTensor<ck::half_t>(size));
+  {{dtype}}* AllocateHalfGaussianTensor(int64_t size) {
+    return reinterpret_cast<{{dtype}}*>(
+        AllocateGaussianTensor<float>(size));
   }
 
   int AllocateHalfTensor(int64_t size, int64_t copy) {
@@ -365,11 +459,11 @@ struct ProfilerMemoryPool {
     return ptrs.size() - 1;
   }
 
-  ck::half_t* RequestHalfTensorByIdx(int idx) {
+  {{dtype}}* RequestHalfTensorByIdx(int idx) {
     auto copy = copies.at(idx);
     auto offset = offsets.at(idx);
     auto stride = strides.at(idx);
-    ck::half_t* ptr = reinterpret_cast<ck::half_t*>(ptrs.at(idx));
+    {{dtype}}* ptr = reinterpret_cast<{{dtype}}*>(ptrs.at(idx));
     ptr += offset;
     offset += stride;
     if (offset == copy * stride) {
@@ -387,46 +481,8 @@ struct ProfilerMemoryPool {
   rocrand_generator generator;
 };
 
-
 """
 )
-
-PROFILER_TEMPLATE = jinja2.Template(
-    """
-size_t GLOBAL_WORKSPACE_SIZE = 0;
-{{op_func}}
-
-{{structs_def}}
-
-int main(int argc, char** argv) {
-  if (argc < 10) {
-    throw std::runtime_error("wrong params");
-  }
-  {{args_parse}}
-  {{shape_func}}
-  auto memory_pool = std::make_unique<ProfilerMemoryPool>();
-  hipStream_t stream = nullptr;
-  {{tensor_decl}}
-  // TODO: random init
-  // warmup
-  for(int i = 0; i < 3; ++i) {
-    {{func_call}}
-  }
-  // run
-  auto timer = new KernelTimerImpl();
-  timer->Start();
-  for(int i = 0; i < 5; ++i) {
-    {{func_call}}
-  }
-  timer->End();
-  std::cout << "OP:" << "{{op_name}}" << ",";
-  std::cout << "TIME:" << timer->GetElapsedTime() << ",";
-  std::cout << "WS:" << GLOBAL_WORKSPACE_SIZE << std::endl;
-  delete(timer);
-}
-"""
-)
-
 
 FUNC_DECL_TEMPLATE = jinja2.Template(
     """
@@ -459,6 +515,170 @@ void {{func_name}}(
 """
 )
 
+PROFILER_TEMPLATE = jinja2.Template(
+    r"""
+template <typename Instance>
+int benchmark_conv(
+  Instance& device_instance,
+  const char* op_name,
+  void* in_ptr,
+  void* weight_ptr,
+  void* out_ptr,
+{% if "bias" in conv2d_flag %}
+  void* bias_ptr,
+{% endif %}
+{% if conv2d_flag in ["bias_add_relu", "bias_add_identity"] %}
+  void* res_ptr,
+{% endif %}
+  int64_t* batch,
+  int64_t* out_ch,
+  int64_t* in_ch,
+  int64_t* kernel_h,
+  int64_t* kernel_w,
+  int64_t* in_h,
+  int64_t* in_w,
+  int64_t* out_batch,
+  int64_t* out_h,
+  int64_t* out_w,
+  int64_t stride,
+  int64_t dilation,
+  int64_t pad,
+  int64_t group,
+  hipStream_t stream)
+{
+  int C_ = (*in_ch) / group;
+  int K_ = (*out_ch) / group;
+  int N_ = (*batch);
+  const int NDimSpatial = 2;
+
+  std::array<ck::index_t, NDimSpatial + 3> a_g_n_c_wis_lengths{
+    static_cast<ck::index_t>(group),
+    static_cast<ck::index_t>(N_),
+    static_cast<ck::index_t>(C_),
+    static_cast<ck::index_t>(*in_h),
+    static_cast<ck::index_t>(*in_w)
+  };
+
+  std::array<ck::index_t, NDimSpatial + 3> a_g_n_c_wis_strides{
+    static_cast<ck::index_t>(C_),
+    static_cast<ck::index_t>((*in_h) * (*in_w) * group * C_),
+    static_cast<ck::index_t>(1),
+    static_cast<ck::index_t>((*in_w) * group * C_),
+    static_cast<ck::index_t>(group * C_)
+  };
+
+  std::array<ck::index_t, NDimSpatial + 3> b_g_k_c_xs_lengths{
+    static_cast<ck::index_t>(group),
+    static_cast<ck::index_t>(K_),
+    static_cast<ck::index_t>(C_),
+    static_cast<ck::index_t>(*kernel_h),
+    static_cast<ck::index_t>(*kernel_w)
+  };
+
+  std::array<ck::index_t, NDimSpatial + 3> b_g_k_c_xs_strides{
+    static_cast<ck::index_t>((*kernel_h) * (*kernel_w) * C_ * K_),
+    static_cast<ck::index_t>((*kernel_h) * (*kernel_w) * C_),
+    static_cast<ck::index_t>(1),
+    static_cast<ck::index_t>((*kernel_w) * C_),
+    static_cast<ck::index_t>(C_)
+  };
+
+  std::array<ck::index_t, NDimSpatial + 3> d_g_n_k_wos_lengths{
+    static_cast<ck::index_t>(group),
+    static_cast<ck::index_t>(N_),
+    static_cast<ck::index_t>(K_),
+    static_cast<ck::index_t>(*out_h),
+    static_cast<ck::index_t>(*out_w)
+  };
+  std::array<ck::index_t, NDimSpatial + 3> d_g_n_k_wos_strides{
+    static_cast<ck::index_t>(K_), 0, 1, 0, 0
+  };
+
+  std::array<ck::index_t, NDimSpatial + 3> e_g_n_k_wos_lengths{
+    static_cast<ck::index_t>(group),
+    static_cast<ck::index_t>(N_),
+    static_cast<ck::index_t>(K_),
+    static_cast<ck::index_t>(*out_h),
+    static_cast<ck::index_t>(*out_w)
+  };
+
+  std::array<ck::index_t, NDimSpatial + 3> e_g_n_k_wos_strides{
+    static_cast<ck::index_t>(K_),
+    static_cast<ck::index_t>((*out_h) * (*out_w) * group * K_),
+    static_cast<ck::index_t>(1),
+    static_cast<ck::index_t>((*out_w) * group * K_),
+    static_cast<ck::index_t>(group * K_)
+  };
+
+  std::array<ck::index_t, NDimSpatial> conv_filter_strides{
+    static_cast<ck::index_t>(stride), static_cast<ck::index_t>(stride)
+  };
+  std::array<ck::index_t, NDimSpatial> conv_filter_dilations{
+    static_cast<ck::index_t>(dilation), static_cast<ck::index_t>(dilation)
+  };
+  std::array<ck::index_t, NDimSpatial> input_left_pads{
+    static_cast<ck::index_t>(pad), static_cast<ck::index_t>(pad)
+  };
+  std::array<ck::index_t, NDimSpatial> input_right_pads{
+    static_cast<ck::index_t>(pad), static_cast<ck::index_t>(pad)
+  };
+
+  auto invoker = device_instance.MakeInvoker();
+
+  auto argument = device_instance.MakeArgument(
+    {{problem_args}}
+  );
+
+  if(!device_instance.IsSupportedArgument(argument)) {
+    return -1;
+  }
+
+  auto workspace_size = device_instance.GetWorkSpaceSize(&argument);
+
+  // warmup
+  for(int i = 0; i < 3; ++i) {
+    invoker.Run(argument, StreamConfig{stream, false});
+  }
+
+  KernelTimerImpl timer;
+  timer.Start();
+  for(int i = 0; i < 5; ++i) {
+    invoker.Run(argument, StreamConfig{stream, false});
+  }
+  timer.End();
+
+  std::cout << "OP:" << op_name << ",";
+  std::cout << "TIME:" << timer.GetElapsedTime() << ",";
+  std::cout << "WS:" << workspace_size << std::endl 
+              << std::flush;
+
+  return 0;
+}
+"""
+)
+
+PROFILE_CALL_TEMPLATE = jinja2.Template(
+    r"""
+{
+  {{instance_type}} device_instance;
+  benchmark_conv(
+  device_instance,
+  "{{op_name}}",
+  (void*)memory_pool->RequestHalfTensorByIdx(0),
+  (void*)memory_pool->RequestHalfTensorByIdx(1),
+  (void*)memory_pool->RequestHalfTensorByIdx(2),
+{% if "bias" in conv2d_flag %}
+  (void*)memory_pool->RequestHalfTensorByIdx(3),
+{% endif %}
+{% if conv2d_flag in ["bias_add_relu", "bias_add_identity"] %}
+  (void*)memory_pool->RequestHalfTensorByIdx(4),
+{% endif %}
+  &NI, &CO, &CI, &KH, &KW, &HI, &WI, &NO, &HO, &WO,
+  SH, DH, PH, group, stream);
+}
+"""
+)
+
 
 def emit_instance(op):
     """Emits instance."""
@@ -468,7 +688,11 @@ def emit_instance(op):
     return op_def
 
 
-def extract_config(op_kind, extra_kind):
+def extract_config(
+    op_kind,
+    extra_kind,
+    dtype="float16",
+):
     """
     Parameters
     ----------
@@ -486,10 +710,44 @@ def extract_config(op_kind, extra_kind):
     """
     import dinoml.utils.ck_lib as ck_lib  # noqa: F401
 
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(dtype)
+
+    if lib_dtype == "float":
+        data_type = ck_lib.library.DataType.f32
+        acc_type = ck_lib.library.DataType.f32
+    elif lib_dtype == "ck::half_t":
+        data_type = ck_lib.library.DataType.f16
+        acc_type = ck_lib.library.DataType.f32
+        # check target use fp16 acc
+        if (
+            "use_fp16_acc" in Target.current()._kwargs
+            and Target.current().name() != "rocm"
+        ):
+            if Target.current()._kwargs["use_fp16_acc"]:
+                acc_type = ck_lib.library.DataType.f16
+    elif lib_dtype == "ck::bhalf_t":
+        data_type = ck_lib.library.DataType.bf16
+        acc_type = ck_lib.library.DataType.f32
+    else:
+        raise RuntimeError(f"Unsupported dtype {lib_dtype}")
+
+    def f_proc_op(op: ck_lib.conv2d_operation.Conv2DOperation):
+        if (
+            op.A.element == data_type
+            and op.B.element == data_type
+            and op.C.element == data_type
+            and op.acc_dtype == acc_type
+        ):
+            return op
+        return None
+
     conv2d_ops = OrderedDict()
     extract_ops = list(Target.current()._operators[op_kind][extra_kind].items())
     for key, value in extract_ops:
-        conv2d_ops[key] = value[0]
+        op = value[0]
+        if f_proc_op(op) is not None:
+            conv2d_ops[key] = op
     return conv2d_ops
 
 
@@ -524,28 +782,21 @@ def gen_profiler(
     shape_template,
     conv2d_flag,
     extra_code="",
-    src_template=SRC_TEMPLATE,
+    src_template=PROFILER_SRC_TEMPLATE,
     prob_args_template=PROBLEM_ARGS_TEMPLATE,
+    profile_filename=None,
 ):
-    """Generates standalone executables for profiler.
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
 
-    Parameters
-    ----------
-    func_attrs : Dict
-        Operation attributes.
-    workdir : str
-        Directory to store the generated outputs.
-    shape_template : jinja2.Template
-        Generates shape calculation.
-        The template is passed from compiler/ops/pool.
-    conv2d_flag : str
-        Flag telling which backend should be generated. options are '','bias','bias_relu','bias_add_relu','bias_add_identity'.
-    extra_code : str
-        Extra code for self-defined operators.
-    """
     op_type = func_attrs["op"]
+    prefix = os.path.join(workdir, "profiler", op_type)
+    src_path = os.path.join(prefix, f"{profile_filename}.cpp")
+    obj_path = os.path.join(prefix, profile_filename)
+    if os.path.exists(obj_path):
+        return
     op_instance = func_attrs["op_instance"]
-    # shape function
     shape_func = shape_template.render(
         indent="  ",
         dtype="int64_t ",
@@ -564,78 +815,94 @@ def gen_profiler(
         dilatew="dilation",
         padw="pad",
     )
-    file_pairs = []
-    for op_name, op in op_instance.items():
+
+    instances_code = []
+    profile_calls = []
+
+    for i, (op_name, op) in enumerate(op_instance.items()):
         config = emit_instance(op)
         config_name = extract_config_name(config)
-        instance = INSTANCE_TEMPLATE.render(
-            name="DeviceConvFwdInstance", config_name=config_name, config=config
-        )
-        problem_args = prob_args_template.render(
-            indent="  ",
-            conv2d_flag=conv2d_flag,
-        )
-        exec_program = EXEC_TEMPLATE.render(
-            indent="  ",
-            instance="DeviceConvFwdInstance",
-            problem_args=problem_args,
-            is_profiler=True,
-        )
-        op_func = src_template.render(
-            instances=instance,
-            function_name="conv",
-            shape_func="",
-            exec_paths=exec_program,
-            extra_code=extra_code,
-            conv2d_flag=conv2d_flag,
-        )
-        structs_def = STRUCTS_DEF_TEMPLATE.render()
-        args_parse = ARGS_PARSE_TEMPLATE.render()
-        tensor_decl = TENSOR_DECL_TEMPLATE.render(conv2d_flag=conv2d_flag)
-        func_call = FUNC_CALL_TEMPLATE.render(
-            func_name="conv",
-            in_ptr="(void *) memory_pool->RequestHalfTensorByIdx(0)",
-            weight_ptr="(void *) memory_pool->RequestHalfTensorByIdx(1)",
-            out_ptr="(void *) memory_pool->RequestHalfTensorByIdx(2)",
-            bias_ptr="(void *) memory_pool->RequestHalfTensorByIdx(3)",
-            res_ptr="(void *) memory_pool->RequestHalfTensorByIdx(4)",
-            p_batch="&NI",
-            p_out_ch="&CO",
-            p_in_ch="&CI",
-            p_kernel_h="&KH",
-            p_kernel_w="&KW",
-            p_in_h="&HI",
-            p_in_w="&WI",
-            p_out_batch="&NO",
-            p_out_h="&HO",
-            p_out_w="&WO",
-            stride="SH",
-            dilation="DH",
-            pad="PH",
-            group="group",
-            conv2d_flag=conv2d_flag,
+
+        instance_typedef_name = f"DeviceConvFwdInstance_{i}"
+
+        instances_code.append(
+            INSTANCE_TEMPLATE.render(
+                name=instance_typedef_name,
+                config_name=config_name,
+                config=config,
+            )
         )
 
-        code = PROFILER_TEMPLATE.render(
-            structs_def=structs_def,
-            op_func=op_func,
-            shape_func=shape_func,
-            args_parse=args_parse,
-            tensor_decl=tensor_decl,
-            func_call=func_call,
-            op_name=op_name,
+        profile_calls.append(
+            PROFILE_CALL_TEMPLATE.render(
+                instance_type=instance_typedef_name,
+                op_name=op_name,
+                conv2d_flag=conv2d_flag,
+            )
         )
-        prefix = os.path.join(workdir, "profiler", op_type)
-        if not os.path.exists(prefix):
-            os.makedirs(prefix)
-        src_path = os.path.join(prefix, op_name + ".cpp")
-        obj_path = os.path.join(prefix, op_name)
-        if os.path.exists(obj_path):
-            continue
-        with open(src_path, "w") as fo:
-            fo.write(code)
-        file_pairs.append((src_path, obj_path))
-    return file_pairs
+
+    instances = "\n".join(instances_code)
+    calls = "\n".join(profile_calls)
+
+    problem_args = prob_args_template.render(
+        indent="  ", conv2d_flag=conv2d_flag, dtype=lib_dtype
+    )
+
+    profile_one = PROFILER_TEMPLATE.render(
+        conv2d_flag=conv2d_flag,
+        problem_args=problem_args,
+    )
+
+    op_func = src_template.render(
+        instances=instances + "\n" + profile_one,
+        shape_func="",
+        exec_paths="",
+        extra_code=extra_code,
+        conv2d_flag=conv2d_flag,
+    )
+
+    structs_def = STRUCTS_DEF_TEMPLATE.render(dtype=lib_dtype)
+    args_parse = ARGS_PARSE_TEMPLATE.render()
+    tensor_decl = TENSOR_DECL_TEMPLATE.render(conv2d_flag=conv2d_flag)
+
+    code = jinja2.Template(
+        r"""
+size_t GLOBAL_WORKSPACE_SIZE = 0;
+{{op_func}}
+
+{{structs_def}}
+
+int main(int argc, char** argv) {
+  if (argc < 12) {
+    throw std::runtime_error("wrong params");
+  }
+
+  {{args_parse}}
+  {{shape_func}}
+
+  auto memory_pool = std::make_unique<ProfilerMemoryPool>();
+  hipStream_t stream = nullptr;
+
+  {{tensor_decl}}
+
+  {{calls}}
+}
+"""
+    ).render(
+        op_func=op_func,
+        structs_def=structs_def,
+        args_parse=args_parse,
+        shape_func=shape_func,
+        tensor_decl=tensor_decl,
+        calls=calls,
+    )
+
+    os.makedirs(prefix, exist_ok=True)
+
+    with open(src_path, "w") as fo:
+        fo.write(code)
+
+    return [(src_path, obj_path)]
 
 
 def gen_function(
@@ -672,6 +939,10 @@ def gen_function(
     str
         The rendered template of generated function body.
     """
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
     func_name = func_attrs["name"]
     exec_path = func_attrs["exec_path"]
     op_instance = func_attrs["op_instance"]
@@ -724,6 +995,7 @@ def gen_function(
         problem_args = prob_args_template.render(
             indent="    ",
             conv2d_flag=conv2d_flag,
+            dtype=lib_dtype,
         )
         program = EXEC_TEMPLATE.render(
             indent="    ",

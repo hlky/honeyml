@@ -25,7 +25,7 @@ class UNet2DConditionBuilder(Build):
 
     """
 
-    model_name = "unet2d_condition.{label}.{resolution}.{device_name}.sm{sm}"
+    model_name = "unet2d_condition.{label}.{resolution}.{device_name}.{sm}"
     map_function = map_unet2d_condition
     model_output_names = ["Y"]
 

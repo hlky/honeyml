@@ -171,6 +171,7 @@ def get_down_block(
             resnet_act_fn=resnet_act_fn,
             downsample_padding=downsample_padding,
             resnet_time_scale_shift=resnet_time_scale_shift,
+            dtype=dtype,
         )
     elif down_block_type == "AttnSkipDownBlock2D":
         return AttnSkipDownBlock2D(

@@ -30,6 +30,7 @@ from dinoml.backend import registry
 from dinoml.backend.target import (
     DINOML_STATIC_FILES_PATH,
     COMPOSABLE_KERNEL_PATH,
+    _3RDPARTY_PATH,
     Target,
 )
 
@@ -84,7 +85,9 @@ class ROCM(Target):
         str
             path to rocm compiler library
         """
-        rocm_path = os.environ.get("HIP_PATH", "/opt/rocm")
+        rocm_path = os.environ.get(
+            "HIP_PATH", "/opt/rocm" if is_linux() else "C:/TheRock"
+        )
         return rocm_path
 
     def _get_ck_paths(self) -> List[str]:
@@ -95,6 +98,7 @@ class ROCM(Target):
             os.path.join(self._template_path, "library/include/"),
             os.path.join(self._template_path, "profiler/include/"),
             os.path.join(self.static_files_path, "include"),
+            str(_3RDPARTY_PATH),
             f"{self._pkg_path()}/include",
         ]
         return ck_paths

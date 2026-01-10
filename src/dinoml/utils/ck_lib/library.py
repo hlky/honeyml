@@ -39,6 +39,7 @@ class DataType(enum.Enum):
 ShortDataTypeNames = {
     DataType.s32: "i",
     DataType.f16: "h",
+    DataType.bf16: "bf",
     DataType.f32: "s",
     DataType.f64: "d",
 }
@@ -305,7 +306,7 @@ class TensorOperation(enum.Enum):
 TensorOperationTag = {
     TensorOperation.PassThrough: "ck::tensor_operation::element_wise::PassThrough",
     TensorOperation.Add: "ck::tensor_operation::element_wise::Add",
-    TensorOperation.AddAdd: "ck::tensor_operation::element_wise::AddAdd",
+    TensorOperation.AddAdd: "ck::tensor_operation::element_wise::AddAdd_",
     TensorOperation.AddMul: "ck::tensor_operation::element_wise::AddMul",
     TensorOperation.AddMulTanh: "ck::tensor_operation::element_wise::AddMulTanh",
     TensorOperation.AlphaBetaAdd: "ck::tensor_operation::element_wise::AlphaBetaAdd",

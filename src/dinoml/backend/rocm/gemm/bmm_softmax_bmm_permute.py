@@ -26,6 +26,7 @@ This is used for `ops.bmm_softmax_bmm_permute`.
 import jinja2
 
 from dinoml.backend import registry
+from dinoml.backend.backend_spec import ROCMSpec
 from dinoml.backend.common import gemm_common
 from dinoml.backend.rocm.gemm import bmm_common, common
 from dinoml.backend.rocm.gemm.layout import RCR
@@ -47,7 +48,7 @@ INPUT_ADDR_CALCULATOR = jinja2.Template(
 
 EXTRA_CODE = jinja2.Template(
     """
-const ck::half_t alpha = {{scale}};
+const {{dtype}} alpha = {{scale}};
 """
 )
 
@@ -84,10 +85,10 @@ EXTRA_HEADER_TEMPLATE = jinja2.Template(
 
 PROBLEM_ARGS_TEMPLATE = jinja2.Template(
     """
-{{indent}}                                static_cast<ck::half_t*>(in_ptr) + in_offset,
-{{indent}}                                static_cast<ck::half_t*>(weight_ptr) + weight_offset,
-{{indent}}                                static_cast<ck::half_t*>(bias_ptr) + bias_offset,
-{{indent}}                                static_cast<ck::half_t*>(out_ptr),
+{{indent}}                                static_cast<{{dtype}}*>(in_ptr) + in_offset,
+{{indent}}                                static_cast<{{dtype}}*>(weight_ptr) + weight_offset,
+{{indent}}                                static_cast<{{dtype}}*>(bias_ptr) + bias_offset,
+{{indent}}                                static_cast<{{dtype}}*>(out_ptr),
 {{indent}}                                {},
 {{indent}}                                {},
 {{indent}}                                {B/G1, G1, M, K},
@@ -220,6 +221,10 @@ def bmm_gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
         Generated from bmm._extract_dims().
         Used to store mapping between dim_names to input / output tensor dims.
     """
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
     return bmm_common.gen_profiler(
         func_attrs=func_attrs,
         workdir=workdir,
@@ -230,7 +235,7 @@ def bmm_gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
         tensor_decl_template=TENSOR_DECL_TEMPLATE,
         problem_args_template=PROBLEM_ARGS_TEMPLATE,
         extra_shape_template=PROFILER_EXTRA_SHAPE_TEMPLATE,
-        extra_code=EXTRA_CODE.render(scale=func_attrs["scale"]),
+        extra_code=EXTRA_CODE.render(scale=func_attrs["scale"], dtype=lib_dtype),
     )
 
 
@@ -312,6 +317,10 @@ def bmm_gen_function(func_attrs, exec_cond_template, dim_info_dict):
     )
     # TODO: add support for output_tensor_accessors
 
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
     return bmm_common.gen_function(
         func_attrs,
         exec_cond_template,
@@ -320,7 +329,7 @@ def bmm_gen_function(func_attrs, exec_cond_template, dim_info_dict):
         problem_args_template=PROBLEM_ARGS_TEMPLATE,
         extra_shape_template=EXTRA_SHAPE_TEMPLATE,
         extra_header_template=EXTRA_HEADER_TEMPLATE,
-        extra_code=EXTRA_CODE.render(scale=func_attrs["scale"]),
+        extra_code=EXTRA_CODE.render(scale=func_attrs["scale"], dtype=lib_dtype),
         input_addr_calculator=input_addr_calculator,
         output_addr_calculator="",
     )

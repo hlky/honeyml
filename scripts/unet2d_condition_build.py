@@ -12,6 +12,7 @@ builder = UNet2DConditionBuilder(
     },
     model_kwargs={
         "subfolder": "unet",
+        "variant": "fp16",
     },
 )
 builder()

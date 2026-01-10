@@ -28,7 +28,7 @@ class T5EncoderBuilder(Build):
 
     """
 
-    model_name = "t5.{model_type}.{label}.{device_name}.sm{sm}"
+    model_name = "t5.{model_type}.{label}.{device_name}.{sm}"
     model_type = "encoder"
     map_function = map_t5
     model_output_names = ["last_hidden_state"]

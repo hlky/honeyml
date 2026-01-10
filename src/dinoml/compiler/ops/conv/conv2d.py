@@ -23,6 +23,7 @@ import re
 from collections import OrderedDict
 from hashlib import sha1
 from operator import itemgetter
+import time
 from typing import Any, Dict, List, Tuple, Union, Optional
 
 import jinja2
@@ -473,7 +474,7 @@ class conv2d(Operator):
 
         return attr
 
-    def _should_build_profiler(self) -> bool:
+    def _should_build_profiler(self, workdir=None) -> bool:
         """
         Check if we should build profilers. If we have a cached
         entry for this conv instance, we update this conv op's
@@ -488,6 +489,12 @@ class conv2d(Operator):
                 )
             # If there are dynamic dims, we'll have to generate and build the
             # profilers, as the binaries will be needed for dynamic profiling.
+            if workdir is not None:
+                profiler_filename = get_profiler_filename(self._attrs, "conv")
+                profiler_prefix = os.path.join(workdir, "profiler", self._attrs["op"])
+                profiler_path = os.path.join(profiler_prefix, profiler_filename)
+                if os.path.exists(profiler_path):
+                    return False
             return True
         # We are forced to use the cache so we skip building profilers.
         if force_cache:
@@ -557,10 +564,11 @@ class conv2d(Operator):
         target = backend.target.Target.current()
 
         op = self._attrs["op"]
-        if op.startswith("conv2d"):
-            op = "conv2d"
-        if op.startswith("transposed_conv2d"):
-            op = "transposed_conv2d"
+        if target.name() == "cuda":
+            if op.startswith("conv2d"):
+                op = "conv2d"
+            if op.startswith("transposed_conv2d"):
+                op = "transposed_conv2d"
         func_key = "{target}.{op}.config".format(
             target=target.name(),
             op=op,
@@ -568,7 +576,7 @@ class conv2d(Operator):
         func = registry.get(func_key)
         func(self._attrs, dtype=self._attrs["inputs"][0]._attrs["dtype"])
 
-        if self._should_build_profiler():
+        if self._should_build_profiler(workdir):
             x_shapes = [
                 self._invert_exec_key(exec_key) for exec_key in self._attrs["exec_path"]
             ]
@@ -730,10 +738,11 @@ class conv2d(Operator):
         if "op_instance" not in self._attrs:
             # init candidate ops
             op = self._attrs["op"]
-            if op.startswith("conv2d"):
-                op = "conv2d"
-            if op.startswith("transposed_conv2d"):
-                op = "transposed_conv2d"
+            if target.name() == "cuda":
+                if op.startswith("conv2d"):
+                    op = "conv2d"
+                if op.startswith("transposed_conv2d"):
+                    op = "transposed_conv2d"
             func_key = "{target}.{op}.config".format(
                 target=target.name(),
                 op=op,
@@ -905,10 +914,11 @@ class conv2d(Operator):
     def gen_function(self) -> str:
         target = backend.target.Target.current()
         op = self._attrs["op"]
-        if op.startswith("conv2d"):
-            op = "conv2d"
-        if op.startswith("transposed_conv2d"):
-            op = "transposed_conv2d"
+        if target.name() == "cuda":
+            if op.startswith("conv2d"):
+                op = "conv2d"
+            if op.startswith("transposed_conv2d"):
+                op = "transposed_conv2d"
         func_key = "{target}.{op}.gen_function".format(
             target=target.name(),
             op=op,

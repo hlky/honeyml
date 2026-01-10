@@ -3,21 +3,9 @@ from typing import Optional, Union
 from dinoml.compiler import ops
 
 from dinoml.frontend import IntVar, nn, Tensor
+from dinoml.utils.shape_utils import get_shape
 
 from .normalization import FP32LayerNorm, RMSNorm
-
-
-# TODO: other processors
-def get_shape(x):
-    shape = [
-        (
-            it.value()
-            if not isinstance(it, IntVar)
-            else [it.lower_bound(), it.upper_bound()]
-        )
-        for it in x._attrs["shape"]
-    ]
-    return shape
 
 
 class Attention(nn.Module):
@@ -591,21 +579,13 @@ class AttnProcessor2_0:
         key = attn.to_k(encoder_hidden_states)
         value = attn.to_v(encoder_hidden_states)
 
-        inner_dim = ops.size()(key, dim=-1)._attrs["int_var"]
-        head_dim = inner_dim / attn.heads
+        inner_dim = attn.inner_dim
+        head_dim = inner_dim // attn.heads
 
-        query = ops.permute()(
-            ops.reshape()(query, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
-        )
-
-        key = ops.permute()(
-            ops.reshape()(key, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
-        )
-        value = ops.permute()(
-            ops.reshape()(value, [batch_size, -1, attn.heads, head_dim]), [0, 2, 1, 3]
-        )
-
-        attn_op = ops.mem_eff_attention(causal=False)
+        query = ops.reshape()(query, [batch_size, -1, attn.heads, head_dim])
+        key = ops.reshape()(key, [batch_size, -1, attn.heads, head_dim])
+        value = ops.reshape()(value, [batch_size, -1, attn.heads, head_dim])
+        attn_op = ops.flash_attn()
         hidden_states = attn_op(query, key, value)
 
         hidden_states = ops.reshape()(
@@ -626,8 +606,8 @@ class AttnProcessor2_0:
         if attn.residual_connection:
             hidden_states = hidden_states + residual
 
-        # if attn.rescale_output_factor != 1.0:
-        hidden_states = hidden_states / attn.rescale_output_factor
+        if float(attn.rescale_output_factor) != 1.0:
+            hidden_states = hidden_states / attn.rescale_output_factor
 
         return hidden_states
 

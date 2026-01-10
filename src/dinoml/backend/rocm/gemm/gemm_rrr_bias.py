@@ -122,7 +122,7 @@ def gemm_gen_function_decl(func_attrs):
         The rentered template of function declaration.
     """
     func_name = func_attrs["name"]
-    return common.gen_function_decl(func_name=func_name, gemm_flag="bias")
+    return common.gen_function_decl(func_attrs, gemm_flag="bias")
 
 
 @registry.reg("rocm.gemm_rrr_bias.func_call")

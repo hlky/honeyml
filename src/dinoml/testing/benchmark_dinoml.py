@@ -60,6 +60,8 @@ def benchmark_module(
         outputs = module.run_with_tensors(inputs, outputs)
         for name, tensor in outputs.items():
             print(f"{name=} {tensor=}")
+        if count == 0:
+            return
     inputs, outputs = prepare_inputs_outputs(module, device)
     mean, std, _ = module.benchmark_with_tensors(
         inputs, outputs, count=count, repeat=repeat, graph_mode=graph_mode

@@ -17,7 +17,8 @@ flash attention module init
 """
 
 from dinoml.compiler.ops.attention.flash_attention import flash_attention
+from dinoml.compiler.ops.attention.flash_attn import flash_attn
 from dinoml.compiler.ops.attention.mem_eff_attention import mem_eff_attention
 
 
-__all__ = ["flash_attention", "mem_eff_attention"]
+__all__ = ["flash_attention", "mem_eff_attention", "flash_attn"]

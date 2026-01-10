@@ -60,7 +60,7 @@ XdlOpTag = {
     XdlOpType.DeviceConv2d_Xdl_CShuffle_Bias_Relu: "ck::tensor_operation::device::DeviceConv2dFwdXdl_C_Shuffle_Bias_Activation_Input_N_Hi_Wi_C_Weight_K_Y_X_C_Output_N_Ho_Wo_K",
     XdlOpType.DeviceConv2d_Xdl_CShuffle_Bias_Relu_Add: "ck::tensor_operation::device::DeviceConv2dFwdXdl_C_Shuffle_Bias_Activation_Add_Input_N_Hi_Wi_C_Weight_K_Y_X_C_Output_N_Ho_Wo_K",
     XdlOpType.DeviceConv2d_Xdl_CShuffle_Bias_Sigmoid: "ck::tensor_operation::device::DeviceConv2dFwdXdl_C_Shuffle_Bias_Activation_Input_N_Hi_Wi_C_Weight_K_Y_X_C_Output_N_Ho_Wo_K",
-    XdlOpType.DeviceGroupedConv2D_Xdl_CShuffle_Bias_Relu: "ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD_Xdl_CShuffle",
+    XdlOpType.DeviceGroupedConv2D_Xdl_CShuffle_Bias_Relu: "ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle",
     XdlOpType.DeviceConvNdBwdDataNwcKxcNwk_Xdl: "ck::tensor_operation::device::DeviceConvNdBwdDataNwcKxcNwk_Xdl",
     XdlOpType.DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1: "ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1",
 }
@@ -239,9 +239,10 @@ class Conv2DOperation:
     a_block_transfer: BlockTransferDesc
     b_block_transfer: BlockTransferDesc
     c_block_transfer: CBlockTransferDesc
+    acc_dtype: library.DataType = library.DataType.f32
 
     def __str__(self) -> str:
-        io_name = "{conv2d_kind}_{conv2d_specialization}_{gemm_specialization}_{a_dtype}{b_dtype}{c_dtype}_{a_layout}_{b_layout}_{c_layout}".format(
+        io_name = "{conv2d_kind}_{conv2d_specialization}_{gemm_specialization}_{a_dtype}{b_dtype}{c_dtype}_{acc_dtype}_{a_layout}_{b_layout}_{c_layout}".format(
             conv2d_kind=library.Conv2dKindNames[self.operation_kind],
             conv2d_specialization=self.conv2d_specialization.value,
             gemm_specialization=self.gemm_specialization.value,
@@ -251,6 +252,7 @@ class Conv2DOperation:
             a_layout=library.ShortLayoutTypeNames[self.A.layout],
             b_layout=library.ShortLayoutTypeNames[self.B.layout],
             c_layout=library.ShortLayoutTypeNames[self.C.layout],
+            acc_dtype=library.ShortDataTypeNames[self.acc_dtype],
         )
         tile_name = str(self.tile_desc)
         return "{io_name}_{tile_name}_{epilogue_functor}".format(
@@ -260,7 +262,7 @@ class Conv2DOperation:
         )
 
     def accumulator_type(self):
-        return library.DataType.f32
+        return self.acc_dtype
 
     def emit(self) -> str:
         template = jinja2.Template(
@@ -338,7 +340,7 @@ using {{name}} = {{xdl_op_type}}<
             ADType=library.DataTypeTag[self.A.element],
             BDType=library.DataTypeTag[self.B.element],
             CDType=library.DataTypeTag[self.C.element],
-            AccDType=library.DataTypeTag[library.DataType.f32],
+            AccDType=library.DataTypeTag[self.acc_dtype],
             CShuffleDType=library.DataTypeTag[self.C.element],
             A_elem_op=library.TensorOperationTag[self.a_elem_op],
             B_elem_op=library.TensorOperationTag[self.b_elem_op],

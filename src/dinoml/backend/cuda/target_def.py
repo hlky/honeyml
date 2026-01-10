@@ -30,6 +30,7 @@ from dinoml.backend import registry
 from dinoml.backend.target import (
     DINOML_STATIC_FILES_PATH,
     CUTLASS_PATH,
+    _3RDPARTY_PATH,
     Target,
 )
 
@@ -89,9 +90,15 @@ class CUDA(Target):
             self._dinoml_include_path, "include/kernels"
         )
         dinoml_static_path = os.path.join(self._dinoml_include_path, "include")
+        flash_attn = [
+            str(_3RDPARTY_PATH),
+            os.path.join(_3RDPARTY_PATH, "flash_attn"),
+            os.path.join(str(os.path.join(_3RDPARTY_PATH, "flash_attn")), "src"),
+        ]
 
         output = [dinoml_kernels_static_path, dinoml_static_path]
         output.extend(cutlass_path)
+        output.extend(flash_attn)
         return output
 
     def get_include_directories(self) -> List[str]:

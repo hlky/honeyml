@@ -112,7 +112,7 @@ def gen_function(func_attrs: Dict[str, Any], header_files: str, backend_spec) ->
         "float32",
         "float16",
         "bfloat16",
-        "int",
+        "int32",
         "int64",
     ]:
         raise NotImplementedError("Unsupported data type for arange " + output_type)

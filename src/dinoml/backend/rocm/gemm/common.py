@@ -23,6 +23,7 @@ from hashlib import sha1
 
 import jinja2
 
+from dinoml.backend.backend_spec import ROCMSpec
 from dinoml.backend.common import gemm_common
 from dinoml.backend.target import Target
 from dinoml.compiler.base import IntVar
@@ -52,9 +53,32 @@ OUTPUT_ADDR_CALCULATOR = jinja2.Template(
 
 EXTRA_SHAPE_TEMPLATE = jinja2.Template(
     """
-{{indent}}ck::index_t stride_a = *a_dim1;
-{{indent}}ck::index_t stride_b = *b_dim1;
-{{indent}}ck::index_t stride_c = *c_dim1;
+auto f_get_default_stride =
+    [](std::size_t row, std::size_t col, ck::index_t stride, auto layout) {
+        if(stride == -1 || stride == 0)
+        {
+            // give a chance if stride is -1, return a default packed stride
+            if constexpr(std::is_same_v<decltype(layout), ck::tensor_layout::gemm::RowMajor>)
+            {
+                return static_cast<std::size_t>(col);
+            }
+            else
+            {
+                return static_cast<std::size_t>(row);
+            }
+        }
+        else
+            return static_cast<std::size_t>(stride);
+    };
+
+{{indent}}ck::index_t stride_a = -1;
+{{indent}}ck::index_t stride_b = -1;
+{{indent}}ck::index_t stride_c = -1;
+
+stride_a = f_get_default_stride(M, K, stride_a, ck::tensor_layout::gemm::RowMajor{});
+stride_b = f_get_default_stride(K, N, stride_b, ck::tensor_layout::gemm::ColumnMajor{});
+stride_c = f_get_default_stride(M, N, stride_c, ck::tensor_layout::gemm::RowMajor{});
+
 """
 )
 
@@ -114,11 +138,9 @@ SRC_TEMPLATE = jinja2.Template(
 #include <initializer_list>
 #include <cstdlib>
 #include <stdlib.h>
-// #include <half.hpp>
 #include <random>
 #include <rocrand/rocrand.h>
 #include "logging.h"
-//#include "include/ck/utility/print.hpp"
 
 #include "ck/ck.hpp"
 #include "ck/tensor_operation/gpu/device/gemm_specialization.hpp"
@@ -152,13 +174,13 @@ void {{function_name}}(
 {% if has_d1 %}
     void * d1_ptr,
 {% endif %}
-{% for idx in range(ndims) %}
+{% for idx in range(adims) %}
     int64_t* a_dim{{idx}},
 {% endfor %}
-{% for idx in range(ndims) %}
+{% for idx in range(bdims) %}
     int64_t* b_dim{{idx}},
 {% endfor %}
-{% for idx in range(ndims) %}
+{% for idx in range(cdims) %}
     int64_t* c_dim{{idx}},
 {% endfor %}
 {% for idx in range(pdims) %}
@@ -246,30 +268,30 @@ FUNC_CALL_TEMPLATE = jinja2.Template(
 
 PROBLEM_ARGS_TEMPLATE = jinja2.Template(
     """
-{{indent}}                                static_cast<ck::half_t *>(in_ptr) + offset_a,
-{{indent}}                                static_cast<ck::half_t *>(weight_ptr) + offset_b,
+{{indent}}                                static_cast<{{dtype}} *>(in_ptr) + offset_a,
+{{indent}}                                static_cast<{{dtype}} *>(weight_ptr) + offset_b,
 
 {% if gemm_flag == "bias_permute" %}
-{{indent}}                                static_cast<ck::half_t *>(bias_ptr),
+{{indent}}                                static_cast<{{dtype}} *>(bias_ptr),
 {% elif gemm_flag == "permute" %}
 {{indent}}                                nullptr,
 {% elif gemm_flag == "bias_permute_m2n3" %}
-{{indent}}                                std::array<const void*, 1>{static_cast<ck::half_t *>(bias_ptr)},
+{{indent}}                                std::array<const void*, 1>{static_cast<{{dtype}} *>(bias_ptr)},
 {% elif gemm_flag == "permute_m2n3" %}
 {{indent}}                                {},
 {% else %}
 {% if "bias" in gemm_flag and not has_d0 %}
-{{indent}}                                std::array<const void*, 1>{static_cast<ck::half_t *>(bias_ptr)},
+{{indent}}                                std::array<const void*, 1>{static_cast<{{dtype}} *>(bias_ptr)},
 {% elif has_d0 and not has_d1 %}
-{{indent}}                                std::array<const void*, 2>{static_cast<ck::half_t *>(bias_ptr),
-                                                                    static_cast<ck::half_t *>(d0_ptr)},
+{{indent}}                                std::array<const void*, 2>{static_cast<{{dtype}} *>(bias_ptr),
+                                                                    static_cast<{{dtype}} *>(d0_ptr)},
 {% elif has_d1 %}
-{{indent}}                                std::array<const void*, 3>{static_cast<ck::half_t *>(bias_ptr),
-                                                                    static_cast<ck::half_t *>(d0_ptr),
-                                                                    static_cast<ck::half_t *>(d1_ptr)},
+{{indent}}                                std::array<const void*, 3>{static_cast<{{dtype}} *>(bias_ptr),
+                                                                    static_cast<{{dtype}} *>(d0_ptr),
+                                                                    static_cast<{{dtype}} *>(d1_ptr)},
 {% endif %}
 {% endif %}
-{{indent}}                                static_cast<ck::half_t *>(out_ptr) + offset_c,
+{{indent}}                                static_cast<{{dtype}} *>(out_ptr) + offset_c,
 {% if gemm_flag not in ["permute_m2n3", "bias_permute_m2n3", "bias_permute_m3n2"]  %}
 {{indent}}                                M,
 {{indent}}                                N,
@@ -328,7 +350,7 @@ PROBLEM_ARGS_TEMPLATE = jinja2.Template(
 {% elif gemm_flag == "bias_sigmoid" %}
 {{indent}}                                ck::tensor_operation::element_wise::AddSigmoid{}
 {% elif gemm_flag == "bias_add" %}
-{{indent}}                                ck::tensor_operation::element_wise::AddAdd{}
+{{indent}}                                ck::tensor_operation::element_wise::AddAdd_{}
 {% elif gemm_flag == "bias_mul" %}
 {{indent}}                                ck::tensor_operation::element_wise::AddMul{}
 {% elif gemm_flag == "bias_mul_tanh" %}
@@ -414,9 +436,9 @@ struct ProfilerMemoryPool {
     return d_x;
   }
 
-  ck::half_t* AllocateHalfGaussianTensor(int64_t size) {
-    return reinterpret_cast<ck::half_t*>(
-        AllocateGaussianTensor<ck::half_t>(size));
+  {{dtype}}* AllocateHalfGaussianTensor(int64_t size) {
+    return reinterpret_cast<{{dtype}}*>(
+        AllocateGaussianTensor<float>(size));
   }
 
   int AllocateHalfTensor(int64_t size, int64_t copy) {
@@ -428,11 +450,11 @@ struct ProfilerMemoryPool {
     return ptrs.size() - 1;
   }
 
-  ck::half_t* RequestHalfTensorByIdx(int idx) {
+  {{dtype}}* RequestHalfTensorByIdx(int idx) {
     auto copy = copies.at(idx);
     auto offset = offsets.at(idx);
     auto stride = strides.at(idx);
-    ck::half_t* ptr = reinterpret_cast<ck::half_t*>(ptrs.at(idx));
+    {{dtype}}* ptr = reinterpret_cast<{{dtype}}*>(ptrs.at(idx));
     ptr += offset;
     offset += stride;
     if (offset == copy * stride) {
@@ -529,7 +551,7 @@ int benchmark_{{function_name}}(
   );
 
    if (!op.IsSupportedArgument(argument)) {
-     return 0; // not supported => skip (CUDA-style "try next")
+     return 0;
    }
 
   GLOBAL_WORKSPACE_SIZE = op.GetWorkSpaceSize(&argument);
@@ -584,13 +606,13 @@ void {{func_name}}(
 {% if has_d1 %}
   void *,
 {% endif %}
-{% for idx in range(ndims) %}
+{% for idx in range(adims) %}
   int64_t*,
 {% endfor %}
-{% for idx in range(ndims) %}
+{% for idx in range(bdims) %}
   int64_t*,
 {% endfor %}
-{% for idx in range(ndims) %}
+{% for idx in range(cdims) %}
   int64_t*,
 {% endfor %}
 {% for idx in range(pdims) %}
@@ -661,7 +683,7 @@ def emit_instance(op):
     return op_def
 
 
-def extract_config(op_kind, extra_kind, f_proc_op):
+def extract_config(op_kind, extra_kind, layout, dtype="float16"):
     """Extract (operation name, operation instance) pair
     from all operation candidates.
 
@@ -680,15 +702,52 @@ def extract_config(op_kind, extra_kind, f_proc_op):
     Dict
         Extracted (operation name, operation instance) pair.
     """
+    import dinoml.utils.ck_lib as ck_lib
+
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(dtype)
+
+    if lib_dtype == "float":
+        data_type = ck_lib.library.DataType.f32
+        acc_type = ck_lib.library.DataType.f32
+    elif lib_dtype == "ck::half_t":
+        data_type = ck_lib.library.DataType.f16
+        acc_type = ck_lib.library.DataType.f32
+        # check target use fp16 acc
+        if (
+            "use_fp16_acc" in Target.current()._kwargs
+            and Target.current().name() != "rocm"
+        ):
+            if Target.current()._kwargs["use_fp16_acc"]:
+                acc_type = ck_lib.library.DataType.f16
+    elif lib_dtype == "ck::bhalf_t":
+        data_type = ck_lib.library.DataType.bf16
+        acc_type = ck_lib.library.DataType.f32
+    else:
+        raise RuntimeError(f"Unsupported dtype {lib_dtype}")
+
+    a_layout, b_layout, c_layout = layout.ck_lib_layouts()
+
     gemm_ops = OrderedDict()
     extract_ops = list(Target.current()._operators[op_kind][extra_kind].items())
 
+    def f_proc_op(op: ck_lib.gemm_operation.GemmOperation):
+        if (
+            op.A.element == data_type
+            and op.B.element == data_type
+            and op.C.element == data_type
+            and op.acc_dtype == acc_type
+            and op.A.layout == a_layout
+            and op.B.layout == b_layout
+            and op.C.layout == c_layout
+        ):
+            return op
+        return None
+
     for key, value in extract_ops:
         op = value[0]
-        ret = f_proc_op(op)
-        if len(ret) > 0:
-            for op_inst in ret:
-                gemm_ops[key] = op_inst
+        if f_proc_op(op) is not None:
+            gemm_ops[key] = op
     return gemm_ops
 
 
@@ -771,6 +830,10 @@ def gen_profiler(
     tensor_decl_template: jinja2.Template
         Tensor declaration template.
     """
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
     op_type = func_attrs["op"]
     file_pairs = []
     if check_profiler_exists(workdir, op_type, profiler_name):
@@ -847,23 +910,26 @@ def gen_profiler(
         gemm_flag=gemm_flag,
         has_d0=has_d0_flag,
         has_d1=has_d1_flag,
+        dtype=lib_dtype,
     )
 
     code = PROFILER_TEMPLATE.render(
         op_func=op_func,
-        structs_def=STRUCTS_DEF_TEMPLATE.render(),
+        structs_def=STRUCTS_DEF_TEMPLATE.render(dtype=lib_dtype),
         args_parse=args_parse,
         tensor_decl=tensor_decl_template.render(
             gemm_flag=gemm_flag, has_d0=has_d0_flag, has_d1=has_d1_flag
         ),
         benchmark_instances="\n".join(benchmark_instances),
         function_name="gemm",
-        ndims=ndims,
+        ndims=2,
         pdims=len(pdims),
         shape_func=op_func_shape,
         extra_shape=extra_shape_func,
         problem_args=problem_args,
         gemm_flag=gemm_flag,
+        has_d0=has_d0_flag,
+        has_d1=has_d1_flag,
     )
     src_path = os.path.join(prefix, f"{profiler_name}.cpp")
     obj_path = os.path.join(prefix, f"{profiler_name}")
@@ -879,7 +945,7 @@ def gen_function(
     dim_info_dict,
     gemm_flag,
     extra_code="",
-    ndims=2,
+    ndims=3,
     extra_shape_template=EXTRA_SHAPE_TEMPLATE,
     problem_args_template=PROBLEM_ARGS_TEMPLATE,
     extra_header_template=EXTRA_HEADER_TEMPLATE,
@@ -918,6 +984,10 @@ def gen_function(
     str
         The rendered template of generated function body.
     """
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
     func_name = func_attrs["name"]
     exec_path = func_attrs["exec_path"]
     op_instance = func_attrs["op_instance"]
@@ -953,6 +1023,7 @@ def gen_function(
             gemm_flag=gemm_flag,
             has_d0=has_d0_flag,
             has_d1=has_d1_flag,
+            dtype=lib_dtype,
         )
         program = EXEC_TEMPLATE.render(
             indent="    ",
@@ -973,6 +1044,12 @@ def gen_function(
         gemm_flag=gemm_flag, has_d0=has_d0(func_attrs)
     )
     pdims = len(func_attrs["shape"]) if func_attrs.get("shape") is not None else 0
+    a = func_attrs["inputs"][0]
+    b = func_attrs["inputs"][1]
+    c = func_attrs["outputs"][0]
+    adims = len([dim_expr(dim) for dim in a._attrs["shape"]])
+    bdims = len([dim_expr(dim) for dim in b._attrs["shape"]])
+    cdims = len([dim_expr(dim) for dim in c._attrs["shape"]])
     return SRC_TEMPLATE.render(
         instances=instance_decl,
         function_name=func_name,
@@ -984,14 +1061,16 @@ def gen_function(
         extra_code=extra_code,
         extra_header=extra_header,
         gemm_flag=gemm_flag,
-        ndims=ndims,
+        adims=adims,
+        bdims=bdims,
+        cdims=cdims,
         pdims=pdims,
         has_d0=has_d0_flag,
         has_d1=has_d1_flag,
     )
 
 
-def gen_function_decl(func_name, gemm_flag, ndims=2, pdims=0, has_d0="", has_d1=""):
+def gen_function_decl(func_attrs, gemm_flag, ndims=3, pdims=0, has_d0="", has_d1=""):
     """Generates function declarations.
 
     Parameters
@@ -1008,14 +1087,27 @@ def gen_function_decl(func_name, gemm_flag, ndims=2, pdims=0, has_d0="", has_d1=
     str
         The rentered template of function declaration.
     """
+    a = func_attrs["inputs"][0]
+    b = func_attrs["inputs"][1]
+    c = func_attrs["outputs"][0]
+    adims = [dim_expr(dim) for dim in a._attrs["shape"]]
+    bdims = [dim_expr(dim) for dim in b._attrs["shape"]]
+    cdims = [dim_expr(dim) for dim in c._attrs["shape"]]
     return FUNC_DECL_TEMPLATE.render(
-        func_name=func_name,
+        func_name=func_attrs["name"],
         gemm_flag=gemm_flag,
-        ndims=ndims,
+        adims=len(adims),
+        bdims=len(bdims),
+        cdims=len(cdims),
         pdims=pdims,
         has_d0=has_d0,
         has_d1=has_d1,
     )
+
+
+def dim_expr(d):
+    n = d._attrs.get("name", None)
+    return "&" + n if n is not None else str(d.symbolic_value())
 
 
 def gen_function_call(func_attrs, indent="  ", gemm_flag=""):
@@ -1050,23 +1142,14 @@ def gen_function_call(func_attrs, indent="  ", gemm_flag=""):
     if has_d1(func_attrs):
         d1 = func_attrs["inputs"][4]
         d1_ptr = d1._attrs["name"]
-    adims = [
-        "&" + dim._attrs["name"]
-        for dim in func_attrs["input_accessors"][0].original_shapes
-    ]
-    bdims = [
-        "&" + dim._attrs["name"]
-        for dim in func_attrs["input_accessors"][1].original_shapes
-    ]
-    cdims = [
-        "&" + dim._attrs["name"]
-        for dim in func_attrs["output_accessors"][0].original_shapes
-    ]
+    adims = [dim_expr(dim) for dim in a._attrs["shape"]]
+    bdims = [dim_expr(dim) for dim in b._attrs["shape"]]
+    cdims = [dim_expr(dim) for dim in c._attrs["shape"]]
     pdims = []
     if func_attrs.get("shape") is not None:
         pdims = list(func_attrs["shape"])
 
-    return FUNC_CALL_TEMPLATE.render(
+    func_call = FUNC_CALL_TEMPLATE.render(
         func_name=func_attrs["name"],
         in_ptr=a._attrs["name"],
         weight_ptr=b._attrs["name"],
@@ -1081,44 +1164,7 @@ def gen_function_call(func_attrs, indent="  ", gemm_flag=""):
         indent=indent,
         gemm_flag=gemm_flag,
     )
-
-
-def default_fproc_f16(*, op, a_layout, b_layout, c_layout):
-    """Filter the input operation by layouts.
-
-    Parameters
-    ----------
-    op: operation
-        dinoml operation
-    a_layout: ck_lib.library.LayoutType
-        a layout type.
-    b_layout: ck_lib.library.LayoutType
-        b layout type.
-    c_layout: ck_lib.library.LayoutType
-        c layout type.
-    Returns
-    -------
-    List
-        List of filtered op (can be empty).
-    """
-    import copy
-
-    import dinoml.utils.ck_lib as ck_lib
-
-    ret = []
-    data_type = ck_lib.library.DataType.f16
-    acc_type = ck_lib.library.DataType.f32
-    if (
-        op.A.element == data_type
-        and op.B.element == data_type
-        and op.C.element == data_type
-        and op.accumulator_type() == acc_type
-        and op.A.layout == a_layout
-        and op.B.layout == b_layout
-        and op.C.layout == c_layout
-    ):
-        ret += [copy.deepcopy(op)]
-    return ret
+    return func_call
 
 
 def make_fproc_f16(func_attrs, layout, op_kind, extra_kind):
@@ -1137,22 +1183,15 @@ def make_fproc_f16(func_attrs, layout, op_kind, extra_kind):
         Used to as extra flag to distinguish kernels.
         E.g. bias_add_relu vs. add_relu_bias
     """
-
-    def fproc_f16(op):
-        a_layout, b_layout, c_layout = layout.ck_lib_layouts()
-        return default_fproc_f16(
-            op=op,
-            a_layout=a_layout,
-            b_layout=b_layout,
-            c_layout=c_layout,
-        )
+    x = func_attrs["inputs"][0]
+    dtype = x._attrs["dtype"]
 
     has_dynamic_shape = False
     for inp in func_attrs["inputs"]:
         for dim in inp.shape():
             if isinstance(dim, IntVar):
                 has_dynamic_shape = True
-    func_attrs["op_instance"] = extract_config(op_kind, extra_kind, fproc_f16)
+    func_attrs["op_instance"] = extract_config(op_kind, extra_kind, layout, dtype=dtype)
     if has_dynamic_shape:
         filtered_op_instance = {}
         for op_name, op in func_attrs["op_instance"].items():

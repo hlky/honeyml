@@ -12,6 +12,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-from dinoml.backend.rocm.elementwise import fused_elementwise
+from dinoml.backend.rocm.elementwise import fused_elementwise, int_elementwise
 
-__all__ = ["fused_elementwise"]
+__all__ = ["fused_elementwise", "int_elementwise"]

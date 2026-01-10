@@ -38,8 +38,10 @@ FUNC_TEMPLATE = jinja2.Template(
 #include "logging.h"
 #include "ck/ck.hpp"
 #include "ck/tensor_operation/gpu/device/gemm_specialization.hpp"
+#include "ck/tensor_operation/gpu/element/element_wise_operation.hpp"
+#include "ck/tensor_operation/gpu/device/masking_specialization.hpp"
 #include "ck/tensor_operation/gpu/device/tensor_specialization.hpp"
-#include "ck/tensor_operation/gpu/device/device_grouped_gemm_softmax_gemm_permute_xdl_cshuffle.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_grouped_gemm_softmax_gemm_permute_xdl_cshuffle.hpp"
 #include "ck/tensor_operation/gpu/element/element_wise_operation.hpp"
 
 
@@ -118,11 +120,11 @@ using DeviceGemmInstance =
         8,           // AK1
         8,           // BK1
         2,           // B1K1
-        32,          // MPerXDL
-        32,          // NPerXDL
-        1,           // MXdlPerWave
-        4,           // NXdlPerWave
-        2,           // Gemm1NXdlPerWave
+        16,          // MPerXDL
+        16,          // NPerXDL
+        2,           // MXdlPerWave
+        8,           // NXdlPerWave
+        4,           // Gemm1NXdlPerWave
         S<4, 64, 1>, // ABlockTransfer
         S<1, 0, 2>,
         S<1, 0, 2>,
@@ -147,7 +149,7 @@ using DeviceGemmInstance =
         1,              // CShuffleMXdlPerWavePerShuffle
         2,              // CShuffleNXdlPerWavePerShuffle
         S<1, 32, 1, 8>, // CShuffleBlockTransferClusterLengths_MBlock_MPerBlock_NBlock_NPerBlock
-        8,              // CShuffleBlockTransferScalarPerVector_NPerBlock
+        4,              // CShuffleBlockTransferScalarPerVector_NPerBlock
 {% if is_causal %}
         MaskingSpec_causal
 {% else %}
@@ -179,8 +181,8 @@ using DeviceGemmInstance =
     std::vector<void*> output_ptrs;
 
     for(int64_t i = 0; i < batch_size ; i++){
-        int M = seqlens[i];
-        int N = seqlens[i];
+        int M = seqlen;
+        int N = seqlen;
         int K = head_dim;
         int O = head_dim;
         int G0 = 1;
@@ -271,8 +273,7 @@ void {{func_name}}(void* output,
                    const void* q,
                    const void* k,
                    const void* v,
-                   const int* seqlens,
-                   const int max_seqlen,
+                   const int seqlen,
                    int64_t batch_size,
                    int num_heads,
                    int head_dim,
@@ -291,8 +292,8 @@ FUNC_DECL = jinja2.Template(
 FUNC_CALL_TEMPLATE = jinja2.Template(
     """
 {{indent}}{{func_name}}(
-{{indent}}   {{output}}, {{q}}, {{k}}, {{v}}, {{seqlens}},
-{{indent}}    {{max_seqlen}}, {{batch_size}},
+{{indent}}   {{output}}, {{q}}, {{k}}, {{v}}, {{seqlen}},
+{{indent}}    {{batch_size}},
 {{indent}}    {{num_heads}},
 {{indent}}    {{head_dim}},
 {{indent}}    {{softmax_scale}},
@@ -329,7 +330,6 @@ def mem_eff_attention_gen_function_decl(func_attrs: Dict[str, Any]):
 def mem_eff_attention_gen_function_call(func_attrs, indent="  "):
     """the function for generating a function call for attention"""
     assert len(func_attrs["outputs"]) == 1
-    assert len(func_attrs["inputs"]) in [4, 5]
 
     output_name = func_attrs["outputs"][0]._attrs["name"]
 
@@ -337,18 +337,14 @@ def mem_eff_attention_gen_function_call(func_attrs, indent="  "):
     k_name = func_attrs["inputs"][1]._attrs["name"]
     v_name = func_attrs["inputs"][2]._attrs["name"]
 
-    seqlens_name = FUNC_CALL_INT32_PARAM_TEMPLATE.render(
-        name=func_attrs["inputs"][3]._attrs["name"]
-    )
-
     q = func_attrs["inputs"][0]
 
-    batch_size = func_attrs["inputs"][3].shape()[0]._attrs["name"]
-    num_heads = q._attrs["shape"][1]._attrs["values"][0]
-    max_seqlen = q._attrs["shape"][0].upper_bound() // 16
-    head_dim = q._attrs["shape"][3]._attrs["values"][0]
+    batch_size = q._attrs["shape"][0]._attrs["name"]
+    num_heads = q._attrs["shape"][1]._attrs["name"]
+    seqlen = q._attrs["shape"][2]._attrs["name"]
+    head_dim = q._attrs["shape"][3]._attrs["name"]
 
-    softmax_scale = head_dim ** (-0.5)
+    softmax_scale = q._attrs["shape"][3].value() ** (-0.5)
 
     return FUNC_CALL_TEMPLATE.render(
         func_name=func_attrs["name"],
@@ -356,8 +352,7 @@ def mem_eff_attention_gen_function_call(func_attrs, indent="  "):
         q=q_name,
         k=k_name,
         v=v_name,
-        seqlens=seqlens_name,
-        max_seqlen=max_seqlen,
+        seqlen=seqlen,
         batch_size=batch_size,
         num_heads=num_heads,
         head_dim=head_dim,

@@ -11,3 +11,9 @@
 [submodule "3rdparty/picojson"]
 	path = 3rdparty/picojson
 	url = https://github.com/kazuho/picojson.git
+[submodule "3rdparty/flash_attn"]
+	path = 3rdparty/flash_attn
+	url = https://github.com/hlky/flash_attn
+[submodule "3rdparty/flash_attn_ck"]
+	path = 3rdparty/flash_attn_ck
+	url = https://github.com/hlky/flash_attn_ck

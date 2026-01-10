@@ -25,18 +25,51 @@ from dinoml.backend.rocm.conv2d import common
 
 EXTRA_CODE = jinja2.Template(
     """
-#include "ck/tensor_operation/gpu/device/impl/device_grouped_conv_fwd_multiple_d_xdl_cshuffle.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_grouped_conv_fwd_multiple_abd_xdl_cshuffle.hpp"
 
 
 namespace ck {
 namespace tensor_operation {
 namespace element_wise {
 namespace {
+
+
+// C = A * B
+// E = C + D0 + D1
+struct AddAdd_
+{
+    static constexpr const char* name = "AddAdd";
+
+    template <typename E, typename C, typename D0, typename D1>
+    __host__ __device__ void operator()(E& e, const C& c, const D0& d0, const D1& d1) const
+    {
+        // Only support floating so far
+        static_assert(is_same<E, half_t>::value || is_same<E, bhalf_t>::value || is_same<E, float>::value ||
+                          is_same<E, double>::value,
+                      "Data type is not supported by this operation!");
+
+        static_assert(is_same<C, half_t>::value || is_same<C, bhalf_t>::value || is_same<C, float>::value ||
+                          is_same<C, double>::value,
+                      "Data type is not supported by this operation!");
+
+        static_assert(is_same<D0, half_t>::value || is_same<D0, bhalf_t>::value || is_same<D0, float>::value ||
+                          is_same<D0, double>::value,
+                      "Data type is not supported by this operation!");
+
+        static_assert(is_same<D1, half_t>::value || is_same<D1, bhalf_t>::value || is_same<D1, float>::value ||
+                          is_same<D1, double>::value,
+                      "Data type is not supported by this operation!");
+
+        const C y = c + type_convert<C>(d0) + type_convert<C>(d1);
+        e         = type_convert<E>(y);
+    }
+};
+
 struct AddAddRelu
 {
     template <typename T>
     __host__ __device__ constexpr void operator()(T& y, const T& x0, const T& x1, const T& x2) const{
-        ck::tensor_operation::element_wise::AddAdd{}(y, x0, x1, x2);
+        ck::tensor_operation::element_wise::AddAdd_{}(y, x0, x1, x2);
         ck::tensor_operation::element_wise::Relu{}(y, y);
     };
 };
@@ -49,7 +82,7 @@ struct AddAddRelu
 
 
 @registry.reg("rocm.conv2d_bias_add_relu.config")
-def conv2d_config(func_attrs):
+def conv2d_config(func_attrs, **kwargs):
     """Extracts (operation name, operation instance) pair from
     all operation candidates.
 
@@ -66,13 +99,16 @@ def conv2d_config(func_attrs):
     """
     import dinoml.utils.ck_lib as ck_lib
 
+    x = func_attrs["inputs"][0]
+    dtype = x._attrs["dtype"]
+
     op_kind = ck_lib.library.Conv2dKind.GroupConv2dBiasRelu
     extra_kind = ck_lib.library.TensorOperation.AddAddRelu
-    func_attrs["op_instance"] = common.extract_config(op_kind, extra_kind)
+    func_attrs["op_instance"] = common.extract_config(op_kind, extra_kind, dtype=dtype)
 
 
 @registry.reg("rocm.conv2d_bias_add_relu.gen_profiler")
-def conv2d_gen_profiler(func_attrs, workdir, shape_template):
+def conv2d_gen_profiler(func_attrs, workdir, profile_filename, shape_template):
     """Generates standalone executables for profiler.
 
     Parameters
@@ -92,6 +128,7 @@ def conv2d_gen_profiler(func_attrs, workdir, shape_template):
         shape_template=shape_template,
         conv2d_flag="bias_add_relu",
         extra_code=extra_code,
+        profile_filename=profile_filename,
     )
 
 

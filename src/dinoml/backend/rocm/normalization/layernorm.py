@@ -18,11 +18,13 @@ Layernorm codegen for ROCM.
 
 from collections import OrderedDict
 from hashlib import sha1
+import os
 from typing import Any, Dict
 
 import jinja2
 
 from dinoml.backend import registry
+from dinoml.backend.backend_spec import ROCMSpec
 from dinoml.backend.rocm.normalization import norm_common
 from dinoml.backend.target import Target
 
@@ -30,12 +32,12 @@ from dinoml.compiler.base import IntImm
 
 EXTRA_HEADERS = jinja2.Template(
     """
-#include "ck/tensor_operation/gpu/device/impl/device_normalization_impl.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_normalization_fwd_impl.hpp"
 """
 )
 
 FUNC_CALL_FP16_PARAM_TEMPLATE = jinja2.Template(
-    "reinterpret_cast<ck::half_t*>(({{name}}))"
+    "reinterpret_cast<{{dtype}}*>(({{name}}))"
 )
 
 TENSOR_DECL_TEMPLATE = jinja2.Template(
@@ -90,12 +92,14 @@ EXEC_TEMPLATE = jinja2.Template(
         std::vector<ck::index_t>{0, 1},
         std::vector<ck::index_t>{0, 1},
         i_outStrides,
+        std::vector<ck::index_t>{0},
+        std::vector<ck::index_t>{0},
         {1},
         {{eps}},
-        static_cast<ck::half_t *>(input) + {{ input_offset if input_offset is defined else 0 }},
-        static_cast<ck::half_t *>(gamma),
-        static_cast<ck::half_t *>(beta),
-        static_cast<ck::half_t *>(output) + {{ output_offset if output_offset is defined else 0 }},
+        static_cast<{{dtype}} *>(input) + {{ input_offset if input_offset is defined else 0 }},
+        static_cast<{{dtype}} *>(gamma),
+        static_cast<{{dtype}} *>(beta),
+        static_cast<{{dtype}} *>(output) + {{ output_offset if output_offset is defined else 0 }},
         nullptr,
         nullptr,
         ck::tensor_operation::element_wise::PassThrough{}
@@ -168,12 +172,42 @@ def extract_config(func_attrs):
     """
     import dinoml.utils.ck_lib as ck_lib
 
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
+    if lib_dtype == "float":
+        data_type = ck_lib.library.DataType.f32
+        acc_type = ck_lib.library.DataType.f32
+    elif lib_dtype == "ck::half_t":
+        data_type = ck_lib.library.DataType.f16
+        acc_type = ck_lib.library.DataType.f32
+        # check target use fp16 acc
+        if (
+            "use_fp16_acc" in Target.current()._kwargs
+            and Target.current().name() != "rocm"
+        ):
+            if Target.current()._kwargs["use_fp16_acc"]:
+                acc_type = ck_lib.library.DataType.f16
+    elif lib_dtype == "ck::bhalf_t":
+        data_type = ck_lib.library.DataType.bf16
+        acc_type = ck_lib.library.DataType.f32
+    else:
+        raise RuntimeError(f"Unsupported dtype {lib_dtype}")
+
+    def f_proc_op(op: ck_lib.layernorm_operation.LayerNormOperation):
+        if op.In == data_type and op.Out == data_type and op.acc_dtype == acc_type:
+            return op
+        return None
+
     op_kind = ck_lib.library.OperationKind.LayerNorm
     extra_kind = 2
     extract_ops = list(Target.current()._operators[op_kind][extra_kind].items())
     layernorm_ops = OrderedDict()
     for key, value in extract_ops:
-        layernorm_ops[key] = value[0]
+        op = value[0]
+        if f_proc_op(op) is not None:
+            layernorm_ops[key] = op
     func_attrs["op_instance"] = layernorm_ops
 
 
@@ -185,9 +219,208 @@ def get_func_signature_profiler(func_attrs: Dict[str, Any]) -> str:
     ).strip()
 
 
+PROFILER_TEMPLATE = jinja2.Template(
+    """
+#include <iostream>
+#include <numeric>
+#include <initializer_list>
+#include <cstdlib>
+#include <stdlib.h>
+#include <random>
+#include <rocrand/rocrand.h>
+#include "logging.h"
+//include "ck/utility/print.hpp"
+#include "ck/library/utility/device_memory.hpp"
+#include "ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor_generator.hpp"
+#include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
+#include "ck/utility/reduction_operator.hpp"
+{{extra_headers}}
+
+{{extra_code}}
+
+size_t GLOBAL_WORKSPACE_SIZE = 0;
+
+{{structs_def}}
+
+{{all_instances}}
+
+template <typename Instance>
+int benchmark_norm(
+    Instance& device_instance,
+    const char* op_name,
+    ProfilerMemoryPool* memory_pool,
+    int64_t in_0,
+    int64_t in_1,
+    float eps,
+    hipStream_t stream)
+{
+    // in_0 = M, in_1 = N (reduction dim)
+    int M = static_cast<int>(in_0);
+    int N = static_cast<int>(in_1);
+
+    std::vector<ck::index_t> i_inStrides = {static_cast<ck::index_t>(N), 1};
+    std::vector<ck::index_t> i_outStrides = {static_cast<ck::index_t>(N), 1};
+
+    auto argument_ptr = device_instance.MakeArgumentPointer(
+        {M, N},
+        i_inStrides,
+        std::vector<ck::index_t>{0, 1},
+        std::vector<ck::index_t>{0, 1},
+        i_outStrides,
+        std::vector<ck::index_t>{0},
+        std::vector<ck::index_t>{0},
+        {1},
+        eps,
+        memory_pool->RequestHalfTensorByIdx(0), // input
+        memory_pool->RequestHalfTensorByIdx(2), // gamma
+        memory_pool->RequestHalfTensorByIdx(3), // beta
+        memory_pool->RequestHalfTensorByIdx(1), // output
+        nullptr,
+        nullptr,
+        ck::tensor_operation::element_wise::PassThrough{}
+    );
+
+    if(!device_instance.IsSupportedArgument(argument_ptr.get()))
+    {
+        return -1;
+    }
+
+    auto invoker = device_instance.MakeInvokerPointer();
+
+    // warmup
+    for(int i = 0; i < 3; ++i)
+    {
+        invoker->Run(argument_ptr.get(), StreamConfig{stream, false});
+    }
+
+    KernelTimerImpl timer;
+    timer.Start();
+    for(int i = 0; i < 5; ++i)
+    {
+        invoker->Run(argument_ptr.get(), StreamConfig{stream, false});
+    }
+    timer.End();
+
+    std::cout << "OP:" << op_name
+              << ",TIME:" << timer.GetElapsedTime()
+              << ",WS:" << GLOBAL_WORKSPACE_SIZE
+              << std::endl
+              << std::flush;
+
+    return 0;
+}
+
+int main(int argc, char** argv) {
+  {{args_parse}}
+  auto memory_pool = std::make_unique<ProfilerMemoryPool>();
+  hipStream_t stream = nullptr;
+  {{tensor_decl}}
+  {% for op_name, inst_name in instances %}
+{
+    {{inst_name}} device_instance;
+    benchmark_norm(
+        device_instance,
+        "{{op_name}}",
+        memory_pool.get(),
+        in_0, in_1,
+        {{eps}},
+        stream);
+}
+{% endfor %}
+}
+"""
+)
+
+
+def gen_profiler(
+    func_attrs: Dict[str, Any],
+    workdir: str,
+    rank: int,
+    extra_header_template: jinja2.Template,
+    extra_code: str = "",
+    profile_filename=None,
+    indent: str = "  ",
+) -> str:
+    """Generates standalone executables for profiler.
+
+    Parameters
+    ----------
+    func_attrs : Dict
+        Operation attributes.
+    workdir : str
+        Directory to store the generated outputs.
+    rank: int
+        Rank of the input tensor. If using [M, N] in exec_key, the rank here
+        must be 2 because if implies that the inputs are reshaped for profiling.
+        For code gen, the real shapes are used.
+    exec_template : jinja2.Template
+        Execution block template.
+    tensor_decl_template: jinja2.Template
+        Tensor declaration template.
+    extra_header_template : jinja2.Template
+        Extra header template.
+    indent : str, optional
+        Indent for codegen, target dependent e.g. C++, python, etc., by default "  ".
+    """
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
+    op_type = func_attrs["op"]
+    op_instance = func_attrs["op_instance"]
+    eps = func_attrs.get("eps", "1e-5")
+
+    all_instances_decl = ""
+    instance_names = []
+
+    for idx, (op_name, op) in enumerate(op_instance.items()):
+        config = norm_common.emit_instance(op)
+        config_name = norm_common.extract_config_name(config)
+        inst_name = f"DeviceInstance_{idx}"
+
+        all_instances_decl += norm_common.INSTANCE_TEMPLATE.render(
+            name=inst_name,
+            config_name=config_name,
+            config=config,
+        )
+        instance_names.append((op_name, inst_name))
+
+    structs_def = norm_common.STRUCTS_DEF_TEMPLATE.render(dtype=lib_dtype)
+    args_parse = norm_common.ARGS_PARSE_TEMPLATE.render(rank=rank)
+    tensor_decl = TENSOR_DECL_TEMPLATE.render(rank=rank)
+
+    file_pairs = []
+    code = PROFILER_TEMPLATE.render(
+        structs_def=structs_def,
+        args_parse=args_parse,
+        tensor_decl=tensor_decl,
+        instances=instance_names,
+        all_instances=all_instances_decl,
+        extra_headers=extra_header_template.render(),
+        extra_code=extra_code,
+        eps=eps,
+    )
+
+    prefix = os.path.join(workdir, "profiler", op_type)
+    if not os.path.exists(prefix):
+        os.makedirs(prefix)
+    src_path = os.path.join(prefix, profile_filename + ".cpp")
+    obj_path = os.path.join(prefix, profile_filename)
+    if os.path.exists(obj_path):
+        return
+    with open(src_path, "w") as fo:
+        fo.write(code)
+    file_pairs.append((src_path, obj_path))
+    return file_pairs
+
+
 @registry.reg("rocm.layernorm.gen_profiler")
 def layernorm_gen_profiler(
-    func_attrs: Dict[str, Any], workdir: str, indent: str = "  "
+    func_attrs: Dict[str, Any],
+    workdir: str,
+    indent: str = "  ",
+    profile_filename=None,
 ) -> str:
     """Generates standalone executables for profiler.
 
@@ -206,19 +439,14 @@ def layernorm_gen_profiler(
     assert isinstance(shapes[dim], IntImm), (
         "layernorm requires reduction dim to be static"
     )
-
-    return norm_common.gen_profiler(
+    return gen_profiler(
         func_attrs,
         workdir,
-        2,  # rank
-        SHAPE_EVAL_TEMPLATE,
-        EXEC_TEMPLATE,
-        TENSOR_DECL_TEMPLATE,
-        EXTRA_HEADERS,
-        get_func_signature_profiler,
-        "",  # extra_code
-        FUNC_CALL_TEMPLATE,
-        indent,
+        rank=2,
+        extra_header_template=EXTRA_HEADERS,
+        extra_code="",
+        profile_filename=profile_filename,
+        indent=indent,
     )
 
 
@@ -248,18 +476,12 @@ def gen_function(
     str
         The rendered template of generated function body.
     """
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
     rank = func_attrs["inputs"][0]._rank()
     eps = func_attrs.get("eps", "1e-5")
-    input_accessor = func_attrs["input_accessors"][0]
-    output_accessor = func_attrs["output_accessors"][0]
-    input_strides = []
-    output_strides = []
-    for i, _ in enumerate(input_accessor.original_shapes):
-        input_strides.append(input_accessor.stride(i))
-        output_strides.append(output_accessor.stride(i))
-
-    input_offset = input_accessor.offset
-    output_offset = output_accessor.offset
 
     exec_path = func_attrs["exec_path"]
     op_instance = func_attrs["op_instance"]
@@ -290,13 +512,9 @@ def gen_function(
         fname = "f" + sha1(key.encode()).hexdigest()
         program = exec_template.render(
             instance=fname,
-            dtype="void",
+            dtype=lib_dtype,
             reduce_dims=rank - 1,
             eps=eps,
-            input_strides=input_strides,
-            output_strides=output_strides,
-            input_offset=input_offset,
-            output_offset=output_offset,
         )
         exec_inst = exec_cond_template.render(indent="  ", cond=key, program=program)
         exec_paths += exec_inst
@@ -359,17 +577,21 @@ def layernorm_gen_function_call(func_attrs, indent="  "):
     assert len(func_attrs["outputs"]) == 1
     assert len(func_attrs["inputs"]) == 3
 
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
     input_name = FUNC_CALL_FP16_PARAM_TEMPLATE.render(
-        name=func_attrs["inputs"][0]._attrs["name"]
+        name=func_attrs["inputs"][0]._attrs["name"], dtype=lib_dtype
     )
     gamma_name = FUNC_CALL_FP16_PARAM_TEMPLATE.render(
-        name=func_attrs["inputs"][1]._attrs["name"]
+        name=func_attrs["inputs"][1]._attrs["name"], dtype=lib_dtype
     )
     beta_name = FUNC_CALL_FP16_PARAM_TEMPLATE.render(
-        name=func_attrs["inputs"][2]._attrs["name"]
+        name=func_attrs["inputs"][2]._attrs["name"], dtype=lib_dtype
     )
     output_name = FUNC_CALL_FP16_PARAM_TEMPLATE.render(
-        name=func_attrs["outputs"][0]._attrs["name"]
+        name=func_attrs["outputs"][0]._attrs["name"], dtype=lib_dtype
     )
 
     shapes = func_attrs["inputs"][0]._attrs["shape"]

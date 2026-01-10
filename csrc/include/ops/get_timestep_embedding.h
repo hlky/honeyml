@@ -14,8 +14,8 @@ __device__ __forceinline__ float to_float(const T& x) {
 
 template <typename TOut, typename TIn>
 __global__ void get_timestep_embedding_kernel(
-    TOut* __restrict__ out, // [N, embedding_dim]
-    const TIn* __restrict__ timesteps, // [N]
+    TOut* __restrict__ out,
+    const TIn* __restrict__ timesteps,
     const int64_t n,
     const int embedding_dim,
     const bool flip_sin_to_cos,
@@ -29,7 +29,6 @@ __global__ void get_timestep_embedding_kernel(
 
   const int half_dim = embedding_dim / 2;
 
-  // Handle degenerate case (embedding_dim == 1)
   if (half_dim <= 0) {
     if (threadIdx.x == 0) {
       out[t_idx * (int64_t)embedding_dim] = (TOut)0.0f;
@@ -43,7 +42,6 @@ __global__ void get_timestep_embedding_kernel(
   const float log_max_period = (float)log((float)max_period);
 
   for (int i = threadIdx.x; i < half_dim; i += blockDim.x) {
-    // exponent = -log(max_period) * i / (half_dim - downscale_freq_shift)
     const float exponent = -log_max_period * (float)i * inv_denom;
     const float freq = expf(exponent);
 
@@ -66,7 +64,6 @@ __global__ void get_timestep_embedding_kernel(
     }
   }
 
-  // Zero-pad last column if embedding_dim is odd.
   if ((embedding_dim & 1) && threadIdx.x == 0) {
     out[t_idx * (int64_t)embedding_dim + (embedding_dim - 1)] = (TOut)0.0f;
   }
@@ -85,10 +82,8 @@ void invoke_get_timestep_embedding(
     float scale,
     int max_period,
     dinoml::DeviceStream stream) {
-  // One block per timestep.
   int64_t blocks = n;
 
-  // Threads cover half_dim since we compute pairs (sin/cos) per i.
   int threads = std::min(std::max(embedding_dim / 2, 1), 1024);
 
   dinoml::get_timestep_embedding_kernel<TOut, TIn>

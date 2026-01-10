@@ -285,6 +285,7 @@ class UNet2DConditionModel(nn.Module):
             projection_class_embeddings_input_dim=projection_class_embeddings_input_dim,
             time_embed_dim=time_embed_dim,
             timestep_input_dim=timestep_input_dim,
+            dtype=dtype,
         )
 
         self._set_add_embedding(
@@ -297,6 +298,7 @@ class UNet2DConditionModel(nn.Module):
             freq_shift=freq_shift,
             projection_class_embeddings_input_dim=projection_class_embeddings_input_dim,
             time_embed_dim=time_embed_dim,
+            dtype=dtype,
         )
 
         if time_embedding_act_fn is None:
@@ -377,6 +379,7 @@ class UNet2DConditionModel(nn.Module):
                     else output_channel
                 ),
                 dropout=dropout,
+                dtype=dtype,
             )
             self.down_blocks.append(down_block)
 
@@ -402,6 +405,7 @@ class UNet2DConditionModel(nn.Module):
             cross_attention_norm=cross_attention_norm,
             attention_head_dim=attention_head_dim[-1],
             dropout=dropout,
+            dtype=dtype,
         )
 
         # count how many layers upsample the images
@@ -466,6 +470,7 @@ class UNet2DConditionModel(nn.Module):
                     else output_channel
                 ),
                 dropout=dropout,
+                dtype=dtype,
             )
             self.up_blocks.append(up_block)
             prev_output_channel = output_channel
@@ -476,6 +481,7 @@ class UNet2DConditionModel(nn.Module):
                 num_channels=block_out_channels[0],
                 num_groups=norm_num_groups,
                 eps=norm_eps,
+                dtype=dtype,
             )
 
             self.conv_act = get_activation(act_fn)
@@ -490,6 +496,7 @@ class UNet2DConditionModel(nn.Module):
             out_channels,
             kernel_size=conv_out_kernel,
             padding=conv_out_padding,
+            dtype=dtype,
         )
 
         self._set_pos_net_if_use_gligen(
@@ -817,10 +824,6 @@ class UNet2DConditionModel(nn.Module):
         timesteps = ops.expand()(timesteps, shape=[ops.size()(sample, dim=0)])
 
         t_emb = self.time_proj(timesteps)
-        # `Timesteps` does not contain any weights and will always return f32 tensors
-        # but time_embedding might actually be running in fp16. so we need to cast here.
-        # there might be better ways to encapsulate this.
-        t_emb = ops.cast()(t_emb, dtype=sample.dtype())
         return t_emb
 
     def get_class_embed(

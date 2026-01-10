@@ -162,7 +162,7 @@ def compile_model(
     debug_settings: DinoMLDebugSettings = _DEBUG_SETTINGS,
     do_optimize_graph: bool = True,
     do_constant_folding: bool = True,
-    profile_timeout: int = 3600,
+    profile_timeout: int = 360,
     n_cpus: int = -1,
     do_compile: bool = True,
     do_build: bool = True,
