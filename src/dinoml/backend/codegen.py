@@ -605,6 +605,11 @@ class ModelContainerGenerator:
         )
         self.set_inputs.append(check_not_null(tensor))
         self._record_param_tensor_info(tensor, self.input_idx)
+        if (
+            self.debug_settings.check_all_outputs
+            or tensor._attrs.get("check_outputs", False)
+        ) and (not isinstance(tensor, IntVarTensor)):
+            self._append_check_outputs(tensor, self.debug_settings.elements_to_check)
         self.input_idx += 1
 
     def _get_output_idx(self, name: str) -> int:

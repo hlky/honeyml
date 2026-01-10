@@ -72,12 +72,12 @@ EXTRA_HEADER_TEMPLATE_MULTI_D = jinja2.Template(
 
 PROBLEM_ARGS_TEMPLATE = jinja2.Template(
     """
-{{indent}}                                static_cast<ck::half_t *>(in_ptr) + offset_a,
-{{indent}}                                static_cast<ck::half_t *>(weight_ptr) + offset_b,
+{{indent}}                                static_cast<{{dtype}} *>(in_ptr) + offset_a,
+{{indent}}                                static_cast<{{dtype}} *>(weight_ptr) + offset_b,
 {% if "bias" in gemm_flag %}
-{{indent}}                                std::array<const void*, 1>{static_cast<ck::half_t *>(bias_ptr)},
+{{indent}}                                std::array<const void*, 1>{static_cast<{{dtype}} *>(bias_ptr)},
 {% endif %}
-{{indent}}                                static_cast<ck::half_t *>(out_ptr) + offset_c,
+{{indent}}                                static_cast<{{dtype}} *>(out_ptr) + offset_c,
 {{indent}}                                M,
 {{indent}}                                N,
 {{indent}}                                K,
@@ -107,14 +107,14 @@ PROBLEM_ARGS_TEMPLATE = jinja2.Template(
 
 PROBLEM_ARGS_TEMPLATE_MULTI_D = jinja2.Template(
     """
-{{indent}}                                static_cast<ck::half_t *>(in_ptr),
-{{indent}}                                static_cast<ck::half_t *>(weight_ptr),
+{{indent}}                                static_cast<{{dtype}} *>(in_ptr),
+{{indent}}                                static_cast<{{dtype}} *>(weight_ptr),
 {% if "bias" in gemm_flag or gemm_flag == "add" %}
-{{indent}}                                std::array<const void*, 1>{static_cast<ck::half_t *>(bias_ptr)},
+{{indent}}                                std::array<const void*, 1>{static_cast<{{dtype}} *>(bias_ptr)},
 {% else %}
 {{indent}}                                {},
 {% endif %}
-{{indent}}                                static_cast<ck::half_t *>(out_ptr),
+{{indent}}                                static_cast<{{dtype}} *>(out_ptr),
 {{indent}}                                M,
 {{indent}}                                N,
 {{indent}}                                K,

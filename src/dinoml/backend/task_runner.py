@@ -80,7 +80,8 @@ class Task:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=env,
-            shell=use_shell,
+            text=True,
+            shell=False,
         )
         self._timestamp = time.time()
 
@@ -141,8 +142,11 @@ class Task:
             self._failed = True
             return True
         # handle finished job
-        if self._proc.poll() is not None:
+        self._stdout = self._proc.stdout.read()
+        if self._proc.poll() is not None or self._stdout != "":
             self._finished = True
+            if self._proc:
+                self._proc.kill()
         return self._finished
 
     def pull(self, fproc: typing.Callable) -> None:
@@ -156,8 +160,9 @@ class Task:
         """
         if self._failed:
             return None
-        self._stdout = self._proc.stdout.read().decode("utf-8")
-        self._stderr = self._proc.stderr.read().decode("utf-8")
+        if self._stdout == "":
+            self._stdout = self._proc.stdout.read()
+        self._stderr = self._proc.stderr.read()
         fproc(self)
 
     def is_failed(self) -> bool:

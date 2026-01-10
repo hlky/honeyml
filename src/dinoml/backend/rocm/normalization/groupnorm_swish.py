@@ -31,8 +31,15 @@ def extract_config(func_attrs):
 
 
 @registry.reg("rocm.groupnorm_swish.gen_profiler")
-def gen_profiler(func_attrs: Dict[str, Any], workdir: str, indent: str = "  ") -> str:
-    return groupnorm_gen_profiler(func_attrs, workdir, indent, use_swish=True)
+def gen_profiler(
+    func_attrs: Dict[str, Any],
+    workdir: str,
+    indent: str = "  ",
+    profile_filename=None,
+) -> str:
+    return groupnorm_gen_profiler(
+        func_attrs, workdir, indent, use_swish=True, profile_filename=profile_filename
+    )
 
 
 @registry.reg("rocm.groupnorm_swish.gen_function")

@@ -58,16 +58,20 @@ class SoftmaxOperation:
     Rank: int
     NumReduceDim: int
     tile_desc: TileDesc
+    acc_dtype: library.DataType = library.DataType.f32
 
     def __str__(self) -> str:
-        return "{op_kind}_rank{rank}_{tile_name}".format(
+        return "{op_kind}_{a_dtype}{b_dtype}_{acc_dtype}_rank{rank}_{tile_name}".format(
             op_kind=library.OperationKindNames[self.operation_kind],
             rank=self.Rank,
             tile_name=str(self.tile_desc),
+            a_dtype=library.ShortDataTypeNames[self.In],
+            b_dtype=library.ShortDataTypeNames[self.Out],
+            acc_dtype=library.ShortDataTypeNames[self.acc_dtype],
         )
 
     def accumulator_type(self):
-        return library.DataType.f32
+        return self.acc_dtype
 
     def emit(self) -> str:
         template = jinja2.Template(
@@ -87,7 +91,7 @@ using {{name}} = ck::tensor_operation::device::DeviceSoftmaxImpl<
         return template.render(
             name=self.__str__(),
             InDType=library.DataTypeTag[self.In],
-            AccDType=library.DataTypeTag[library.DataType.f32],
+            AccDType=library.DataTypeTag[self.acc_dtype],
             OutDType=library.DataTypeTag[self.Out],
             Rank=self.Rank,
             NumReduceDim=self.NumReduceDim,  # we only need softmax(dim=-1) at this moment

@@ -297,6 +297,7 @@ class GemmOperation:
     tile_desc: TileDesc
     a_block_transfer: BlockTransferDesc
     b_block_transfer: BlockTransferDesc
+    acc_dtype: library.DataType = library.DataType.f32
     b1_block_transfer: BlockTransferDesc = None
     c_block_transfer: CBlockTransferDesc = None
     ds_dtype: List[library.DataType] = None
@@ -304,7 +305,7 @@ class GemmOperation:
     e_dtype: library.DataType = None
 
     def __str__(self) -> str:
-        io_name = "{gemm_kind}_{gemm_specialization}_{a_dtype}{b_dtype}{c_dtype}_{a_layout}{b_layout}{c_layout}".format(
+        io_name = "{gemm_kind}_{gemm_specialization}_{a_dtype}{b_dtype}{c_dtype}_{acc_dtype}_{a_layout}{b_layout}{c_layout}".format(
             gemm_kind=library.GemmKindNames[self.operation_kind],
             gemm_specialization=self.gemm_specialization.value,
             a_dtype=library.ShortDataTypeNames[self.A.element],
@@ -313,6 +314,7 @@ class GemmOperation:
             a_layout=library.ShortLayoutTypeNames[self.A.layout],
             b_layout=library.ShortLayoutTypeNames[self.B.layout],
             c_layout=library.ShortLayoutTypeNames[self.C.layout],
+            acc_dtype=library.ShortDataTypeNames[self.acc_dtype],
         )
         extra_tile = ""
         if self.c_block_transfer is not None:
@@ -333,7 +335,7 @@ class GemmOperation:
         )
 
     def accumulator_type(self):
-        return library.DataType.f32
+        return self.acc_dtype
 
     def emit(self) -> str:
         template = jinja2.Template(
@@ -484,8 +486,8 @@ using {{name}} = {{xdl_op_type}}<
             ADType=library.DataTypeTag[self.A.element],
             BDType=library.DataTypeTag[self.B.element],
             CDType=library.DataTypeTag[self.C.element],
-            AccDType=library.DataTypeTag[library.DataType.f32],
-            CShuffleDType=library.DataTypeTag[self.C.element],
+            AccDType=library.DataTypeTag[self.acc_dtype],
+            CShuffleDType=library.DataTypeTag[self.C.element] if self.A.element != library.DataType.bf16 else library.DataTypeTag[library.DataType.f32],
             A_elem_op=library.TensorOperationTag[self.a_elem_op],
             B_elem_op=library.TensorOperationTag[self.b_elem_op],
             C_elem_op=library.TensorOperationTag[self.epilogue_functor],

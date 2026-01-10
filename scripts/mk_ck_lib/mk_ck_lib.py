@@ -37,7 +37,7 @@ def mk_ck_lib(scripts_path, ck_lib_path):
                 name = match.groups()[0]
                 if name + ".py" in code_set:
                     line = "from .{name} import *\n".format(name=name)
-                    
+
             output.append(line)
         with open(dst_path, "w") as fo:
             fo.writelines(output)
@@ -51,9 +51,14 @@ def mk_ck_lib(scripts_path, ck_lib_path):
         process_code(src_path, dst_path, srcs)
     return ck_lib_path
 
+
 def main() -> None:
     scripts_path = pathlib.Path(__file__).parent.resolve()
-    ck_lib_path = pathlib.Path(__file__).parent.resolve().parent.parent.joinpath("src/dinoml/utils/ck_lib")
+    ck_lib_path = (
+        pathlib.Path(__file__)
+        .parent.resolve()
+        .parent.parent.joinpath("src/dinoml/utils/ck_lib")
+    )
     print(scripts_path)
     print(ck_lib_path)
     mk_ck_lib(

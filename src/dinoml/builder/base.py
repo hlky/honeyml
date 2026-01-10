@@ -21,7 +21,7 @@ from dinoml.builder.config import load_config, mark_output
 
 
 class Build:
-    model_name: str = "model.{label}.{device_name}.sm{sm}"
+    model_name: str = "model.{label}.{device_name}.{sm}"
     model_type: Optional[str] = None
 
     model_forward: str = "forward"
@@ -114,10 +114,10 @@ class Build:
             if isinstance(tensor, dict):
                 for sub_name, sub_tensor in tensor.items():
                     sub_tensor._attrs["shape"][0] = batch
-                    print(f"{sub_name=}: {get_shape(sub_tensor)}")
+                    print(f"{sub_name=}: {get_shape(sub_tensor)} {sub_tensor.dtype()}")
             else:
                 # TODO
-                print(f"{name=}: {get_shape(tensor)}")
+                print(f"{name=}: {get_shape(tensor)} {tensor.dtype()}")
                 tensor._attrs["shape"][0] = batch
 
     def create_output_tensors(self):
@@ -149,6 +149,7 @@ class Build:
             )
 
     def compile(self):
+        # , optimize_for_compilation_time=False
         target = detect_target(use_fp16_acc=self.use_fp16_acc)
         if self.debug:
             debug = DinoMLDebugSettings(check_all_outputs=True, elements_to_check=10)

@@ -23,7 +23,7 @@ class ESRGANBuilder(Build):
 
     """
 
-    model_name = "ESRGAN.{label}.{resolution}.{device_name}.sm{sm}"
+    model_name = "ESRGAN.{label}.{resolution}.{device_name}.{sm}"
     map_function = map_esrgan
     model_output_names = ["Y"]
     model_output = None

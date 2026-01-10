@@ -27,25 +27,28 @@ def get_device_name():
         "geforce ": "",
         "tesla ": "",
         "quadro ": "",
-        " ": "_",
+        "amd ": "",
+        "radeon ": "",
     }
     split_by = {
         ",": 0,
         "(": 0,
     }
-
     device_name = torch.cuda.get_device_name().lower()
     for target, replacement in cleanup.items():
         device_name = device_name.replace(target, replacement).strip()
-
+    device_name = device_name.replace(" ", "_")
     for target, index in split_by.items():
         device_name = device_name.split(target)[index].strip()
-
     return device_name
 
 
 def get_sm():
-    sm = "".join(str(i) for i in torch.cuda.get_device_capability())
+    properties = torch.cuda.get_device_properties()
+    if properties.name == properties.gcnArchName:
+        sm = "sm" + "".join(str(i) for i in torch.cuda.get_device_capability())
+    else:
+        sm = properties.gcnArchName
     return sm
 
 

@@ -51,6 +51,25 @@ __device__ half fast_tanh(half x) {
   return cdf;
 }
 
+
+__device__ bfloat16_2 fast_tanh(bfloat16_2 x) {
+  // 1-2/(e^(2x)+1)
+  const bfloat16_2 u = __hmul2(bfloat16_2(2), x);
+  const bfloat16_2 emu = h2exp(u);
+  const bfloat16_2 cdf =
+      __hsub2(bfloat16_2(1), __h2div(bfloat16_2(2), __hadd2(bfloat16_2(1), emu)));
+  return cdf;
+}
+
+__device__ bfloat16 fast_tanh(bfloat16 x) {
+  // 1-2/(e^(2x)+1)
+  const bfloat16 u = __hmul(bfloat16(2), x);
+  const bfloat16 emu = hexp(u);
+  const bfloat16 cdf = __hsub(bfloat16(1), __hdiv(bfloat16(2), __hadd(bfloat16(1), emu)));
+  return cdf;
+}
+
+
 // Return 1
 __device__ half one() {
   uint16_t bits = 0x3c00u;
@@ -61,6 +80,16 @@ __device__ half one() {
 __device__ half constant_half() {
   uint16_t bits = 0x3800u;
   return reinterpret_cast<half const&>(bits);
+}
+
+__device__ bfloat16 one_bf16() {
+    uint16_t bits = 0x3f80u;
+    return reinterpret_cast<bfloat16 const&>(bits);
+}
+
+__device__ bfloat16 constant_half_bf16() {
+    uint16_t bits = 0x3f00u;
+    return reinterpret_cast<bfloat16 const&>(bits);
 }
 
 __device__ float fsigmoid_custom(const float a) {
@@ -79,6 +108,13 @@ __device__ half2 h2sigmoid_custom(const half2 a) {
   return __hmul2((__hadd2(fast_tanh(__hmul2(a, halfX2)), oneX2)), halfX2);
 }
 
+__device__ bfloat16_2 h2sigmoid_custom(const bfloat16_2 a) {
+  bfloat16_2 halfX2 = bfloat16_2(constant_half_bf16(), constant_half_bf16());
+  bfloat16_2 oneX2 = bfloat16_2(one_bf16(), one_bf16());
+  return __hmul2((__hadd2(fast_tanh(__hmul2(a, halfX2)), oneX2)), halfX2);
+}
+
+
 __device__ float fsilu(const float a) {
   return a * fsigmoid_custom(a);
 }
@@ -90,6 +126,11 @@ __device__ half hsilu(const half a) {
 __device__ half2 h2silu(const half2 a) {
   return __hmul2(a, h2sigmoid_custom(a));
 }
+
+__device__ bfloat16_2 h2silu(const bfloat16_2 a) {
+  return __hmul2(a, h2sigmoid_custom(a));
+}
+
 
 __device__ half hsin_custom(const half a) {
   float x = __half2float(a);

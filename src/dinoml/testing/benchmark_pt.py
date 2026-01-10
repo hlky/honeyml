@@ -15,9 +15,12 @@
 """
 helper function to benchmark eager pytorch
 """
+
 # pylint: disable=C0415
+import torch
 
 
+@torch.no_grad
 def benchmark_torch_function(iters: int, function, *args, **kwargs) -> float:
     """
     function for benchmarking a pytorch function.
@@ -36,20 +39,19 @@ def benchmark_torch_function(iters: int, function, *args, **kwargs) -> float:
     float
         Runtime per iteration in ms.
     """
-    import torch
-
     # Warm up
     for _ in range(5):
         function(*args, **kwargs)
 
     # Start benchmark.
     torch.cuda.synchronize()
-    start_event = torch.cuda.Event(enable_timing=True)
-    end_event = torch.cuda.Event(enable_timing=True)
-    start_event.record()
-    for _ in range(iters):
-        function(*args, **kwargs)
-    end_event.record()
+    with torch.cuda.Stream() as stream:
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record(stream)
+        for _ in range(iters):
+            function(*args, **kwargs)
+        end_event.record(stream)
     torch.cuda.synchronize()
     # in ms
     return (start_event.elapsed_time(end_event)) / iters

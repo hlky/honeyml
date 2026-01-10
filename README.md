@@ -14,7 +14,7 @@
 | Platform | Support |
 | -------- |:-------:|
 | CUDA     | ✅ |
-| ROCm     | Partial |
+| ROCm     | ✅ |
 
 ## Optimizations
 

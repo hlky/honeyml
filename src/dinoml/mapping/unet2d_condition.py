@@ -31,12 +31,12 @@ def conv2d_pad(
 def geglu_split(key: str, tensor: torch.Tensor, state_dict: Dict[str, torch.Tensor]):
     if key.endswith("ff_net_0_proj_weight"):
         proj, gate = tensor.chunk(2, dim=0)
-        state_dict[key.replace("proj", "gate")] = gate
-        return proj
+        state_dict[key.replace("proj", "gate")] = gate.contiguous().to("cuda")
+        return proj.contiguous()
     elif key.endswith("ff_net_0_proj_bias"):
         proj, gate = tensor.chunk(2, dim=0)
-        state_dict[key.replace("proj", "gate")] = gate
-        return proj
+        state_dict[key.replace("proj", "gate")] = gate.contiguous().to("cuda")
+        return proj.contiguous()
     else:
         return tensor
 

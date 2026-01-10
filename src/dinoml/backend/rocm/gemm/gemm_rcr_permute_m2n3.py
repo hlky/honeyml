@@ -141,7 +141,7 @@ def gemm_gen_function_decl(func_attrs):
     """
     func_name = func_attrs["name"]
     return common.gen_function_decl(
-        func_name=func_name, gemm_flag="", pdims=len(func_attrs["shape"])
+        func_attrs, gemm_flag="", pdims=len(func_attrs["shape"])
     )
 
 

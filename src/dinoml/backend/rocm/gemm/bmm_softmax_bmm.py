@@ -21,6 +21,7 @@ This is used for `ops.bmm_rcr`.
 import jinja2
 
 from dinoml.backend import registry
+from dinoml.backend.backend_spec import ROCMSpec
 from dinoml.backend.rocm.gemm import bmm_common, common
 from dinoml.backend.rocm.gemm.layout import RCR
 
@@ -28,7 +29,7 @@ EXTRA_CODE = jinja2.Template(
     """
 #include "ck/utility/data_type.hpp"
 
-const ck::half_t alpha = {{scale}};
+const {{dtype}} alpha = {{scale}};
 
 namespace ck {
 namespace tensor_operation {
@@ -38,7 +39,7 @@ struct AttnMul
 {
     AttnMul(){};
 
-    __host__ __device__ void operator()(ck::half_t& e, const ck::half_t& c) const
+    __host__ __device__ void operator()({{dtype}}& e, const {{dtype}}& c) const
     {
         float s = {{scale}};
         e = c * type_convert<half_t>(s);
@@ -78,10 +79,10 @@ EXTRA_HEADER_TEMPLATE = jinja2.Template(
 
 PROBLEM_ARGS_TEMPLATE = jinja2.Template(
     """
-{{indent}}                                static_cast<ck::half_t *>(in_ptr),
-{{indent}}                                static_cast<ck::half_t *>(weight_ptr),
-{{indent}}                                static_cast<ck::half_t *>(bias_ptr),
-{{indent}}                                static_cast<ck::half_t *>(out_ptr),
+{{indent}}                                static_cast<{{dtype}} *>(in_ptr),
+{{indent}}                                static_cast<{{dtype}} *>(weight_ptr),
+{{indent}}                                static_cast<{{dtype}} *>(bias_ptr),
+{{indent}}                                static_cast<{{dtype}} *>(out_ptr),
 {{indent}}                                M,
 {{indent}}                                N,
 {{indent}}                                K,
@@ -187,6 +188,10 @@ def bmm_gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
         Generated from bmm._extract_dims().
         Used to store mapping between dim_names to input / output tensor dims.
     """
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
     return bmm_common.gen_profiler(
         func_attrs=func_attrs,
         workdir=workdir,
@@ -197,7 +202,7 @@ def bmm_gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
         tensor_decl_template=TENSOR_DECL_TEMPLATE,
         problem_args_template=PROBLEM_ARGS_TEMPLATE,
         extra_shape_template=EXTRA_SHAPE_TEMPLATE,
-        extra_code=EXTRA_CODE.render(scale=func_attrs["scale"]),
+        extra_code=EXTRA_CODE.render(scale=func_attrs["scale"], dtype=lib_dtype),
     )
 
 
@@ -220,6 +225,10 @@ def bmm_gen_function(func_attrs, exec_cond_template, dim_info_dict):
     str
         The rendered template of generated function body.
     """
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
     return bmm_common.gen_function(
         func_attrs,
         exec_cond_template,
@@ -228,7 +237,7 @@ def bmm_gen_function(func_attrs, exec_cond_template, dim_info_dict):
         problem_args_template=PROBLEM_ARGS_TEMPLATE,
         extra_shape_template=EXTRA_SHAPE_TEMPLATE,
         extra_header_template=EXTRA_HEADER_TEMPLATE,
-        extra_code=EXTRA_CODE.render(scale=func_attrs["scale"]),
+        extra_code=EXTRA_CODE.render(scale=func_attrs["scale"], dtype=lib_dtype),
     )
 
 
@@ -247,7 +256,7 @@ def bmm_gen_function_decl(func_attrs):
         The rentered template of function declaration.
     """
     func_name = func_attrs["name"]
-    return bmm_common.gen_function_decl(func_name=func_name, gemm_flag="bias_b1")
+    return bmm_common.gen_function_decl(func_attrs, gemm_flag="bias_b1")
 
 
 @registry.reg("rocm.bmm_softmax_bmm.func_call")

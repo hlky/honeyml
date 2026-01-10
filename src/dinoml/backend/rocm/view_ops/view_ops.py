@@ -13,7 +13,7 @@
 #  limitations under the License.
 #
 """
-ROCM codegen functions for view ops.
+Codegen functions for view ops.
 """
 
 import jinja2
@@ -84,15 +84,19 @@ FUNC_CALL_TEMPLATE = jinja2.Template(
 )
 
 
+def _is_intvar(func_attrs):
+    return func_attrs["is_intvar"] if "is_intvar" in func_attrs else False
+
+
 @registry.reg("rocm.reshape.gen_function")
 @registry.reg("rocm.flatten.gen_function")
 def reshape_gen_function(func_attrs, shape_eval_template):
-    func_name = func_attrs["name"]
-
-    input_ndim = len(func_attrs["inputs"][0]._attrs["shape"])
-    output_ndim = len(func_attrs["outputs"][0]._attrs["shape"])
+    func_name = "dinoml_" + func_attrs["name"]
     unknown_idx = func_attrs["unknown_idx"]
-
+    input_ndim = len(func_attrs["inputs"][0]._attrs["shape"])
+    if _is_intvar(func_attrs):
+        input_ndim = len(func_attrs["inputs"]) - 1
+    output_ndim = len(func_attrs["outputs"][0]._attrs["shape"])
     input_args = INPUT_ARGS_TEMPLATE.render(input_ndim=input_ndim)
     output_args = OUTPUT_ARGS_TEMPLATE.render(output_ndim=output_ndim)
 
@@ -115,8 +119,10 @@ def reshape_gen_function(func_attrs, shape_eval_template):
 @registry.reg("rocm.reshape.func_decl")
 @registry.reg("rocm.flatten.func_decl")
 def reshape_gen_function_decl(func_attrs):
-    func_name = func_attrs["name"]
+    func_name = "dinoml_" + func_attrs["name"]
     input_ndim = len(func_attrs["inputs"][0]._attrs["shape"])
+    if _is_intvar(func_attrs):
+        input_ndim = len(func_attrs["inputs"]) - 1
     output_ndim = len(func_attrs["outputs"][0]._attrs["shape"])
 
     return FUNC_DECL_TEMPLATE.render(
@@ -127,10 +133,18 @@ def reshape_gen_function_decl(func_attrs):
 @registry.reg("rocm.reshape.func_call")
 @registry.reg("rocm.flatten.func_call")
 def reshape_gen_function_call(func_attrs, indent="  "):
-    func_name = func_attrs["name"]
-    input_names = [
-        shape._attrs["name"] for shape in func_attrs["inputs"][0]._attrs["shape"]
-    ]
+    func_name = "dinoml_" + func_attrs["name"]
+    input_names = []
+    if _is_intvar(func_attrs):
+        for i, inp in enumerate(func_attrs["inputs"]):
+            if i == 0:
+                continue
+            input_names.append(inp._attrs["int_var"]._attrs["name"])
+    else:
+        input_names = [
+            shape._attrs["name"] for shape in func_attrs["inputs"][0]._attrs["shape"]
+        ]
+
     output_names = [
         shape._attrs["name"] for shape in func_attrs["outputs"][0]._attrs["shape"]
     ]
@@ -156,7 +170,7 @@ def squeeze_gen_function(func_attrs, shape_eval_template):
     shape_eval_template : jinja2.Template
         The template that implements the logic for writing to dynamic shapes.
     """
-    func_name = func_attrs["name"]
+    func_name = "dinoml_" + func_attrs["name"]
     out_dim_to_in = func_attrs["out_dim_to_in"]
 
     input_ndim = len(func_attrs["inputs"][0]._attrs["shape"])
@@ -191,7 +205,7 @@ def squeeze_gen_function_decl(func_attrs):
     func_attrs : Dict[str, Any]
         The _attrs dict from the original op.
     """
-    func_name = func_attrs["name"]
+    func_name = "dinoml_" + func_attrs["name"]
     input_ndim = len(func_attrs["inputs"][0]._attrs["shape"])
     output_ndim = len(func_attrs["outputs"][0]._attrs["shape"])
 
@@ -210,9 +224,9 @@ def squeeze_gen_function_call(func_attrs, indent="  "):
     func_attrs : Dict[str, Any]
         The _attrs dict from the original op.
     ident : str
-        Sequence to use to generate the indentations in the ROCM code
+        Sequence to use to generate the indentations in the rocm code
     """
-    func_name = func_attrs["name"]
+    func_name = "dinoml_" + func_attrs["name"]
     input_names = [
         shape._attrs["name"] for shape in func_attrs["inputs"][0]._attrs["shape"]
     ]

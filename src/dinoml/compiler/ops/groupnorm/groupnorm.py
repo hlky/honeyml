@@ -292,9 +292,11 @@ class group_norm(Operator):
         content = list(self._attrs["op_instance"].keys())
         runner = backend.profiler_runner.Runner(devices, self._attrs["name"])
         x_shape_dict = self._invert_exec_key(exec_key)
-        for cfg in content:
-            command = self._gen_profile_cmd(profiler_prefix, cfg, x_shape_dict)
-            runner.push(cfg, command)
+        profiler_filename = self._get_profiler_filename()
+        command = self._gen_profile_cmd(
+            profiler_prefix, profiler_filename, x_shape_dict
+        )
+        runner.push(profiler_filename, command)
 
         runner.join()
         result = runner.pull()
@@ -305,7 +307,7 @@ class group_norm(Operator):
             )
 
         out = min(result, key=itemgetter(1))
-        best_algo = out[0]
+        best_algo = out[1].op_config
         workspace = out[1].workspace
         ## cache
         cache_record = NormRecordEntry(
@@ -395,11 +397,16 @@ class group_norm(Operator):
         )
         func = registry.get(func_key)
         func(self._attrs)
+        profiler_filename = self._get_profiler_filename()
         func_key = "{target}.{op}.gen_profiler".format(
             target=target.name(), op=self._attrs["op"]
         )
         func = registry.get(func_key)
-        func(self._attrs, workdir)
+        return func(
+            self._attrs,
+            workdir,
+            profile_filename=profiler_filename,
+        )
 
     def _extract_exec_path(self, dynamic_profiling_strategy=DynamicProfileStrategy.MAX):
         """Extract execution key, i.e. input arguments for the profiler.
@@ -415,19 +422,22 @@ class group_norm(Operator):
         n_min = min(n_dim._attrs["values"])
 
         h_dim = self._attrs["inputs"][0]._attrs["shape"][-3]
-        assert isinstance(h_dim, IntImm), "groupnorm requires h_dim to be static"
         w_dim = self._attrs["inputs"][0]._attrs["shape"][-2]
-        assert isinstance(w_dim, IntImm), "groupnorm requires w_dim to be static"
         c_dim = self._attrs["inputs"][0]._attrs["shape"][-1]
-        assert isinstance(c_dim, IntImm), "groupnorm requires c_dim to be static"
 
         # N, H, W, G, C
         shape_values_dict = {
             "N": [n_min, n_max],
-            "H": [h_dim.value()],
-            "W": [w_dim.value()],
+            "H": [h_dim.lower_bound(), h_dim.upper_bound()]
+            if isinstance(h_dim, IntVar)
+            else [c_dim.value()],
+            "W": [w_dim.lower_bound(), w_dim.upper_bound()]
+            if isinstance(w_dim, IntVar)
+            else [c_dim.value()],
             "G": [self._attrs["num_groups"]],
-            "C": [c_dim.value()],
+            "C": [c_dim.lower_bound(), c_dim.upper_bound()]
+            if isinstance(c_dim, IntVar)
+            else [c_dim.value()],
         }
 
         self._attrs["exec_path"] = OrderedDict()
@@ -453,6 +463,23 @@ class group_norm(Operator):
                 algo="",
             )
             self._attrs["exec_path"][exec_item.profiling_key] = exec_item
+
+    def _get_profiler_filename(self):
+        """
+        generate a filename for a profiler that benchmarks multiple GEMM instances
+        """
+        target = backend.target.Target.current()
+
+        op_type = self._attrs["op"]
+        all_op_names = list(self._attrs["op_instance"].keys())
+        encoded_str = sha1((";".join(all_op_names)).encode("utf-8")).hexdigest()
+
+        if target.use_dummy_profiling_results():
+            # we don't use cache
+            return f"{op_type}_{encoded_str}"
+        else:
+            cache_ver = target.get_profile_cache_version("gemm")
+            return f"{op_type}_{encoded_str}_{cache_ver}"
 
     def _get_op_attributes(self):
         return {

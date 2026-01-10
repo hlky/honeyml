@@ -13,6 +13,6 @@
 #  limitations under the License.
 #
 
-from dinoml.backend.rocm.attention import mem_eff_attention
+from dinoml.backend.rocm.attention import mem_eff_attention, flash_attn
 
-__all__ = ["mem_eff_attention"]
+__all__ = ["mem_eff_attention", "flash_attn"]

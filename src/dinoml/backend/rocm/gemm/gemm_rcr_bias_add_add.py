@@ -22,6 +22,7 @@ bias[RowMajor][N], D0[RowMajor][M, N], D1[RowMajor][M, N]
 import jinja2
 
 from dinoml.backend import registry
+from dinoml.backend.backend_spec import ROCMSpec
 from dinoml.backend.rocm.gemm import common
 from dinoml.backend.rocm.gemm.layout import RCR
 
@@ -38,7 +39,7 @@ struct AddAddAdd
 {
     AddAddAdd(){};
 
-    __host__ __device__ void operator()(ck::half_t& e, const ck::half_t& c, const ck::half_t& bias, const ck::half_t& d0, const ck::half_t& d1) const
+    __host__ __device__ void operator()({{dtype}}& e, const {{dtype}}& c, const {{dtype}}& bias, const {{dtype}}& d0, const {{dtype}}& d1) const
     {
         e = c + bias + d0 + d1;
     };
@@ -89,13 +90,17 @@ def gen_profiler(func_attrs, workdir, profiler_name, dim_info_dict):
         Generated from gemm._extract_dims().
         Used to store mapping between dim_names to input / output tensor dims.
     """
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
     return common.gen_profiler(
         func_attrs=func_attrs,
         workdir=workdir,
         dim_info_dict=dim_info_dict,
         args_parse=RCR.args_parse,
         gemm_flag="bias_add_add",
-        extra_code=EXTRA_CODE.render(),
+        extra_code=EXTRA_CODE.render(dtype=lib_dtype),
         profiler_name=profiler_name,
     )
 
@@ -123,12 +128,16 @@ def gen_function(
     str
         The rendered template of generated function body.
     """
+    x = func_attrs["inputs"][0]
+    spec = ROCMSpec()
+    lib_dtype = spec.dtype_to_lib_type(x._attrs["dtype"])
+
     return common.gen_function(
         func_attrs,
         exec_cond_template,
         dim_info_dict,
         "bias_add_add",
-        extra_code=EXTRA_CODE.render(),
+        extra_code=EXTRA_CODE.render(dtype=lib_dtype),
         input_addr_calculator=common.INPUT_ADDR_CALCULATOR.render(
             accessor_a=func_attrs["input_accessors"][0],
             accessor_b=func_attrs["input_accessors"][1],
@@ -155,7 +164,7 @@ def gen_function_decl(func_attrs):
     """
     func_name = func_attrs["name"]
     return common.gen_function_decl(
-        func_name=func_name,
+        func_attrs,
         gemm_flag="bias_add_add_relu",
         has_d0=common.has_d0(func_attrs),
         has_d1=common.has_d1(func_attrs),

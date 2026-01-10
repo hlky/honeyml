@@ -453,7 +453,23 @@ clean_constants:
 """
         )
 
+        flash_attn_lib = Path(workdir) / "libflash_attention.a"
+        has_flash_attention_lib = False
+        if flash_attn_lib.exists():
+            has_flash_attention_lib = True
+        has_flash_attention = False
+        for pair in file_pairs:
+            if "flash_attn" in pair[1]:
+                has_flash_attention = True
+                break
+
+        if has_flash_attention and not has_flash_attention_lib:
+            raise ValueError("libflash_attention.a is missing.")
+
         build_so_cmd = "$(CC) -shared $(fPIC_flag) $(CFLAGS) -o $@ $(obj_files)"
+        if has_flash_attention:
+            build_so_cmd += f" {flash_attn_lib.resolve().as_posix()}"
+
         standalone_src = "standalone.cu"
         standalone_obj = "standalone.obj"
         windll_obj = "windll.obj"

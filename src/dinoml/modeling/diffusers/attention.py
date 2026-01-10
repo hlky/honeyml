@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 from dinoml.compiler import ops
 
 from dinoml.frontend import IntVar, nn, Tensor
+from dinoml.utils.shape_utils import get_shape
 
 from .activations import ApproximateGELU, GEGLU, GELU
 from .attention_processor import Attention, JointAttnProcessor2_0
@@ -13,14 +14,6 @@ from .normalization import (
     AdaLayerNormZero,
     RMSNorm,
 )
-
-
-def get_shape(x):
-    shape = [
-        it.value() if not isinstance(it, IntVar) else it.symbolic_value()
-        for it in x._attrs["shape"]
-    ]
-    return shape
 
 
 class GatedSelfAttentionDense(nn.Module):

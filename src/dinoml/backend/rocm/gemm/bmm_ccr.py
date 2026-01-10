@@ -140,7 +140,7 @@ def bmm_gen_function_decl(func_attrs):
         The rentered template of function declaration.
     """
     func_name = func_attrs["name"]
-    return bmm_common.gen_function_decl(func_name=func_name, gemm_flag="")
+    return bmm_common.gen_function_decl(func_attrs, gemm_flag="")
 
 
 @registry.reg("rocm.bmm_ccr.func_call")

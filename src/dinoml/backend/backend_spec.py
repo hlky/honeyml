@@ -481,6 +481,7 @@ class ROCMSpec(GPUBackendSpec):
 #include <hip/hip_runtime.h>
 using bfloat16 = __hip_bfloat16;
 using bfloat162 = __hip_bfloat162;
+using bfloat16_2 = __hip_bfloat162;
 {{extra_header}}
         """
     )
@@ -488,6 +489,7 @@ using bfloat162 = __hip_bfloat162;
 
     dtype_to_ck_type: Dict[str, str] = field(
         default_factory=lambda: {
+            "bfloat16": "ck::bhalf_t",
             "float16": "ck::half_t",
             "float32": "float",
             "float": "float",

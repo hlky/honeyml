@@ -29,6 +29,7 @@ from dinoml.backend.rocm.tensor import (  # noqa
     identity,
     meshgrid,
     pad,
+    get_timestep_embedding,
     permute021,
     permute0213,
     permute102,

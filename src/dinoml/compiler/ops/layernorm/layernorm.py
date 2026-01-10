@@ -339,9 +339,9 @@ class layernorm(Operator):
         content = list(self._attrs["op_instance"].keys())
         runner = backend.profiler_runner.Runner(devices, self._attrs["name"])
         x_shape = self._invert_exec_key(exec_key)
-        for cfg in content:
-            command = self._gen_profile_cmd(profiler_prefix, cfg, x_shape)
-            runner.push(cfg, command)
+        profiler_filename = self._get_profiler_filename()
+        command = self._gen_profile_cmd(profiler_prefix, profiler_filename, x_shape)
+        runner.push(profiler_filename, command)
 
         runner.join()
         result = runner.pull()
@@ -352,7 +352,7 @@ class layernorm(Operator):
             )
 
         out = min(result, key=itemgetter(1))
-        best_algo = out[0]
+        best_algo = out[1].op_config
         workspace = out[1].workspace
         ## cache
         cache_record = NormRecordEntry(
@@ -442,11 +442,33 @@ class layernorm(Operator):
         )
         func = registry.get(func_key)
         func(self._attrs)
+        profiler_filename = self._get_profiler_filename()
         func_key = "{target}.{op}.gen_profiler".format(
             target=target.name(), op=self._attrs["op"]
         )
         func = registry.get(func_key)
-        return func(self._attrs, workdir)
+        return func(
+            self._attrs,
+            workdir,
+            profile_filename=profiler_filename,
+        )
+
+    def _get_profiler_filename(self):
+        """
+        generate a filename for a profiler that benchmarks multiple GEMM instances
+        """
+        target = backend.target.Target.current()
+
+        op_type = self._attrs["op"]
+        all_op_names = list(self._attrs["op_instance"].keys())
+        encoded_str = sha1((";".join(all_op_names)).encode("utf-8")).hexdigest()
+
+        if target.use_dummy_profiling_results():
+            # we don't use cache
+            return f"{op_type}_{encoded_str}"
+        else:
+            cache_ver = target.get_profile_cache_version("gemm")
+            return f"{op_type}_{encoded_str}_{cache_ver}"
 
     def _get_op_attributes(self):
         return {"normalized_shape": self._attrs["default_normalized_shape"]}

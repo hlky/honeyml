@@ -224,6 +224,13 @@ constexpr __host__ __device__ inline integer ceil_div(integer n, integer m) {
   return (n + m - 1) / m;
 }
 
+
+template <typename T1, typename T2>
+constexpr inline T1 round_up_to_multiple(T1 n, T2 m) {
+  return (n + m - 1) / m * m;
+}
+
+
 inline uint64_t make_seed() {
   std::random_device rd;
 
