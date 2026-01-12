@@ -284,7 +284,9 @@ class elementwise(Operator):
         ]
         self._set_depth()
         output_shape = self._infer_shapes(*converted_args)
-        output = Tensor(output_shape, src_ops={self}, dtype=common_dtype, if_optional=if_optional)
+        output = Tensor(
+            output_shape, src_ops={self}, dtype=common_dtype, if_optional=if_optional
+        )
         if self._attrs["func"] in INT_ELEMENTWISE_FUNC and None not in symbolic_args:
             output._attrs["symbolic_value"] = functools.reduce(
                 INT_ELEMENTWISE_FUNC[self._attrs["func"]], symbolic_args

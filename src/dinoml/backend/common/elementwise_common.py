@@ -1266,7 +1266,10 @@ def _gen_kernel_function(
     )
     return kernel_func
 
-def gen_optional(inputs: List[Tensor], outputs: List[Tensor], backend_spec: BackendSpec):
+
+def gen_optional(
+    inputs: List[Tensor], outputs: List[Tensor], backend_spec: BackendSpec
+):
     optional_begin = """
 bool has_optional = false;
 """
@@ -1289,14 +1292,25 @@ if (input{{optional_idx}} == nullptr) {
             if_optional_idx = None
             optional_idx = None
             for idx, in_tensor in enumerate(inputs):
-                if out_tensor._attrs["if_optional"]._attrs["name"] == in_tensor._attrs["name"]:
+                if (
+                    out_tensor._attrs["if_optional"]._attrs["name"]
+                    == in_tensor._attrs["name"]
+                ):
                     if_optional_idx = idx
                 if in_tensor._attrs["is_optional"]:
                     optional_idx = idx
             if if_optional_idx is not None and optional_idx is not None:
-                optional.append(optional_template.render(optional_idx=optional_idx, if_optional_idx=if_optional_idx, out_idx=out_idx, dtype=backend_spec.dtype_to_backend_type(out_tensor.dtype())))
+                optional.append(
+                    optional_template.render(
+                        optional_idx=optional_idx,
+                        if_optional_idx=if_optional_idx,
+                        out_idx=out_idx,
+                        dtype=backend_spec.dtype_to_backend_type(out_tensor.dtype()),
+                    )
+                )
     optional.append(optional_end)
     return "\n".join(optional)
+
 
 def fused_elementwise_gen_function(
     func_attrs: Dict[str, Any],
@@ -1375,7 +1389,11 @@ def fused_elementwise_gen_function(
         op_t=fused_elementwise_metadata.op_t,
         data_t=fused_elementwise_metadata.data_t,
     )
-    optional = gen_optional(fused_elementwise_metadata.inputs, fused_elementwise_metadata.outputs, backend_spec)
+    optional = gen_optional(
+        fused_elementwise_metadata.inputs,
+        fused_elementwise_metadata.outputs,
+        backend_spec,
+    )
     function = FUNC_TEMPLATE.render(
         prefix=backend_spec.prefix,
         index_type=backend_spec.index_type,
