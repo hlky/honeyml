@@ -779,7 +779,9 @@ void ModelContainer::PrepareForRun(
   }
   for (size_t i = 0; i < num_inputs_; ++i) {
     auto& input = inputs[i];
-    ValidateParamDtype(input.dtype, i);
+    if (input.ptr != nullptr) {
+      ValidateParamDtype(input.dtype, i);
+    }
     model->SetInput(input.ptr, input.shape, i);
   }
 
