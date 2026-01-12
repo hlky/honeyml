@@ -20,7 +20,8 @@ __global__ void avg_pool_2d_kernel(
     const int W,
     const int C,
     const int HO,
-    const int WO) {
+    const int WO,
+    const float norm_factor) {
   const VectorType* input = (const VectorType*)input_raw;
   VectorType* output = (VectorType*)output_raw;
 
@@ -41,9 +42,6 @@ __global__ void avg_pool_2d_kernel(
 
   input += n_idx * H * W * C;
   output += ((n_idx * HO + out_h_idx) * WO + out_w_idx) * C;
-
-  const float norm_factor =
-      static_cast<float>(1.0f / (KernelSize * KernelSize));
 
   for (int c_idx = tid; c_idx < C; c_idx += blockDim.x) {
     float2 avg = {0.f, 0.f};
@@ -91,6 +89,9 @@ void avg_pool_2d_launcher(
   dim3 grid(N, HO, WO);
   dim3 block(num_thread);
 
+  const float norm_factor =
+      static_cast<float>(1.0f / (KernelSize * KernelSize));
+
   dinoml::avg_pool_2d_kernel<ElemType, VectorType, KernelSize, Stride, Padding>
-      <<<grid, block, 0, stream>>>(input, output, N, H, W, C / 2, HO, WO);
+      <<<grid, block, 0, stream>>>(input, output, N, H, W, C / 2, HO, WO, norm_factor);
 }

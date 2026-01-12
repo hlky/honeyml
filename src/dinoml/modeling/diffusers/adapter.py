@@ -1,7 +1,5 @@
 from typing import Annotated, List
 
-from dinoml.compiler import ops
-
 from dinoml.frontend import nn, Tensor
 from dinoml.utils.build_utils import Shape
 
@@ -295,10 +293,9 @@ class AdapterResnetBlock(nn.Module):
     def __init__(self, channels: int, dtype: str = "float16"):
         super().__init__()
         self.block1 = nn.Conv2d(
-            channels, channels, kernel_size=3, padding=1, dtype=dtype
+            channels, channels, kernel_size=3, padding=1, dtype=dtype, activation="relu",
         )
-        self.act = ops.relu
-        self.block2 = nn.Conv2d(channels, channels, kernel_size=1, dtype=dtype)
+        self.block2 = nn.Conv2d(channels, channels, kernel_size=1, dtype=dtype, add=True)
 
     def forward(self, x: Tensor) -> Tensor:
         r"""
@@ -306,10 +303,10 @@ class AdapterResnetBlock(nn.Module):
         layer on the input tensor. It returns addition with the input tensor.
         """
 
-        h = self.act(self.block1(x))
-        h = self.block2(h)
+        h = self.block1(x)
+        h = self.block2(h, x)
 
-        return h + x
+        return h
 
 
 # light adapter
@@ -443,11 +440,10 @@ class LightAdapterResnetBlock(nn.Module):
     def __init__(self, channels: int, dtype: str = "float16"):
         super().__init__()
         self.block1 = nn.Conv2d(
-            channels, channels, kernel_size=3, padding=1, dtype=dtype
+            channels, channels, kernel_size=3, padding=1, dtype=dtype, activation="relu",
         )
-        self.act = ops.relu
         self.block2 = nn.Conv2d(
-            channels, channels, kernel_size=3, padding=1, dtype=dtype
+            channels, channels, kernel_size=3, padding=1, dtype=dtype, add=True,
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -456,7 +452,7 @@ class LightAdapterResnetBlock(nn.Module):
         another convolutional layer and adds it to input tensor.
         """
 
-        h = self.act(self.block1(x))
-        h = self.block2(h)
+        h = self.block1(x)
+        h = self.block2(h, x)
 
-        return h + x
+        return h

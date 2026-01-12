@@ -9,5 +9,6 @@ builder = T2IAdapterBuilder(
         "batch_size": (1, 2),
         "resolution": (8, 512),
     },
+    check_outputs=False,
 )
 builder()

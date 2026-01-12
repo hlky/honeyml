@@ -622,7 +622,6 @@ class Model:
         of torch.Tensors ordered according to GetInputNameToIndexMap. Outputs
         can also be a dictionary, or a list ordered according to GetOutputNameToIndexMap.
         """
-        torch.cuda.synchronize()
         if stream_ptr is None:
             stream_ptr = torch.cuda.current_stream().cuda_stream
         _check_tensors_contiguous_and_on_gpu(
@@ -640,7 +639,6 @@ class Model:
             sync=sync,
             graph_mode=graph_mode,
         )
-        torch.cuda.synchronize()
         return self._interpret_tensors_as_shapes(outputs, outputs_dinoml)
 
     def _run_with_outputs_on_host(
@@ -764,7 +762,6 @@ class Model:
             outputs,
             name="outputs",
         )
-        torch.cuda.synchronize()
         if stream_ptr is None:
             stream_ptr = torch.cuda.current_stream().cuda_stream
 
