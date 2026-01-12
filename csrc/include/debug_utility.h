@@ -44,7 +44,11 @@ void InvokeOutputsChecker(
     int64_t elem_cnt,
     dinoml::StreamType stream) {
   printf("Tensor (%s) output:\n", tensor_name);
-  outputs_checker<<<1, 1, 0, stream>>>(tensor, elem_cnt);
+  if (tensor == nullptr) {
+    printf("nullptr\n");
+  } else {
+    outputs_checker<<<1, 1, 0, stream>>>(tensor, elem_cnt);
+  }
   dinoml::StreamSynchronize(stream);
 }
 } // namespace dinoml

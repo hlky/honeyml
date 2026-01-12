@@ -225,6 +225,8 @@ def check_not_null(
     for these outputs - only allow them to be null if their lower bound
     is zero, otherwise never allow them to be null.
     """
+    if tensor._attrs["is_optional"]:
+        return ""
     name = tensor._attrs["name"]
     if tensor_idx is None:
         check = name

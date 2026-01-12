@@ -230,6 +230,7 @@ FUNC_TEMPLATE = jinja2.Template(
 
 #include "jagged.h"
 #include "kernels/tensor_accessor.cuh"
+#include "device_functions-generated.h"
 
 namespace {
 
@@ -243,6 +244,7 @@ void invoke_{{func_name}}({{output_params}}, {{input_params}}, {{dynamic_dims_de
     if (n_elements == 0) {
       return;
     }
+    {{optional}}
     int block_size = static_cast<int>(std::ceil(static_cast<double>(n_elements) / N_ELEMENTS_PER_THREAD / FUSED_ELE_THREAD_SIZE));
     {{func_name}}<<<block_size, FUSED_ELE_THREAD_SIZE, 0, stream>>>(
         {{kernel_call_output_params}},
@@ -1264,6 +1266,37 @@ def _gen_kernel_function(
     )
     return kernel_func
 
+def gen_optional(inputs: List[Tensor], outputs: List[Tensor], backend_spec: BackendSpec):
+    optional_begin = """
+bool has_optional = false;
+"""
+    optional_end = """
+if (has_optional) {
+  return;
+}
+"""
+    optional = [optional_begin]
+    optional_template = jinja2.Template(
+        """
+if (input{{optional_idx}} == nullptr) {
+  dinoml::DeviceToDeviceCopy(output{{out_idx}}, input{{if_optional_idx}}, n_elements * sizeof({{dtype}}), stream);
+  has_optional = true;
+}
+"""
+    )
+    for out_idx, out_tensor in enumerate(outputs):
+        if out_tensor._attrs["if_optional"] is not None:
+            if_optional_idx = None
+            optional_idx = None
+            for idx, in_tensor in enumerate(inputs):
+                if out_tensor._attrs["if_optional"]._attrs["name"] == in_tensor._attrs["name"]:
+                    if_optional_idx = idx
+                if in_tensor._attrs["is_optional"]:
+                    optional_idx = idx
+            if if_optional_idx is not None and optional_idx is not None:
+                optional.append(optional_template.render(optional_idx=optional_idx, if_optional_idx=if_optional_idx, out_idx=out_idx, dtype=backend_spec.dtype_to_backend_type(out_tensor.dtype())))
+    optional.append(optional_end)
+    return "\n".join(optional)
 
 def fused_elementwise_gen_function(
     func_attrs: Dict[str, Any],
@@ -1342,7 +1375,7 @@ def fused_elementwise_gen_function(
         op_t=fused_elementwise_metadata.op_t,
         data_t=fused_elementwise_metadata.data_t,
     )
-
+    optional = gen_optional(fused_elementwise_metadata.inputs, fused_elementwise_metadata.outputs, backend_spec)
     function = FUNC_TEMPLATE.render(
         prefix=backend_spec.prefix,
         index_type=backend_spec.index_type,
@@ -1378,6 +1411,7 @@ def fused_elementwise_gen_function(
         ),
         kernel_call_output_params=kernel_call_output_params,
         kernel_call_input_params=kernel_call_input_params,
+        optional=optional,
     )
     return function
 

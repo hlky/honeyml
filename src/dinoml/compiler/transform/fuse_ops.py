@@ -86,6 +86,8 @@ def _find_fusable_elementwise_ops(src_op: Operator) -> Set[Operator]:
     # Get parent ops.
     dependent_ops = set()
     for input_tensor in src_op._attrs["inputs"]:
+        if input_tensor._attrs.get("is_optional", False):
+            return set()
         dependent_ops.update(input_tensor._attrs["src_ops"])
     original_ops = set(dependent_ops)
 
@@ -95,6 +97,9 @@ def _find_fusable_elementwise_ops(src_op: Operator) -> Set[Operator]:
         if op._attrs["op"] != "elementwise":
             to_be_removed_set.add(op)
         else:
+            for t in op._attrs["inputs"]:
+                if t._attrs.get("is_optional", False):
+                    to_be_removed_set.add(op)
             # Assuming there are two elementwise ops, op1 and op2, where op1 is a
             # parent op of op2. If op1's output is an output tensor, or if op1 is
             # consumed by other non-elementwise ops, op1 cannot be fused with op2.

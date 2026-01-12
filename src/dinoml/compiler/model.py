@@ -124,6 +124,8 @@ def _check_tensors_contiguous_and_on_gpu(
     tensors: Union[Dict[str, TorchTensor], List[TorchTensor]], name: str
 ):
     def is_bad_tensor(tensor: TorchTensor) -> bool:
+        if tensor is None:
+            return False
         return not tensor.is_contiguous() or not tensor.is_cuda
 
     _check_tensors(tensors, is_bad_tensor, name, "contiguous and on GPU")
@@ -142,6 +144,12 @@ def torch_to_dinoml_data(tensor: TorchTensor) -> DinoMLData:
     """
     Convert a torch Tensor to a DinoMLData.
     """
+    if tensor is None:
+        return DinoMLData(
+            None,
+            [],
+            "float16",
+        )
     return DinoMLData(
         tensor.data_ptr(), list(tensor.size()), torch_dtype_to_string(tensor.dtype)
     )
