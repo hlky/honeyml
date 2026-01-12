@@ -53,7 +53,7 @@ void {{function_name}}(
     {{prefix}}Stream_t stream
 ) {
     {{index_type}} total_elements = (*batch) * (*in_h) * (*in_w) * (*in_ch);
-    {{index_type}} threads_per_block = 256;
+    {{index_type}} threads_per_block = 512;
     {{index_type}} num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
     *out_h = (*in_h) / r;
     *out_w = (*in_w) / r;
