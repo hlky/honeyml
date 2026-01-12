@@ -214,6 +214,7 @@ class elementwise(Operator):
         symbolic_args = []
         common_dtype = None
         assert len(args) > 0, "Elementwise ops must take at least one argument."
+        assert len(args) <= 2, "Got more than 2 elementwise arguments"
         for arg in args:
             if isinstance(arg, int) or isinstance(arg, float):
                 converted_args.append(Tensor(shape=[], value=arg))
@@ -269,13 +270,23 @@ class elementwise(Operator):
                 if arg.is_a_const_num():
                     arg._attrs["dtype"] = common_dtype
 
+        if_optional = None
+        if len(converted_args) == 2:
+            if converted_args[0]._attrs["is_optional"]:
+                if_optional = converted_args[1]
+                converted_args[0]._attrs["if_optional"] = if_optional
+            elif converted_args[1]._attrs["is_optional"]:
+                if_optional = converted_args[0]
+                converted_args[1]._attrs["if_optional"] = if_optional
         self._attrs["args"] = list(converted_args)
         self._attrs["inputs"] = [
             arg for arg in converted_args if not arg.is_a_const_num()
         ]
         self._set_depth()
         output_shape = self._infer_shapes(*converted_args)
-        output = Tensor(output_shape, src_ops={self}, dtype=common_dtype)
+        output = Tensor(
+            output_shape, src_ops={self}, dtype=common_dtype, if_optional=if_optional
+        )
         if self._attrs["func"] in INT_ELEMENTWISE_FUNC and None not in symbolic_args:
             output._attrs["symbolic_value"] = functools.reduce(
                 INT_ELEMENTWISE_FUNC[self._attrs["func"]], symbolic_args

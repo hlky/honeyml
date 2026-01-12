@@ -799,6 +799,8 @@ class Tensor(Node):
         dtype: str = "float16",
         is_input: bool = False,
         is_output: bool = False,
+        is_optional: bool = False,
+        if_optional: Tensor = None,
         value: Any = None,
         is_view_of: Any = None,
         is_internal_constant: bool = False,
@@ -853,9 +855,12 @@ class Tensor(Node):
         self._attrs["dtype"] = normalize_dtype(dtype)
         self._attrs["is_output"] = is_output
         self._attrs["is_input"] = is_input
+        self._attrs["is_optional"] = is_optional
         self._attrs["is_param"] = False
         self._attrs["is_internal_constant"] = is_internal_constant
         self._attrs["skip_constant_folding"] = skip_constant_folding
+
+        self._attrs["if_optional"] = if_optional
 
         # True if this is an internal tensor that aliases an output through
         # a view. Set up in mark_param_tensor

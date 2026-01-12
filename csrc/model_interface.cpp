@@ -357,6 +357,17 @@ DinoMLError DinoMLModelContainerGetInputName(
       { *input_name_out = m->InputName(input_idx); })
 }
 
+DinoMLError DinoMLModelContainerGetInputOptional(
+    DinoMLModelHandle handle,
+    size_t input_idx,
+    bool* input_optional_out) {
+  RETURN_ERROR_IF_NULL(handle)
+  RETURN_ERROR_IF_NULL(input_optional_out)
+  auto* m = reinterpret_cast<dinoml::ModelContainer*>(handle);
+  CONVERT_EXCEPTION_TO_ERROR_CODE(
+      { *input_optional_out = m->InputOptional(input_idx); })
+}
+
 DinoMLError DinoMLModelContainerGetMaximumInputShape(
     DinoMLModelHandle handle,
     size_t input_idx,

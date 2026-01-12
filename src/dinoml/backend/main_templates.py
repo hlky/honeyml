@@ -371,6 +371,7 @@ ModelContainerBase::ModelContainerBase(
       bound_constant_dtypes_(num_bound_constants),
       num_params_(num_inputs + num_outputs + num_unbound_constants),
       param_names_(num_params_),
+      param_optional_(num_params_),
       param_dtypes_(num_params_),
       max_param_shapes_(num_params_),
       max_param_numel_(num_params_),
@@ -378,6 +379,7 @@ ModelContainerBase::ModelContainerBase(
 {{ set_up_constant_names }}
 {{ set_up_constant_original_names }}
 {{ set_up_param_names }}
+{{ set_up_param_optional }}
 {{ set_up_param_dtypes }}
 {{ set_up_bound_constant_dtypes }}
 {{ set_up_bound_constant_size }}

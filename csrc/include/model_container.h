@@ -94,6 +94,7 @@ class ModelContainerBase {
   // These entries correspond to inputs/outputs/unbound constants in order;
   // inputs first, then outputs, then constants.
   std::vector<const char*> param_names_;
+  std::vector<bool> param_optional_;
   std::vector<std::vector<int64_t>> max_param_shapes_;
   std::vector<DinoMLDtype> param_dtypes_;
 
@@ -228,6 +229,8 @@ class ModelContainer : ModelContainerBase {
 
   const char* InputName(size_t input_idx) const;
   const char* OutputName(size_t output_idx) const;
+
+  bool InputOptional(size_t input_idx) const;
 
   DinoMLParamShape MaxInputShape(size_t input_idx) const;
   DinoMLParamShape MaxOutputShape(size_t output_idx) const;

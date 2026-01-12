@@ -277,6 +277,11 @@ DINOML_EXPORT DinoMLError DinoMLModelContainerGetInputName(
     size_t input_idx,
     const char** input_name_out);
 
+DINOML_EXPORT DinoMLError DinoMLModelContainerGetInputOptional(
+    DinoMLModelHandle handle,
+    size_t input_idx,
+    bool* input_optional_out);
+
 DINOML_EXPORT DinoMLError DinoMLModelContainerGetMaximumInputShape(
     DinoMLModelHandle handle,
     size_t input_idx,

@@ -224,6 +224,9 @@ class ModelBase {
  private:
   void SetInputShape(const DinoMLParamShape& shape, size_t idx) {
     auto& param = params_[idx];
+    if (shape.size == 0) {
+      return;
+    }
     if (shape.size != param.shape_ptrs.size()) {
       throw std::runtime_error(
           "[SetInputShape] Got wrong param shape for input " +

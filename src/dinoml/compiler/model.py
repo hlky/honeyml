@@ -124,6 +124,8 @@ def _check_tensors_contiguous_and_on_gpu(
     tensors: Union[Dict[str, TorchTensor], List[TorchTensor]], name: str
 ):
     def is_bad_tensor(tensor: TorchTensor) -> bool:
+        if tensor is None:
+            return False
         return not tensor.is_contiguous() or not tensor.is_cuda
 
     _check_tensors(tensors, is_bad_tensor, name, "contiguous and on GPU")
@@ -142,6 +144,12 @@ def torch_to_dinoml_data(tensor: TorchTensor) -> DinoMLData:
     """
     Convert a torch Tensor to a DinoMLData.
     """
+    if tensor is None:
+        return DinoMLData(
+            None,
+            [],
+            "float16",
+        )
     return DinoMLData(
         tensor.data_ptr(), list(tensor.size()), torch_dtype_to_string(tensor.dtype)
     )
@@ -259,7 +267,9 @@ class Model:
         self.debug_sorted_graph = None
 
         self._output_name_to_index = self._construct_output_name_to_index_map()
-        self._input_name_to_index = self._construct_input_name_to_index_map()
+        self._input_name_to_index, self._input_name_to_optional = (
+            self._construct_input_name_to_index_map()
+        )
         self._output_ndims = [
             len(self.get_output_maximum_shape(i))
             for i in range(len(self._output_name_to_index))
@@ -313,8 +323,9 @@ class Model:
         return _CFormatDinoMLData(c_pointer, c_shape, c_dtype)
 
     def _convert_params_to_c_format(self, params: List[DinoMLData]):
-        c_params = (_CFormatDinoMLData * len(params))()
-        for i, param in enumerate(params):
+        params_ = [param for param in params if param is not None]
+        c_params = (_CFormatDinoMLData * len(params_))()
+        for i, param in enumerate(params_):
             c_params[i] = self._convert_single_param_to_c_format(param)
         return c_params
 
@@ -345,22 +356,34 @@ class Model:
             c_output_shapes_out,
         )
 
-    def _dict_to_ordered_list(self, params, is_inputs):
+    def _dict_to_ordered_list(self, params: Dict[str, DinoMLData], is_inputs):
         if is_inputs:
             index_map = self._input_name_to_index
+            optional_map = self._input_name_to_optional
         else:
             index_map = self._output_name_to_index
-        if len(params) != len(index_map):
+            optional_map = {}
+        has_required_keys = True
+        has_optional = any(optional_map.values())
+        required_keys = list(index_map.keys())
+        if has_optional and len(params) != len(index_map):
+            required_keys = [
+                key for key in optional_map.keys() if not optional_map[key]
+            ]
+            has_required_keys = all(key in params for key in required_keys)
+        if len(params) != len(index_map) and not has_required_keys:
             raise ValueError(
                 f"Did not get correct number of {'inputs' if is_inputs else 'outputs'} expected {len(index_map)}, got {len(params)}"
             )
 
-        result = [None] * len(index_map)
+        result = [None] * len(required_keys)
         for name, tensor in params.items():
             if name not in index_map:
                 raise ValueError(
                     f"Got unexpected {'input' if is_inputs else 'output'}: {name}"
                 )
+            if tensor is None:
+                continue
 
             result[index_map[name]] = tensor
 
@@ -757,15 +780,21 @@ class Model:
         )
         return (mean, std, self._interpret_tensors_as_shapes(outputs, dinoml_outputs))
 
-    def _get_map_helper(self, n: int, get_name_func) -> Dict[str, int]:
+    def _get_map_helper(
+        self, n: int, get_name_func, get_optional_func: Callable = None
+    ) -> Tuple[Dict[str, int], Dict[str, bool]]:
         result = {}
+        result_optional = {}
         for i in range(n):
             c_name = ctypes.c_char_p()
             c_idx = ctypes.c_size_t(i)
             get_name_func(c_idx, ctypes.byref(c_name))
             name = c_name.value.decode("utf-8")
+            if get_optional_func is not None:
+                optional = get_optional_func(c_idx)
+                result_optional[name] = optional
             result[name] = i
-        return result
+        return result, result_optional
 
     def get_required_memory(self):
         required_memory = ctypes.c_size_t()
@@ -774,14 +803,25 @@ class Model:
         )
         return required_memory.value
 
-    def _construct_input_name_to_index_map(self) -> Dict[str, int]:
+    def _construct_input_name_to_index_map(
+        self,
+    ) -> Tuple[Dict[str, int], Dict[str, bool]]:
         num_inputs = ctypes.c_size_t()
         self.DLL.DinoMLModelContainerGetNumInputs(self.handle, ctypes.byref(num_inputs))
 
         def get_input_name(idx, name):
             return self.DLL.DinoMLModelContainerGetInputName(self.handle, idx, name)
 
-        return self._get_map_helper(num_inputs.value, get_input_name)
+        def get_input_optional(idx):
+            optional = ctypes.c_bool()
+            self.DLL.DinoMLModelContainerGetInputOptional(
+                self.handle, idx, ctypes.byref(optional)
+            )
+            return optional.value
+
+        return self._get_map_helper(
+            num_inputs.value, get_input_name, get_input_optional
+        )
 
     def get_input_name_to_index_map(self) -> Dict[str, int]:
         """
@@ -802,7 +842,7 @@ class Model:
         def get_output_name(idx, name):
             return self.DLL.DinoMLModelContainerGetOutputName(self.handle, idx, name)
 
-        return self._get_map_helper(num_outputs.value, get_output_name)
+        return self._get_map_helper(num_outputs.value, get_output_name)[0]
 
     def get_output_name_to_index_map(self) -> Dict[str, int]:
         """
