@@ -6,7 +6,7 @@ builder = T2IAdapterBuilder(
     dtype="float16",
     device="cuda",
     build_kwargs={
-        "batch_size": (1, 2),
+        "batch_size": 1,
         "resolution": (8, 512),
     },
     check_outputs=False,
