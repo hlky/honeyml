@@ -5,6 +5,7 @@ from typing import Optional
 import diffusers.models.autoencoders
 import diffusers.models.transformers
 import diffusers.models.unets
+import diffusers.models
 import transformers.models
 import requests
 
@@ -120,6 +121,10 @@ _CLASS_MAPPING = {
             dinoml.modeling.transformers.t5.configuration_t5.T5Config,
         ),
         "pt": transformers.models.t5.modeling_t5.T5EncoderModel,
+    },
+    "T2IAdapter": {
+        "dinoml": dinoml.modeling.diffusers.adapter.T2IAdapter,
+        "pt": diffusers.models.adapter.T2IAdapter,
     },
 }
 
