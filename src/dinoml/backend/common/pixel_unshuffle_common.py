@@ -55,6 +55,9 @@ void {{function_name}}(
     {{index_type}} total_elements = (*batch) * (*in_h) * (*in_w) * (*in_ch);
     {{index_type}} threads_per_block = 256;
     {{index_type}} num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
+    *out_h = (*in_h) / r;
+    *out_w = (*in_w) / r;
+    *out_ch = (*in_ch) * (r * r);
 
     pixel_unshuffle_kernel<<<num_blocks, threads_per_block, 0, stream>>>(
         static_cast<const {{elem_input_type}}*>(in_ptr),

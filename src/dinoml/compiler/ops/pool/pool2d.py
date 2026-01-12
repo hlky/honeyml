@@ -46,8 +46,8 @@ SHAPE_FUNC_TEMPLATE = jinja2.Template(
 {{indent}}{{dtype}}PH = {{pad}};
 {{indent}}{{dtype}}PW = {{pad}};
 {{indent}}{{dtype}}NO = NI;
-{{indent}}{{dtype}}HO = (HI + PH + PH - KH) {{div}} SH + 1;
-{{indent}}{{dtype}}WO = (WI + PW + PW - KW) {{div}} SW + 1;
+{{indent}}{{dtype}}HO = ((HI + PH + PH - KH) {{div}} SH + 1;
+{{indent}}{{dtype}}WO = ((WI + PW + PW - KW) {{div}} SW + 1;
 """
 )
 
@@ -71,7 +71,9 @@ EXEC_COND_TEMPLATE = jinja2.Template(
 class pool2d_base(Operator):
     """Base class of pool2d."""
 
-    def __init__(self, stride, pad, kernel_size, reduce_func) -> None:
+    def __init__(
+        self, stride, pad, kernel_size, reduce_func, ceil_mode: bool = False
+    ) -> None:
         """
         Parameters
         ----------
@@ -88,15 +90,22 @@ class pool2d_base(Operator):
         self._attrs["kernel_size"] = kernel_size
         self._attrs["KH"] = kernel_size
         self._attrs["KW"] = kernel_size
+        self._attrs["ceil_mode"] = ceil_mode
         self.shape_eval_template = SHAPE_FUNC_TEMPLATE
         self.shape_save_template = SHAPE_ASSIGNMENT_TEMPLATE
         self.exec_cond_template = EXEC_COND_TEMPLATE
 
     def _infer_shape(self, x: List[int]):
+        ceil_mode = self._attrs.get("ceil_mode", False)
+        if ceil_mode:
+            # expands to: (X + SH - 1) // SH
+            div = "+ SH - 1) //"
+        else:
+            div = ") //"
         eval_func = self.shape_eval_template.render(
             indent="",
             dtype="",
-            div="//",
+            div=div,
             stride=self._attrs["stride"],
             pad=self._attrs["pad"],
             x_dim0=x[0],

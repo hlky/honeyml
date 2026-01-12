@@ -19,7 +19,6 @@ Avg_pool2d op.
 from dinoml.compiler.ops.pool.pool2d import pool2d_base
 
 
-# pylint: disable=C0103
 class avg_pool2d(pool2d_base):
     r"""Applies a 2D average pooling over an input signal composed of several input
     planes.
@@ -49,6 +48,6 @@ class avg_pool2d(pool2d_base):
         Tensor [N, H_out, W_out, C].
     """
 
-    def __init__(self, kernel_size, stride, pad) -> None:
-        super().__init__(stride, pad, kernel_size, "avg")
+    def __init__(self, kernel_size, stride, pad, ceil_mode) -> None:
+        super().__init__(stride, pad, kernel_size, "avg", ceil_mode=ceil_mode)
         self._attrs["op"] = "avg_pool2d"

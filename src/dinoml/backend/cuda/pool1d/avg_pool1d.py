@@ -23,6 +23,7 @@ EXEC_TEMPLATE = jinja2.Template(
 SRC_TEMPLATE = jinja2.Template(
     """
 #include <dinoml/device.h>
+#include <ops/avg_pool_1d.h>
 
 void {{function_name}} (
     const void* in_ptr,

@@ -30,7 +30,7 @@ void {{func_name}}(
   int64_t*,
   int64_t*,
   int64_t*,
-  cudaStream_t
+  dinoml::DeviceStream
 );
 """
 )

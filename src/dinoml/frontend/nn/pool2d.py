@@ -81,9 +81,9 @@ class AvgPool2d(Module):
         padding: implicit zero padding to be added on both sides
     """
 
-    def __init__(self, kernel_size, stride, padding):
+    def __init__(self, kernel_size, stride, padding: int = 0, ceil_mode: bool = False):
         super().__init__()
-        self.op = avg_pool2d(kernel_size, stride, padding)
+        self.op = avg_pool2d(kernel_size, stride, padding, ceil_mode=ceil_mode)
 
     def forward(self, *args):
         r"""Applies AvgPool2d on the input."""

@@ -1,8 +1,9 @@
-from typing import List
+from typing import Annotated, List
 
 from dinoml.compiler import ops
 
 from dinoml.frontend import nn, Tensor
+from dinoml.utils.build_utils import Shape
 
 
 class T2IAdapter(nn.Module):
@@ -61,7 +62,18 @@ class T2IAdapter(nn.Module):
                 "'full_adapter_xl' or 'light_adapter'."
             )
 
-    def forward(self, x: Tensor) -> List[Tensor]:
+    def forward(
+        self,
+        x: Annotated[
+            Tensor,
+            (
+                Shape(name="batch_size"),
+                Shape(name="height"),
+                Shape(name="width"),
+                Shape(name="channels", config_name="in_channels"),
+            ),
+        ],
+    ) -> List[Tensor]:
         r"""
         This function processes the input tensor `x` through the adapter model and returns a list of feature tensors,
         each representing information extracted at a different scale from the input. The length of the list is
@@ -239,7 +251,6 @@ class AdapterBlock(nn.Module):
 
         self.downsample = None
         if down:
-            # ops TODO: AvgPool2d ceil_mode
             self.downsample = nn.AvgPool2d(kernel_size=2, stride=2, ceil_mode=True)
 
         self.in_conv = None
@@ -391,7 +402,6 @@ class LightAdapterBlock(nn.Module):
 
         self.downsample = None
         if down:
-            # ops TODO: AvgPool2d ceil_mode
             self.downsample = nn.AvgPool2d(kernel_size=2, stride=2, ceil_mode=True)
 
         self.in_conv = nn.Conv2d(in_channels, mid_channels, kernel_size=1, dtype=dtype)

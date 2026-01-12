@@ -26,7 +26,7 @@ class Build:
 
     model_forward: str = "forward"
     model_output: Optional[str] = "sample"
-    model_output_names: List[str] = []
+    model_output_names: Union[List[str], str] = []
 
     map_function: Callable = ()
     map_function_skip_keys: Tuple = ()
@@ -133,9 +133,11 @@ class Build:
         if isinstance(output_tensors, Tensor):
             output_tensors = [output_tensors]
         for idx, output_tensor in enumerate(output_tensors):
-            output_tensors[idx] = mark_output(
-                output_tensor, self.model_output_names[idx]
-            )
+            if isinstance(self.model_output_names, list):
+                model_output_name = self.model_output_names[idx]
+            else:
+                model_output_name = self.model_output_names.format(idx=idx)
+            output_tensors[idx] = mark_output(output_tensor, model_output_name)
         self.output_tensors = output_tensors
 
     def create_constants(self):
