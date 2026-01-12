@@ -367,6 +367,7 @@ class ModelContainerGenerator:
         self.function_state = []
         self.set_up_constants = []
         self.set_up_param_names = []
+        self.set_up_param_optional = []
         self.set_up_param_dtypes = []
         self.set_up_bound_constant_dtypes = []
         self.set_up_bound_constant_size = []
@@ -462,6 +463,10 @@ class ModelContainerGenerator:
         )
         name = tensor._attrs["name"]
         self.set_up_param_names.append(set_value(f"param_names_[{idx}]", f'"{name}"'))
+        param_optional = str(tensor._attrs["is_optional"]).lower()
+        self.set_up_param_optional.append(
+            set_value(f"param_optional_[{idx}]", f"{param_optional}")
+        )
         self.set_up_param_dtypes.append(
             set_value(
                 f"param_dtypes_[{idx}]",
@@ -1117,6 +1122,7 @@ class ModelContainerGenerator:
             set_up_bound_constant_size="\n".join(self.set_up_bound_constant_size),
             set_up_output_shapes="\n".join(self.set_up_output_shapes),
             set_up_param_names="\n".join(self.set_up_param_names),
+            set_up_param_optional="\n".join(self.set_up_param_optional),
             num_constants=self.num_constants,
             num_bound_constants=self.bound_constant_idx,
             num_unbound_constants=self.unbound_constant_idx,

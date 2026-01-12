@@ -545,6 +545,12 @@ const char* ModelContainer::InputName(size_t input_idx) const {
   return param_names_[input_idx];
 }
 
+bool ModelContainer::InputOptional(size_t input_idx) const {
+  CHECK(input_idx < num_inputs_);
+  CHECK_VECTOR_ACCESS(param_optional_, input_idx)
+  return param_optional_[input_idx];
+}
+
 DinoMLParamShape ModelContainer::MaxInputShape(size_t input_idx) const {
   CHECK(input_idx < num_inputs_);
   CHECK_VECTOR_ACCESS(max_param_shapes_, input_idx)
@@ -761,7 +767,21 @@ void ModelContainer::PrepareForRun(
     size_t num_inputs,
     DinoMLData* outputs,
     size_t num_outputs) {
-  if (num_inputs != num_inputs_) {
+  int num_optional_inputs = 0;
+  for (size_t i = 0; i < num_inputs_; ++i) {
+    if (InputOptional(i)) {
+      num_optional_inputs += 1;
+    }
+  }
+  bool invalid_inputs = false;
+  if (num_optional_inputs > 0 &&
+      num_inputs + num_optional_inputs != num_inputs_ &&
+      num_inputs != num_inputs_) {
+    invalid_inputs = true;
+  } else if (num_optional_inputs == 0 && num_inputs != num_inputs_) {
+    invalid_inputs = true;
+  }
+  if (invalid_inputs) {
     auto msg = "Got wrong number of inputs; expected " +
         std::to_string(num_inputs_) + ", got " + std::to_string(num_inputs);
     throw std::runtime_error(std::move(msg));
@@ -777,7 +797,7 @@ void ModelContainer::PrepareForRun(
   if (num_outputs > 0 && outputs == nullptr) {
     throw std::runtime_error("outputs cannot be null");
   }
-  for (size_t i = 0; i < num_inputs_; ++i) {
+  for (size_t i = 0; i < num_inputs; ++i) {
     auto& input = inputs[i];
     if (input.ptr != nullptr) {
       ValidateParamDtype(input.dtype, i);
