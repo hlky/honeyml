@@ -161,6 +161,7 @@ class ModelContainer : ModelContainerBase {
       size_t num_bound_constants,
       size_t num_unbound_constants,
       size_t params_size,
+      size_t blob_size,
       size_t workspace_size,
       DinoMLAllocator& allocator);
 

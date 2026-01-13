@@ -959,17 +959,17 @@ class UNet2DConditionModel(nn.Module):
         sample: Annotated[
             Tensor,
             (
-                Shape(name="batch_size", step=1),
-                Shape(name="height", dim_operations=(DimDiv(8),), step=8),
-                Shape(name="width", dim_operations=(DimDiv(8),), step=8),
+                Shape(name="batch_size"),
+                Shape(name="height", dim_operations=(DimDiv(8),)),
+                Shape(name="width", dim_operations=(DimDiv(8),)),
                 Shape(name="channels", config_name="in_channels"),
             ),
         ],
-        timestep: Annotated[Tensor, Shape(name="batch_size", step=1)],
+        timestep: Annotated[Tensor, Shape(name="batch_size")],
         encoder_hidden_states: Annotated[
             Tensor,
             (
-                Shape(name="batch_size", step=1),
+                Shape(name="batch_size"),
                 Shape(name="seq_len"),
                 Shape(name="channels", config_name="cross_attention_dim"),
             ),
@@ -982,11 +982,11 @@ class UNet2DConditionModel(nn.Module):
             Dict[str, Tensor],
             {
                 "time_ids": (
-                    Shape(name="batch_size", step=1),
+                    Shape(name="batch_size"),
                     Shape(name="num_add_time_ids", config_name="num_add_time_ids"),
                 ),
                 "text_embeds": (
-                    Shape(name="batch_size", step=1),
+                    Shape(name="batch_size"),
                     Shape(
                         name="channels",
                         config_name="projection_class_embeddings_input_dim",

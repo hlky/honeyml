@@ -330,11 +330,14 @@ def _construct_output_name_to_index_map(
 class ModelContainerGenerator:
     def __init__(
         self,
-        buckets,
-        input_conditions,
+        max_blob_size: int,
+        max_constant_blob_size: int,
+        workspace: Workspace,
         constants_data_file: Optional[io.BytesIO],
         graph: List[Tensor],
         output_tensors: List[Tensor],
+        buckets = None,
+        input_conditions = None,
         model_name: str = MODEL_NAME,
         additional_unbound_constants: Optional[List[Tensor]] = None,
         debug_settings: Optional[DinoMLDebugSettings] = None,
@@ -397,9 +400,14 @@ class ModelContainerGenerator:
         self.graph = graph
 
         self.num_inputs, self.num_outputs = count_inputs_outputs(graph)
-        self.max_blob_size = list(buckets.values())[0][0]
-        self.max_constant_blob_size = list(buckets.values())[0][1]
-        self.workspace = list(buckets.values())[0][2]
+        if buckets is None:
+            self.max_blob_size = max_blob_size
+            self.max_constant_blob_size = max_constant_blob_size
+            self.workspace = workspace
+        else:
+            self.max_blob_size = list(buckets.values())[0][0]
+            self.max_constant_blob_size = list(buckets.values())[0][1]
+            self.workspace = list(buckets.values())[0][2]
 
         self.buckets = buckets
         self.input_conditions = input_conditions
@@ -638,7 +646,9 @@ class ModelContainerGenerator:
 
         return " && ".join(conds)
 
-    def _codegen_bucket_conditions(self, name: str):        
+    def _codegen_bucket_conditions(self, name: str):
+        if self.buckets is None:
+            return
         def bucket_str_to_tuple(bucket_str):
             return tuple([int(b) for b in bucket_str[1:-1].replace(" ", "").split(",")])
 
@@ -948,13 +958,19 @@ class ModelContainerGenerator:
         elif not is_view and not isinstance(node, IntVarTensor):
             # Normal, internal tensor that is not a view: point it to the
             # internal blob of memory
-            for bucket_id, offset in node._attrs["offset"].items():
-                assert offset >= 0, (
-                   f"Non-parameter node '{name}' must have non-negative offset"
+            if self.buckets is None:
+                assert node._attrs["offset"] >= 0, (
+                    f"Non-parameter node '{name}' must have non-negative offset"
                 )
-                if bucket_id not in self.blob_tensor_slice:
-                    self.blob_tensor_slice[bucket_id] = []
-                self.blob_tensor_slice[bucket_id].append(self._tensor_bucket_slice_func(node, offset, "blob_ptr"))
+                self.tensor_slice.append(self._tensor_slice_func(node, "blob_ptr"))
+            else:
+                for bucket_id, offset in node._attrs["offset"].items():
+                    assert offset >= 0, (
+                    f"Non-parameter node '{name}' must have non-negative offset"
+                    )
+                    if bucket_id not in self.blob_tensor_slice:
+                        self.blob_tensor_slice[bucket_id] = []
+                    self.blob_tensor_slice[bucket_id].append(self._tensor_bucket_slice_func(node, offset, "blob_ptr"))
         elif not isinstance(node, IntVarTensor):
             # Normal view, point it to the same memory as whatever it
             # aliases
@@ -1256,10 +1272,13 @@ _DEBUG_SETTINGS = DinoMLDebugSettings()
 
 def gen_library_src(  # noqa: C901
     sorted_graph: List[Tensor],
-    buckets,
-    input_conditions,
+    max_blob_size: int,
+    max_constant_blob_size: int,
+    workspace: Workspace,
     workdir: str,
     output_tensors: List[Tensor],
+    buckets = None,
+    input_conditions = None,
     model_name: str = "",
     debug_settings: DinoMLDebugSettings = _DEBUG_SETTINGS,
     additional_unbound_constants: Optional[List[Tensor]] = None,
@@ -1297,11 +1316,14 @@ def gen_library_src(  # noqa: C901
     constants_data_file = open(constants_fname, "wb")
 
     model_container_generator = ModelContainerGenerator(
-        buckets,
-        input_conditions,
+        max_blob_size,
+        max_constant_blob_size,
+        workspace,
         constants_data_file,
         sorted_graph,
         output_tensors,
+        buckets=buckets,
+        input_conditions=input_conditions,
         additional_unbound_constants=additional_unbound_constants,
         debug_settings=debug_settings,
         model_dir=prefix,

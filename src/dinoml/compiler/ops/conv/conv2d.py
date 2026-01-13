@@ -482,7 +482,6 @@ class conv2d(Operator):
         """
         target = backend.target.Target.current()
         dummy_profiling = target.use_dummy_profiling_results()
-        print(f"{dummy_profiling=}")
         force_cache = environ.force_profiler_cache()
         if dummy_profiling:
             return False

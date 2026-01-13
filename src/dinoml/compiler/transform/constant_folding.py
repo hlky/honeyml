@@ -29,8 +29,9 @@ _LOGGER = logging.getLogger(__name__)
 
 def _create_dummy_constant_folder():
     model_container_generator = backend.codegen.ModelContainerGenerator(
-        buckets={'': (0, 0, Workspace(0, 0))},
-        input_conditions=[],
+        max_blob_size=0,
+        max_constant_blob_size=0,
+        workspace=Workspace(0, 0),
         constants_data_file=None,
         graph=[],
         output_tensors=[],

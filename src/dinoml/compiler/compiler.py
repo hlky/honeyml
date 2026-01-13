@@ -309,6 +309,9 @@ def compile_model(
             )
 
             (
+                max_blob,
+                max_constant_blob,
+                workspace,
                 bucket_ids,
                 input_conditions,
             ) = compiler.transform.memory_planning(graph)
@@ -333,12 +336,15 @@ def compile_model(
             ]
 
             main_pairs = backend.codegen.gen_library_src(
-                graph,
-                bucket_ids,
-                input_conditions,
-                workdir,
-                output_tensors,
-                test_name,
+                sorted_graph=graph,
+                max_blob_size=max_blob,
+                max_constant_blob_size=max_constant_blob,
+                workspace=workspace,
+                workdir=workdir,
+                output_tensors=output_tensors,
+                buckets=bucket_ids,
+                input_conditions=input_conditions,
+                model_name=test_name,
                 additional_unbound_constants=constant_folding_inputs,
                 debug_settings=debug_settings,
             )
@@ -362,10 +368,10 @@ def compile_model(
                     return
             else:
                 return
-    # total_usage = max_blob + max_constant_blob + workspace.total_size()
+    total_usage = max_blob + max_constant_blob + workspace.total_size()
     module = Model(
         os.path.join(workdir, test_name, dll_name), num_runtimes, allocator_kind
     )
     module.debug_sorted_graph = graph
-    # module.total_usage = total_usage
+    module.total_usage = total_usage
     return module

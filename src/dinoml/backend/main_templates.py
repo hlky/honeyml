@@ -69,6 +69,7 @@ class {{model_name}} : public ModelBase<{{model_name}}> {
 
   public:
     {{model_name}}(
+        size_t blob_size,
         size_t workspace_size,
         size_t unique_workspace_size,
         size_t num_inputs,
@@ -79,6 +80,7 @@ class {{model_name}} : public ModelBase<{{model_name}}> {
         DinoMLWorkspaceAllocationMode workspace_type =
           DinoMLWorkspaceAllocationMode::kEager)
         : ModelBase(
+            blob_size,
             workspace_size,
             unique_workspace_size,
             num_inputs,
@@ -124,7 +126,14 @@ class {{model_name}} : public ModelBase<{{model_name}}> {
     }
 
     void SetUpWorkspace() {
-    {% if blob_tensor_slice|length > 0 %}
+    {% if tensor_slice|length > 0 %}
+      if (!blob_) {
+        blob_ = RAII_DeviceMalloc(blob_size_, allocator_);
+      }
+      auto* blob_ptr = static_cast<uint8_t*>(blob_.get());
+      uint8_t* constants = constants_;
+      {{ tensor_slice }}
+    {% elif blob_tensor_slice|length > 0 %}
 
       uint8_t* constants = constants_;
 
@@ -329,6 +338,7 @@ class {{model_name}} : public ModelBase<{{model_name}}> {
       uint8_t* constants
     ) {
       return std::make_unique<{{model_name}}>(
+          {{ blob_size }},
           {{ workspace_size }} * (1 + {{n_additional_streams}}),
           {{ unique_workspace_size }} * (1 + {{n_additional_streams}}),
           {{ num_inputs }},
@@ -432,7 +442,7 @@ ModelContainerBase::ModelContainerBase(
 
 ModelContainer* CreateModelContainer(size_t num_runtimes, DinoMLAllocator& allocator) {
   // num_runtimes, num_inputs, num_outputs, num_bound_constants, num_unbound_constants, params_size, allocator
-  return new ModelContainer(num_runtimes, {{num_inputs}}, {{num_outputs}}, {{num_bound_constants}}, {{num_unbound_constants}}, {{param_size}}, {{ workspace_size }} * (1 + {{n_additional_streams}}), allocator);
+  return new ModelContainer(num_runtimes, {{num_inputs}}, {{num_outputs}}, {{num_bound_constants}}, {{num_unbound_constants}}, {{param_size}}, {{ blob_size }}, {{ workspace_size }} * (1 + {{n_additional_streams}}), allocator);
 }
 } // namespace dinoml
 """

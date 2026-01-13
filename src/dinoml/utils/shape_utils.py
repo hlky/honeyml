@@ -281,5 +281,8 @@ def get_shape(x):
         )
         name = dim._attrs["name"]
         buckets = dim._attrs.get("buckets", None)
-        shape.append({"name": name, "value": value, "buckets": buckets})
+        values = {"name": name, "value": value}
+        if buckets is not None:
+            values["buckets"] = buckets
+        shape.append(values)
     return shape

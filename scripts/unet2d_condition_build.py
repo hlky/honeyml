@@ -14,6 +14,5 @@ builder = UNet2DConditionBuilder(
         "subfolder": "unet",
         "variant": "fp16",
     },
-    store_constants_in_module=False
 )
 builder()
