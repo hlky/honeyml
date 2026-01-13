@@ -127,9 +127,6 @@ class {{model_name}} : public ModelBase<{{model_name}}> {
 
     void SetUpWorkspace() {
     {% if tensor_slice|length > 0 %}
-      if (!blob_) {
-        blob_ = RAII_DeviceMalloc(blob_size_, allocator_);
-      }
       auto* blob_ptr = static_cast<uint8_t*>(blob_.get());
       uint8_t* constants = constants_;
       {{ tensor_slice }}

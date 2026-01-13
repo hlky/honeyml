@@ -348,10 +348,7 @@ def plan_memory_per_bucket(sorted_graph):
         sorted_ops.extend(node.src_ops())
     buckets, input_conditions = enumerate_buckets(sorted_ops)
     if buckets is None:
-        tensor_records = _make_tensor_usage_records(sorted_ops)
-        max_blob, const_offset, workspace = _greedy_by_size_memory_planning(
-            sorted_graph, tensor_records
-        )
+        max_blob, const_offset, workspace = greedy_by_size_memory_planning(sorted_graph)
         return max_blob, const_offset, workspace, None, None
     plans = {}
     _max_blob = 0

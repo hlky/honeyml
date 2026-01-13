@@ -113,7 +113,10 @@ class ModelBase {
     auto* model = static_cast<ModelType*>(this);
     if (workspace_type_ == DinoMLWorkspaceAllocationMode::kLazy ||
         workspace_type_ == DinoMLWorkspaceAllocationMode::kFau) {
-      model->SetUpWorkspace();
+      if (!blob_) {
+        blob_ = RAII_DeviceMalloc(blob_size_, allocator_);
+        model->SetUpWorkspace();
+      }
       if (!workspace_) {
         workspace_ = RAII_DeviceMalloc(workspace_size_, allocator_);
       }
