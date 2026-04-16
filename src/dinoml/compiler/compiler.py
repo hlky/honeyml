@@ -312,6 +312,8 @@ def compile_model(
                 max_blob,
                 max_constant_blob,
                 workspace,
+                bucket_ids,
+                input_conditions,
             ) = compiler.transform.memory_planning(graph)
             _verify_outputs_still_in_graph(graph, output_tensors)
             _mark_isolated_int_vars(graph)
@@ -334,13 +336,15 @@ def compile_model(
             ]
 
             main_pairs = backend.codegen.gen_library_src(
-                graph,
-                max_blob,
-                max_constant_blob,
-                workspace,
-                workdir,
-                output_tensors,
-                test_name,
+                sorted_graph=graph,
+                max_blob_size=max_blob,
+                max_constant_blob_size=max_constant_blob,
+                workspace=workspace,
+                workdir=workdir,
+                output_tensors=output_tensors,
+                buckets=bucket_ids,
+                input_conditions=input_conditions,
+                model_name=test_name,
                 additional_unbound_constants=constant_folding_inputs,
                 debug_settings=debug_settings,
             )

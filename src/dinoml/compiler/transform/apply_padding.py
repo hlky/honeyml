@@ -21,7 +21,7 @@ from typing import Callable, Dict, List
 
 from dinoml.compiler import ops
 
-from dinoml.compiler.base import _create_host_zero_tensor, IntImm, Operator, Tensor
+from dinoml.compiler.base import IntVar, _create_host_zero_tensor, IntImm, Operator, Tensor
 from dinoml.compiler.ops.gemm_universal.gemm_common import DimInfo, gemm, Source
 from dinoml.compiler.transform import transform_utils
 
@@ -168,15 +168,19 @@ def apply_padding(sorted_graph: List[Tensor], workdir: str = None) -> List[Tenso
                     # No alignment var is extracted. Skip padding.
                     continue
                 alignment_dim = tensor._attrs["shape"][-1]
-                if not isinstance(alignment_dim, IntImm):
-                    print("WARNING Gemm does not support dynamic alignment dimensions ")
-                    continue
-                    raise NotImplementedError(
-                        "Gemm does not support dynamic alignment dimensions "
-                        "(i.e. alignment==1)! Gemm: {}".format(op)
-                    )
+                if isinstance(alignment_dim, IntVar):
+                    if alignment_dim.lower_bound() != alignment_dim.upper_bound():
+                        print("WARNING Gemm does not support dynamic alignment dimensions ")
+                        continue
+                        raise NotImplementedError(
+                            "Gemm does not support dynamic alignment dimensions "
+                            "(i.e. alignment==1)! Gemm: {}".format(op)
+                        )
+                    alignment_dim_value = alignment_dim.upper_bound()
+                else:
+                    alignment_dim_value = alignment_dim.value()
                 padding_length = get_padding_length(
-                    alignment_dim.value(), tensor.dtype()
+                    alignment_dim_value, tensor.dtype()
                 )
                 if padding_length > 0:
                     alignment_var_to_padding_length[alignment_var] = padding_length

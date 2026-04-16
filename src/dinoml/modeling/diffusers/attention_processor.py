@@ -7,7 +7,6 @@ from dinoml.utils.shape_utils import get_shape
 
 from .normalization import FP32LayerNorm, RMSNorm
 
-
 class Attention(nn.Module):
     r"""
     A cross attention layer.
@@ -544,7 +543,7 @@ class AttnProcessor2_0:
         if input_ndim == 4:
             batch_size, height, width, channel = ops.size()(hidden_states)
             hidden_states = ops.reshape()(
-                hidden_states, [batch_size, height * width, channel]
+                hidden_states, [batch_size, height._attrs["int_var"] * width._attrs["int_var"], channel]
             )
 
         batch_size, sequence_length, _ = (

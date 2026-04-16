@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import copy
 
+import itertools
 import math
 
 from abc import ABC, abstractmethod
@@ -109,6 +110,8 @@ class IntVar(Node):
         values: List[int],
         name: str = None,
         symbolic_value: Optional[sympy.Basic] = None,
+        bucket_step: int = None,
+        buckets: List[int] = None,
     ) -> None:
         """Initializes an IntVar.
 
@@ -155,6 +158,14 @@ class IntVar(Node):
                 symbolic_value = symbolic.create_new_symbol(name, values)
                 symbolic.store_intvar(symbolic_value.name, self)
             self._attrs["symbolic_value"] = symbolic_value
+        self._attrs["buckets"] = buckets
+        if bucket_step is not None and not buckets:
+            if bucket_step == 1 and self._attrs["values"][0] == self._attrs["values"][1]:
+                self._attrs["buckets"] = [self._attrs["values"][0]]
+            else:
+                self._attrs["buckets"] = list(x for x in range(self.lower_bound(), self.upper_bound() + bucket_step, bucket_step) if x <= self.upper_bound())
+                if self._attrs["buckets"][0] == 0:
+                    self._attrs["buckets"][0] = 1
 
     def __str__(self) -> str:
         return pformat(self._attrs, indent=2)
@@ -180,9 +191,15 @@ class IntVar(Node):
         if isinstance(other, IntVar):
             other_values = other._attrs["values"]
             new_sym = new_sym + other._attrs["symbolic_value"]
+            exist_buckets = None
+            if self._attrs.get("buckets", None):
+                exist_buckets = self._attrs["buckets"]
+            elif other._attrs.get("buckets", None):
+                exist_buckets = other._attrs["buckets"]
         elif isinstance(other, Number):
             other_values = [other]
             new_sym = new_sym + other
+            exist_buckets = self._attrs.get("buckets", None)
         else:
             raise NotImplementedError(f"Unable to do addition on {self} and {other}")
 
@@ -193,7 +210,15 @@ class IntVar(Node):
         if new_values[0] == new_values[1]:
             return IntImm(new_values[0])
 
-        return IntVar(values=new_values, symbolic_value=new_sym)
+        if exist_buckets is not None:
+            num_buckets = len(exist_buckets)
+
+            bucket_step = (new_values[-1] - new_values[0]) // (num_buckets - 1)
+        else:
+            bucket_step = None
+
+
+        return IntVar(values=new_values, symbolic_value=new_sym, bucket_step=bucket_step)
 
     def __radd__(self, other: Union[Any, IntVar]) -> IntVar:
         return self + other
@@ -204,9 +229,15 @@ class IntVar(Node):
         if isinstance(other, IntVar):
             other_values = other._attrs["values"]
             new_sym = new_sym - other._attrs["symbolic_value"]
+            exist_buckets = None
+            if self._attrs.get("buckets", None):
+                exist_buckets = self._attrs["buckets"]
+            elif other._attrs.get("buckets", None):
+                exist_buckets = other._attrs["buckets"]
         elif isinstance(other, Number):
             other_values = [other]
             new_sym = new_sym - other
+            exist_buckets = self._attrs.get("buckets", None)
         else:
             raise NotImplementedError(f"Unable to do subtraction on {self} and {other}")
 
@@ -217,7 +248,14 @@ class IntVar(Node):
         if new_values[0] == new_values[1]:
             return IntImm(new_values[0])
 
-        return IntVar(values=new_values, symbolic_value=new_sym)
+        if exist_buckets is not None:
+            num_buckets = len(exist_buckets)
+
+            bucket_step = (new_values[-1] - new_values[0]) // (num_buckets - 1)
+        else:
+            bucket_step = None
+
+        return IntVar(values=new_values, symbolic_value=new_sym, bucket_step=bucket_step)
 
     def __rsub__(self, other: Union[Any, IntVar]) -> IntVar:
         self_values = self._attrs["values"]
@@ -225,9 +263,15 @@ class IntVar(Node):
         if isinstance(other, IntVar):
             other_values = other._attrs["values"]
             new_sym = other._attrs["symbolic_value"] - new_sym
+            exist_buckets = None
+            if self._attrs.get("buckets", None):
+                exist_buckets = self._attrs["buckets"]
+            elif other._attrs.get("buckets", None):
+                exist_buckets = other._attrs["buckets"]
         elif isinstance(other, Number):
             other_values = [other]
             new_sym = other - new_sym
+            exist_buckets = self._attrs.get("buckets", None)
         else:
             raise NotImplementedError(
                 f"Unable to do r-subtraction on {self} and {other}"
@@ -240,7 +284,14 @@ class IntVar(Node):
         if new_values[0] == new_values[1]:
             return IntImm(value=new_values[0])
 
-        return IntVar(values=new_values, symbolic_value=new_sym)
+        if exist_buckets is not None:
+            num_buckets = len(exist_buckets)
+
+            bucket_step = (new_values[-1] - new_values[0]) // (num_buckets - 1)
+        else:
+            bucket_step = None
+
+        return IntVar(values=new_values, symbolic_value=new_sym, bucket_step=bucket_step)
 
     def __mul__(self, other: Union[Any, IntVar]) -> IntVar:
         self_values = self._attrs["values"]
@@ -248,9 +299,17 @@ class IntVar(Node):
         if isinstance(other, IntVar):
             other_values = other._attrs["values"]
             new_sym = new_sym * other._attrs["symbolic_value"]
+            exist_buckets = None
+            if self._attrs.get("buckets", None):
+                exist_buckets = self._attrs["buckets"]
+            elif other._attrs.get("buckets", None):
+                exist_buckets = other._attrs["buckets"]
+            multiply_buckets = True
         elif isinstance(other, Number):
             other_values = [other]
             new_sym = new_sym * other
+            exist_buckets = self._attrs.get("buckets", None)
+            multiply_buckets = False
         else:
             raise NotImplementedError(
                 f"Unable to do multiplication on {self} and {other}"
@@ -262,8 +321,18 @@ class IntVar(Node):
         ]
         if new_values[0] == new_values[1]:
             return IntImm(value=new_values[0])
+        
+        if exist_buckets is not None:
+            if multiply_buckets:
+                num_buckets = len(exist_buckets) * len(exist_buckets)
+            else:
+                num_buckets = len(exist_buckets)
 
-        return IntVar(values=new_values, symbolic_value=new_sym)
+            bucket_step = (new_values[-1] - new_values[0]) // (num_buckets - 1)
+        else:
+            bucket_step = None
+
+        return IntVar(values=new_values, symbolic_value=new_sym, bucket_step=bucket_step)
 
     def __rmul__(self, other: Union[Any, IntVar]) -> IntVar:
         return self * other
@@ -274,9 +343,15 @@ class IntVar(Node):
         if isinstance(other, IntVar):
             other_values = other._attrs["values"]
             new_sym = new_sym / other._attrs["symbolic_value"]
+            exist_buckets = None
+            if self._attrs.get("buckets", None):
+                exist_buckets = self._attrs["buckets"]
+            elif other._attrs.get("buckets", None):
+                exist_buckets = other._attrs["buckets"]
         elif isinstance(other, Number):
             other_values = [other]
             new_sym = new_sym / other
+            exist_buckets = self._attrs.get("buckets", None)
         else:
             raise NotImplementedError(f"Unable to do division on {self} and {other}")
 
@@ -287,7 +362,14 @@ class IntVar(Node):
         if new_values[0] == new_values[1]:
             return IntImm(value=new_values[0])
 
-        return IntVar(values=new_values, symbolic_value=new_sym)
+        if exist_buckets is not None:
+            num_buckets = len(exist_buckets)
+
+            bucket_step = (new_values[-1] - new_values[0]) // (num_buckets - 1)
+        else:
+            bucket_step = None
+
+        return IntVar(values=new_values, symbolic_value=new_sym, bucket_step=bucket_step)
 
     def __rtruediv__(self, other: Union[Any, IntVar]) -> IntVar:
         self_values = self._attrs["values"]
@@ -295,9 +377,15 @@ class IntVar(Node):
         if isinstance(other, IntVar):
             other_values = other._attrs["values"]
             new_sym = other._attrs["symbolic_value"] / new_sym
+            exist_buckets = None
+            if self._attrs.get("buckets", None):
+                exist_buckets = self._attrs["buckets"]
+            elif other._attrs.get("buckets", None):
+                exist_buckets = other._attrs["buckets"]
         elif isinstance(other, Number):
             other_values = [other]
             new_sym = other / new_sym
+            exist_buckets = self._attrs.get("buckets", None)
         else:
             raise NotImplementedError(f"Unable to do r-division on {self} and {other}")
 
@@ -308,7 +396,14 @@ class IntVar(Node):
         if new_values[0] == new_values[1]:
             return IntImm(value=new_values[0])
 
-        return IntVar(values=new_values, symbolic_value=new_sym)
+        if exist_buckets is not None:
+            num_buckets = len(exist_buckets)
+
+            bucket_step = (new_values[-1] - new_values[0]) // (num_buckets - 1)
+        else:
+            bucket_step = None
+
+        return IntVar(values=new_values, symbolic_value=new_sym, bucket_step=bucket_step)
 
     def __mod__(self, other: int):
         if not isinstance(other, int):
@@ -961,9 +1056,40 @@ class Tensor(Node):
             self._attrs["shape"][0], JaggedIntVar
         )
 
-    def size_bytes(self, alignment: int = 1) -> int:
+    def size_bytes(self, alignment: int = 1, bucket_id=None) -> int:
         """Returns actual size (in bytes) of this Tensor."""
-        return get_aligned_size(self._attrs["shape"], self.dtype(), alignment)
+        if bucket_id is None:
+            return get_aligned_size(self._attrs["shape"], self.dtype(), alignment)
+
+        shape = list(self._attrs["shape"])
+        num_bucketed_dims = 0
+        for dim in shape:
+            if dim._attrs.get("buckets", None) is not None:
+                num_bucketed_dims += 1
+
+        is_batch_bucketed = shape and shape[0]._attrs.get("buckets", None) is not None
+
+        len_bucket_key = len(bucket_id)
+
+        if num_bucketed_dims < 1:
+            return get_aligned_size(self._attrs["shape"], self.dtype(), alignment)
+        if len(shape) == 3:
+            bucket_key = (bucket_id[0], ((bucket_id[1] + 1) * (bucket_id[2] + 1)) - 1)
+        else:
+            bucket_key = bucket_id
+        for idx, dim in enumerate(shape[:-1]):
+            buckets = dim._attrs.get("buckets", None)
+            if buckets is None:
+                shape[idx] = dim
+            else:
+                value = buckets[bucket_key[idx]]
+                shape[idx] = IntVar([value, value])
+
+        aligned_size = get_aligned_size(shape, self.dtype(), alignment)
+
+
+        return aligned_size
+
 
     def pseudo_code(self, with_shape=True) -> str:
         name = self._attrs["name"]
