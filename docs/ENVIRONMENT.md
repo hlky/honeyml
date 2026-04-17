@@ -25,6 +25,27 @@
 - `DINOML_NDEBUG`
 - `CUTLASS_DEBUG_TRACE_LEVEL`
 
+## Profiling Notes
+
+The list above only covers the main `DINOML_*` knobs. Profiling behavior also depends on a few additional environment variables used by the target and cache layers.
+
+- `DINOML_FORCE_PROFILER_CACHE=1`
+  Fail on a compile-time profiling cache miss instead of launching profilers.
+- `FORCE_PROFILE=1`
+  Force live profiling even in CI-like environments.
+- `DISABLE_PROFILER_CODEGEN=1`
+  Skip profiler code generation unless `FORCE_PROFILE=1` is set.
+- `CACHE_DIR=/path/to/cache`
+  Override the profile cache directory. By default DinoML uses `~/.dinoml/`.
+- `FLUSH_PROFILE_CACHE=1`
+  Delete the target cache DB before loading it.
+- `CI_FLAG=CIRCLECI`
+  Enables CI-specific target behavior, including dummy profiling results when applicable.
+- `TRICK_CI_ENV=1`
+  Override CI detection and restore normal profiling behavior.
+
+For the full profiling flow, cache behavior, and runtime profiling APIs, see [PROFILING](./PROFILING.md).
+
 ## Target kwargs
 
 - `elementwise_use_fp32_acc`

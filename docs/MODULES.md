@@ -2,7 +2,7 @@
 
 ## Builders
 
-Builders are implemented in `dinoml/builder`.
+Reusable builders are implemented in `src/dinoml/builder/`. The top-level `builder/` directory contains older low-level examples, while `scripts/*_build.py` provide CLI wrappers around the packaged builders.
 
 ### Example
 
@@ -56,9 +56,11 @@ builder = AutoencoderKLDecodeBuilder(
 - `build_kwargs`: This sets the target shape for the module. See [MODELING](./MODELING.md)
 - `model_kwargs`: These are used to get the checkpoint config and weights from the Hub.
 
+`build_kwargs` are resolved against the annotated `forward()` signature of the DinoML model. Tuple values such as `(1, 2)` produce dynamic dimensions, while config-derived values such as `in_channels` come from the downloaded model config.
+
 ## Scripts
 
-Scripts in `scripts/` wrap the Builders for ease-of-use.
+Scripts in `scripts/` wrap the builders for repeatable command-line compilation. Compiled artifacts and intermediate sources are written under `tmp/<model_name>/`.
 
 ### Example
 
