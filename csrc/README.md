@@ -2,6 +2,8 @@
 
 This directory contains all of the C++ sources that are static during DinoML compilation, including the bulk of the runtime implementation.
 
+For the end-to-end compile flow from Python graph construction to generated runtime code, see [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
+
 ## C++ Implementation
 
 ### `Model` v.s. `ModelContainer`
